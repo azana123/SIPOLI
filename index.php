@@ -20,12 +20,12 @@
             <section class="content bg-page rounded-t-2xl py-3 px-4.5  h-screen">
                 <div class="top-content flex justify-between">
                     <h4 class="font-bold text-lg">Jadwal Dokter</h4>
-                    <a href="./users/jadwal-dokter.php" class="action-link text-primary-400 hover:text-primary-700">
+                    <a href="./users/jadwal-pemeriksaan.php" class="action-link text-primary-400 hover:text-primary-700">
                         <span class="font-medium">Lihat Semua</span>
                         <i class="fas fa-chevron-right"></i>
                     </a>
                 </div>
-                <section class="hero bg-base-200 bg-[url(/assets/img/bg-modal-hero.png)] bg-cover bg-no-repeat rounded-2xl my-4.5">
+                <section class="hero bg-base-200 bg-[url(/assets/img/bg-modal-hero.png)] bg-cover bg-no-repeat rounded-2xl my-2.5">
                     <div id="controls-carousel" class="relative w-full" data-carousel="static">
                         <!-- Carousel wrapper -->
                         <div class="relative h-56 overflow-hidden rounded-base md:h-96">
