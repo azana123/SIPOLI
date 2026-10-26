@@ -92,7 +92,6 @@
     --font-weight-bold: 700;
     --tracking-tight: -0.4px;
     --radius-lg: 16px;
-    --radius-xl: 0.75rem;
     --radius-2xl: 1rem;
     --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
     --default-transition-duration: 150ms;
@@ -104,88 +103,27 @@
     --leading-5: 20px;
     --radius-base: 12px;
     --color-body: var(--color-gray-600);
-    --color-body-subtle: var(--color-gray-500);
     --color-heading: var(--color-gray-900);
-    --color-fg-brand-subtle: var(--color-blue-200);
-    --color-fg-brand: var(--color-blue-700);
     --color-fg-brand-strong: var(--color-blue-900);
-    --color-fg-success: var(--color-emerald-700);
-    --color-fg-success-strong: var(--color-emerald-900);
     --color-fg-danger: var(--color-rose-700);
-    --color-fg-danger-strong: var(--color-rose-900);
-    --color-fg-warning-subtle: var(--color-orange-600);
     --color-fg-warning: var(--color-orange-900);
-    --color-fg-yellow: var(--color-yellow-400);
-    --color-fg-disabled: var(--color-gray-400);
-    --color-fg-purple: var(--color-purple-600);
-    --color-fg-cyan: var(--color-cyan-600);
-    --color-fg-indigo: var(--color-indigo-600);
-    --color-fg-pink: var(--color-pink-600);
-    --color-fg-lime: var(--color-lime-600);
     --color-neutral-primary-soft: var(--color-white);
-    --color-neutral-primary: var(--color-white);
     --color-neutral-primary-medium: var(--color-white);
-    --color-neutral-primary-strong: var(--color-white);
-    --color-neutral-secondary-soft: var(--color-gray-50);
-    --color-neutral-secondary: var(--color-gray-50);
     --color-neutral-secondary-medium: var(--color-gray-50);
-    --color-neutral-secondary-strong: var(--color-gray-50);
-    --color-neutral-secondary-strongest: var(--color-gray-50);
-    --color-neutral-tertiary-soft: var(--color-gray-100);
     --color-neutral-tertiary: var(--color-gray-100);
     --color-neutral-tertiary-medium: var(--color-gray-100);
     --color-neutral-quaternary: var(--color-gray-200);
-    --color-neutral-quaternary-medium: var(--color-gray-200);
-    --color-gray: var(--color-gray-300);
     --color-brand-softer: var(--color-blue-50);
-    --color-brand-soft: var(--color-blue-100);
     --color-brand: var(--color-blue-700);
-    --color-brand-medium: var(--color-blue-200);
-    --color-brand-strong: var(--color-blue-800);
-    --color-success-soft: var(--color-emerald-50);
-    --color-success: var(--color-emerald-700);
-    --color-success-medium: var(--color-emerald-100);
-    --color-success-strong: var(--color-emerald-800);
     --color-danger-soft: var(--color-rose-50);
-    --color-danger: var(--color-rose-700);
-    --color-danger-medium: var(--color-rose-100);
-    --color-danger-strong: var(--color-rose-800);
     --color-warning-soft: var(--color-orange-50);
-    --color-warning: var(--color-orange-500);
-    --color-warning-medium: var(--color-orange-100);
-    --color-warning-strong: var(--color-orange-700);
-    --color-dark-soft: var(--color-gray-800);
     --color-dark: var(--color-gray-800);
-    --color-dark-strong: var(--color-gray-900);
-    --color-disabled: var(--color-gray-100);
-    --color-purple: var(--color-purple-500);
-    --color-sky: var(--color-sky-500);
-    --color-teal: var(--color-teal-600);
-    --color-pink: var(--color-pink-600);
-    --color-cyan: var(--color-cyan-500);
-    --color-fuchsia: var(--color-fuchsia-600);
-    --color-indigo: var(--color-indigo-600);
-    --color-orange: var(--color-orange-400);
-    --color-buffer: var(--color-white);
-    --color-buffer-medium: var(--color-white);
-    --color-buffer-strong: var(--color-white);
-    --color-muted: var(--color-gray-50);
-    --color-light-subtle: var(--color-gray-100);
     --color-light: var(--color-gray-100);
-    --color-light-medium: var(--color-gray-100);
-    --color-default-subtle: var(--color-gray-200);
     --color-default: var(--color-gray-200);
     --color-default-medium: var(--color-gray-200);
     --color-default-strong: var(--color-gray-200);
-    --color-success-subtle: var(--color-emerald-200);
-    --color-danger-subtle: var(--color-rose-200);
-    --color-warning-subtle: var(--color-orange-200);
     --color-brand-subtle: var(--color-blue-200);
-    --color-brand-light: var(--color-blue-600);
-    --color-dark-subtle: var(--color-gray-800);
-    --color-dark-backdrop: var(--color-gray-950);
     --color-primary: #0F7485;
-    --color-primary-50: #EBF7F9;
     --color-primary-100: #CEEDF3;
     --color-primary-400: #619FA7;
     --color-primary-500: #0F7485;
@@ -343,9 +281,6 @@
   }
 }
 @layer utilities {
-  .invisible {
-    visibility: hidden;
-  }
   .sr-only {
     position: absolute;
     width: 1px;
@@ -375,14 +310,8 @@
   .top-0 {
     top: 0px;
   }
-  .top-1 {
-    top: var(--spacing);
-  }
   .top-1\/2 {
     top: calc(1 / 2 * 100%);
-  }
-  .left-1 {
-    left: var(--spacing);
   }
   .left-1\/2 {
     left: calc(1 / 2 * 100%);
@@ -395,9 +324,6 @@
   }
   .my-3 {
     margin-block: calc(var(--spacing) * 3);
-  }
-  .my-4 {
-    margin-block: calc(var(--spacing) * 4);
   }
   .my-4\.5 {
     margin-block: calc(var(--spacing) * 4.5);
@@ -414,224 +340,6 @@
   .mt-8 {
     margin-top: calc(var(--spacing) * 8);
   }
-  .apexcharts-canvas .apexcharts-tooltip {
-    background-color: primary !important;
-    color: var(--color-body) !important;
-    border: 0 !important;
-    border-radius: var(--radius-base) !important;
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1) !important;
-  }
-  .dark .apexcharts-canvas .apexcharts-tooltip {
-    background-color: var(--color-neutral-secondary-medium) !important;
-    color: var(--color-body) !important;
-    border-color: var(--color-default) !important;
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1) !important;
-  }
-  .apexcharts-canvas .apexcharts-tooltip .apexcharts-tooltip-title {
-    padding-top: 0.5rem !important;
-    padding-bottom: 0.5rem !important;
-    padding-right: 0.75rem !important;
-    padding-left: 0.75rem !important;
-    margin-bottom: 0.75rem !important;
-    background-color: var(--color-neutral-tertiary-medium) !important;
-    border-color: var(--color-light) !important;
-    font-size: 0.875rem !important;
-    font-weight: 600 !important;
-    color: var(--color-heading) !important;
-  }
-  .dark .apexcharts-canvas .apexcharts-tooltip .apexcharts-tooltip-title {
-    background-color: var(--color-neutral-tertiary-medium) !important;
-    border-color: var(--color-light) !important;
-    color: var(--color-heading) !important;
-  }
-  .apexcharts-canvas .apexcharts-xaxistooltip {
-    color: var(--color-body) !important;
-    padding-top: 0.5rem !important;
-    padding-bottom: 0.5rem !important;
-    padding-right: 0.75rem !important;
-    padding-left: 0.75rem !important;
-    border-color: transparent !important;
-    background-color: white !important;
-    border-radius: 8px !important;
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1) !important;
-  }
-  .dark .apexcharts-canvas .apexcharts-xaxistooltip {
-    color: var(--color-body) !important;
-    background-color: var(--color-neutral-secondary-medium) !important;
-  }
-  .apexcharts-canvas .apexcharts-tooltip .apexcharts-tooltip-text-y-label {
-    color: var(--color-body) !important;
-    font-size: 0.875rem !important;
-  }
-  .dark .apexcharts-canvas .apexcharts-tooltip .apexcharts-tooltip-text-y-label {
-    color: var(--color-body) !important;
-  }
-  .apexcharts-canvas .apexcharts-tooltip .apexcharts-tooltip-text-y-value {
-    color: var(--color-heading);
-    font-size: 0.875rem !important;
-  }
-  .dark .apexcharts-canvas .apexcharts-tooltip .apexcharts-tooltip-text-y-value {
-    color: white !important;
-  }
-  .apexcharts-canvas .apexcharts-xaxistooltip-text {
-    font-weight: 400 !important;
-    font-size: 0.875rem !important;
-  }
-  .apexcharts-canvas .apexcharts-xaxistooltip:after {
-    border-bottom-color: var(--color-neutral-primary-medium) !important;
-  }
-  .apexcharts-canvas .apexcharts-xaxistooltip:before {
-    border-bottom-color: var(--color-neutral-primary-medium) !important;
-  }
-  .apexcharts-canvas .apexcharts-xaxistooltip:after {
-    border-width: 8px !important;
-    margin-left: -8px !important;
-  }
-  .apexcharts-canvas .apexcharts-xaxistooltip:before {
-    border-width: 10px !important;
-    margin-left: -10px !important;
-  }
-  .apexcharts-canvas .apexcharts-tooltip-series-group.apexcharts-active .apexcharts-tooltip-y-group {
-    padding: 0 !important;
-  }
-  .apexcharts-canvas .apexcharts-tooltip-series-group.apexcharts-active {
-    padding-left: 0.75rem !important;
-    padding-right: 0.75rem !important;
-    padding-bottom: 0.75rem !important;
-    background-color: var(--color-neutral-primary-medium) !important;
-    color: var(--color-body) !important;
-  }
-  .dark .apexcharts-canvas .apexcharts-tooltip-series-group.apexcharts-active {
-    background-color: var(--color-neutral-secondary-medium) !important;
-    color: var(--color-body) !important;
-  }
-  .apexcharts-canvas .apexcharts-tooltip-series-group.apexcharts-active:first-of-type {
-    padding-top: 0.75rem !important;
-  }
-  .apexcharts-canvas .apexcharts-legend {
-    padding: 0 !important;
-  }
-  .apexcharts-canvas .apexcharts-legend-text {
-    font-size: 0.75rem !important;
-    font-weight: 500 !important;
-    padding-left: 1.25rem !important;
-    color: var(--color-body) !important;
-  }
-  :is([dir=rtl]) .apexcharts-canvas .apexcharts-legend-text {
-    padding-right: 0.5rem !important;
-  }
-  .apexcharts-canvas .apexcharts-legend-text:not(.apexcharts-inactive-legend):hover {
-    color: var(--color-heading) !important;
-  }
-  .dark .apexcharts-canvas .apexcharts-legend-text {
-    color: var(--color-body) !important;
-  }
-  .dark .apexcharts-canvas .apexcharts-legend-text:not(.apexcharts-inactive-legend):hover {
-    color: heading !important;
-  }
-  .apexcharts-canvas .apexcharts-legend-series {
-    margin-left: 0.5rem !important;
-    margin-right: 0.5rem !important;
-    margin-bottom: 0.25rem !important;
-    display: flex !important;
-    align-items: center !important;
-  }
-  .dark .apexcharts-canvas .apexcharts-datalabels-group .apexcharts-text.apexcharts-datalabel-value {
-    fill: white !important;
-  }
-  .apexcharts-canvas .apexcharts-datalabels-group .apexcharts-text.apexcharts-datalabel-label {
-    fill: var(--color-body) !important;
-    font-size: 1rem,[object Object] !important;
-    font-weight: 400 !important;
-  }
-  .dark .apexcharts-canvas .apexcharts-datalabels-group .apexcharts-text.apexcharts-datalabel-label {
-    fill: var(--color-body) !important;
-  }
-  .apexcharts-canvas .apexcharts-datalabels .apexcharts-text.apexcharts-pie-label {
-    font-size: 0.75rem,[object Object] !important;
-    font-weight: 600 !important;
-    text-shadow: none !important;
-    filter: none !important;
-  }
-  .apexcharts-canvas .apexcharts-legend-series {
-    margin-left: 0.5rem !important;
-    margin-right: 0.5rem !important;
-    margin-bottom: 0.25rem !important;
-    display: flex !important;
-    align-items: center !important;
-  }
-  .apexcharts-canvas .apexcharts-tooltip {
-    background-color: primary !important;
-    color: var(--color-body) !important;
-    border: 0 !important;
-    border-radius: var(--radius-base) !important;
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1) !important;
-  }
-  .dark .apexcharts-canvas .apexcharts-tooltip {
-    background-color: var(--color-neutral-secondary-medium) !important;
-    color: var(--color-body) !important;
-    border-color: var(--color-default) !important;
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1) !important;
-  }
-  .apexcharts-canvas .apexcharts-tooltip .apexcharts-tooltip-title {
-    padding-top: 0.5rem !important;
-    padding-bottom: 0.5rem !important;
-    padding-right: 0.75rem !important;
-    padding-left: 0.75rem !important;
-    margin-bottom: 0.75rem !important;
-    background-color: var(--color-neutral-tertiary-medium) !important;
-    border-color: var(--color-light) !important;
-    font-size: 0.875rem !important;
-    font-weight: 600 !important;
-    color: var(--color-heading) !important;
-  }
-  .dark .apexcharts-canvas .apexcharts-tooltip .apexcharts-tooltip-title {
-    background-color: var(--color-neutral-tertiary-medium) !important;
-    border-color: var(--color-light) !important;
-    color: var(--color-heading) !important;
-  }
-  .apexcharts-canvas .apexcharts-tooltip .apexcharts-tooltip-text-y-label {
-    color: var(--color-body) !important;
-    font-size: 0.875rem !important;
-  }
-  .dark .apexcharts-canvas .apexcharts-tooltip .apexcharts-tooltip-text-y-label {
-    color: var(--color-body) !important;
-  }
-  .apexcharts-canvas .apexcharts-tooltip .apexcharts-tooltip-text-y-value {
-    color: var(--color-heading);
-    font-size: 0.875rem !important;
-  }
-  :is([dir=rtl]) .apexcharts-tooltip .apexcharts-tooltip-marker {
-    margin-right: 0px !important;
-    margin-left: 0.375rem !important;
-  }
-  .dark .apexcharts-canvas .apexcharts-tooltip .apexcharts-tooltip-text-y-value {
-    color: white !important;
-  }
-  :is([dir=rtl]) .apexcharts-tooltip .apexcharts-tooltip-marker {
-    margin-right: 0px !important;
-    margin-left: 0.375rem !important;
-  }
-  .apexcharts-canvas .apexcharts-tooltip .apexcharts-tooltip-title {
-    padding-top: 0.5rem !important;
-    padding-bottom: 0.5rem !important;
-    padding-right: 0.75rem !important;
-    padding-left: 0.75rem !important;
-    margin-bottom: 0.75rem !important;
-    background-color: var(--color-neutral-tertiary-medium) !important;
-    border-color: var(--color-light) !important;
-    font-size: 0.875rem !important;
-    font-weight: 600 !important;
-    color: var(--color-heading) !important;
-  }
-  .dark .apexcharts-canvas .apexcharts-tooltip .apexcharts-tooltip-title {
-    background-color: var(--color-neutral-tertiary-medium) !important;
-    border-color: var(--color-light) !important;
-    color: var(--color-heading) !important;
-  }
-  .mb-2 {
-    margin-bottom: calc(var(--spacing) * 2);
-  }
   .mb-2\.5 {
     margin-bottom: calc(var(--spacing) * 2.5);
   }
@@ -643,35 +351,6 @@
   }
   .mb-5 {
     margin-bottom: calc(var(--spacing) * 5);
-  }
-  .apexcharts-canvas .apexcharts-xaxistooltip {
-    color: var(--color-body) !important;
-    padding-top: 0.5rem !important;
-    padding-bottom: 0.5rem !important;
-    padding-right: 0.75rem !important;
-    padding-left: 0.75rem !important;
-    border-color: transparent !important;
-    background-color: white !important;
-    border-radius: 8px !important;
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1) !important;
-  }
-  .dark .apexcharts-canvas .apexcharts-xaxistooltip {
-    color: var(--color-body) !important;
-    background-color: var(--color-neutral-secondary-medium) !important;
-  }
-  .apexcharts-canvas .apexcharts-xaxistooltip:after {
-    border-bottom-color: var(--color-neutral-primary-medium) !important;
-  }
-  .apexcharts-canvas .apexcharts-xaxistooltip:before {
-    border-bottom-color: var(--color-neutral-primary-medium) !important;
-  }
-  .apexcharts-canvas .apexcharts-xaxistooltip:after {
-    border-width: 8px !important;
-    margin-left: -8px !important;
-  }
-  .apexcharts-canvas .apexcharts-xaxistooltip:before {
-    border-width: 10px !important;
-    margin-left: -10px !important;
   }
   .box-border {
     box-sizing: border-box;
@@ -690,9 +369,6 @@
   }
   .inline-flex {
     display: inline-flex;
-  }
-  .table {
-    display: table;
   }
   .h-5 {
     height: calc(var(--spacing) * 5);
@@ -718,14 +394,8 @@
   .min-h-screen {
     min-height: 100vh;
   }
-  .w-1 {
-    width: var(--spacing);
-  }
   .w-1\/2 {
     width: calc(1 / 2 * 100%);
-  }
-  .w-2 {
-    width: calc(var(--spacing) * 2);
   }
   .w-2\/3 {
     width: calc(2 / 3 * 100%);
@@ -754,39 +424,16 @@
   .flex-1 {
     flex: 1;
   }
-  .flex-shrink {
-    flex-shrink: 1;
-  }
-  .border-collapse {
-    border-collapse: collapse;
-  }
-  .-translate-x-1 {
-    --tw-translate-x: calc(var(--spacing) * -1);
-    translate: var(--tw-translate-x) var(--tw-translate-y);
-  }
   .-translate-x-1\/2 {
     --tw-translate-x: calc(calc(1 / 2 * 100%) * -1);
-    translate: var(--tw-translate-x) var(--tw-translate-y);
-  }
-  .-translate-y-1 {
-    --tw-translate-y: calc(var(--spacing) * -1);
     translate: var(--tw-translate-x) var(--tw-translate-y);
   }
   .-translate-y-1\/2 {
     --tw-translate-y: calc(calc(1 / 2 * 100%) * -1);
     translate: var(--tw-translate-x) var(--tw-translate-y);
   }
-  .transform {
-    transform: var(--tw-rotate-x,) var(--tw-rotate-y,) var(--tw-rotate-z,) var(--tw-skew-x,) var(--tw-skew-y,);
-  }
   .cursor-pointer {
     cursor: pointer;
-  }
-  .resize {
-    resize: both;
-  }
-  .grid-cols-2 {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .grid-cols-3 {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -809,12 +456,6 @@
   .justify-center {
     justify-content: center;
   }
-  .gap-1 {
-    gap: var(--spacing);
-  }
-  .gap-2 {
-    gap: calc(var(--spacing) * 2);
-  }
   .gap-3 {
     gap: calc(var(--spacing) * 3);
   }
@@ -823,12 +464,6 @@
   }
   .self-center {
     align-self: center;
-  }
-  .self-end-safe {
-    align-self: safe flex-end;
-  }
-  .justify-self-end {
-    justify-self: flex-end;
   }
   .overflow-hidden {
     overflow: hidden;
@@ -860,52 +495,6 @@
     border-style: var(--tw-border-style);
     border-width: 1px;
   }
-  .dark .apexcharts-canvas .apexcharts-tooltip {
-    background-color: var(--color-neutral-secondary-medium) !important;
-    color: var(--color-body) !important;
-    border-color: var(--color-default) !important;
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1) !important;
-  }
-  .dark .apexcharts-canvas .apexcharts-tooltip .apexcharts-tooltip-title {
-    background-color: var(--color-neutral-tertiary-medium) !important;
-    border-color: var(--color-light) !important;
-    color: var(--color-heading) !important;
-  }
-  .dark .apexcharts-canvas .apexcharts-xaxistooltip {
-    color: var(--color-body) !important;
-    background-color: var(--color-neutral-secondary-medium) !important;
-  }
-  .dark .apexcharts-canvas .apexcharts-tooltip .apexcharts-tooltip-text-y-label {
-    color: var(--color-body) !important;
-  }
-  .dark .apexcharts-canvas .apexcharts-tooltip .apexcharts-tooltip-text-y-value {
-    color: white !important;
-  }
-  .dark .apexcharts-canvas .apexcharts-tooltip-series-group.apexcharts-active {
-    background-color: var(--color-neutral-secondary-medium) !important;
-    color: var(--color-body) !important;
-  }
-  .dark .apexcharts-canvas .apexcharts-legend-text {
-    color: var(--color-body) !important;
-  }
-  .dark .apexcharts-canvas .apexcharts-legend-text:not(.apexcharts-inactive-legend):hover {
-    color: heading !important;
-  }
-  .dark .apexcharts-canvas .apexcharts-datalabels-group .apexcharts-text.apexcharts-datalabel-value {
-    fill: white !important;
-  }
-  .dark .apexcharts-canvas .apexcharts-datalabels-group .apexcharts-text.apexcharts-datalabel-label {
-    fill: var(--color-body) !important;
-  }
-  .dark .apexcharts-gridline {
-    stroke: var(--color-default) !important;
-  }
-  .dark .apexcharts-xcrosshairs {
-    stroke: var(--color-default) !important;
-  }
-  .dark .apexcharts-ycrosshairs {
-    stroke: var(--color-default) !important;
-  }
   .border-default {
     border-color: var(--color-default);
   }
@@ -914,29 +503,6 @@
   }
   .border-primary {
     border-color: var(--color-primary);
-  }
-  .apexcharts-canvas .apexcharts-tooltip-series-group.apexcharts-active .apexcharts-tooltip-y-group {
-    padding: 0 !important;
-  }
-  .apexcharts-canvas .apexcharts-tooltip-series-group.apexcharts-active {
-    padding-left: 0.75rem !important;
-    padding-right: 0.75rem !important;
-    padding-bottom: 0.75rem !important;
-    background-color: var(--color-neutral-primary-medium) !important;
-    color: var(--color-body) !important;
-  }
-  .dark .apexcharts-canvas .apexcharts-tooltip-series-group.apexcharts-active {
-    background-color: var(--color-neutral-secondary-medium) !important;
-    color: var(--color-body) !important;
-  }
-  .apexcharts-canvas .apexcharts-tooltip-series-group.apexcharts-active:first-of-type {
-    padding-top: 0.75rem !important;
-  }
-  .selectedCell {
-    background-color: var(--color-neutral-secondary-medium);
-    .dark & {
-      background-color: var(--color-neutral-secondary-medium);
-    }
   }
   .bg-danger-soft {
     background-color: var(--color-danger-soft);
@@ -962,9 +528,6 @@
   .bg-primary-500 {
     background-color: var(--color-primary-500);
   }
-  .bg-primary-600 {
-    background-color: var(--color-primary-600);
-  }
   .bg-warning-soft {
     background-color: var(--color-warning-soft);
   }
@@ -977,9 +540,6 @@
       background-color: color-mix(in oklab, var(--color-white) 30%, transparent);
     }
   }
-  .dark .selectedCell {
-    background-color: var(--color-neutral-secondary-medium);
-  }
   .bg-\[url\(\/assets\/img\/bg-modal-hero\.png\)\] {
     background-image: url(/assets/img/bg-modal-hero.png);
   }
@@ -989,70 +549,8 @@
   .bg-no-repeat {
     background-repeat: no-repeat;
   }
-  .apexcharts-datalabels-group .apexcharts-text.apexcharts-datalabel-value {
-    fill: var(--color-heading) !important;
-    font-size: 1.875rem,[object Object] !important;
-    font-weight: 700 !important;
-  }
-  .dark .apexcharts-canvas .apexcharts-datalabels-group .apexcharts-text.apexcharts-datalabel-value {
-    fill: white !important;
-  }
-  .apexcharts-canvas .apexcharts-datalabels-group .apexcharts-text.apexcharts-datalabel-label {
-    fill: var(--color-body) !important;
-    font-size: 1rem,[object Object] !important;
-    font-weight: 400 !important;
-  }
-  .dark .apexcharts-canvas .apexcharts-datalabels-group .apexcharts-text.apexcharts-datalabel-label {
-    fill: var(--color-body) !important;
-  }
-  .apexcharts-canvas .apexcharts-datalabels-group .apexcharts-text.apexcharts-datalabel-label {
-    fill: var(--color-body) !important;
-    font-size: 1rem,[object Object] !important;
-    font-weight: 400 !important;
-  }
-  .dark .apexcharts-canvas .apexcharts-datalabels-group .apexcharts-text.apexcharts-datalabel-label {
-    fill: var(--color-body) !important;
-  }
-  .apexcharts-datalabels-group .apexcharts-text.apexcharts-datalabel-value {
-    fill: var(--color-heading) !important;
-    font-size: 1.875rem,[object Object] !important;
-    font-weight: 700 !important;
-  }
-  .dark .apexcharts-canvas .apexcharts-datalabels-group .apexcharts-text.apexcharts-datalabel-value {
-    fill: white !important;
-  }
-  .apexcharts-gridline {
-    stroke: var(--color-default) !important;
-    .dark & {
-      stroke: var(--color-default) !important;
-    }
-  }
-  .apexcharts-xcrosshairs {
-    stroke: var(--color-default) !important;
-    .dark & {
-      stroke: var(--color-default) !important;
-    }
-  }
-  .apexcharts-ycrosshairs {
-    stroke: var(--color-default) !important;
-    .dark & {
-      stroke: var(--color-default) !important;
-    }
-  }
-  .apexcharts-canvas .apexcharts-legend {
-    padding: 0 !important;
-  }
-  .apexcharts-canvas .apexcharts-tooltip-series-group.apexcharts-active .apexcharts-tooltip-y-group {
-    padding: 0 !important;
-  }
-  .p-1 {
-    padding: var(--spacing);
-  }
   .p-1\.5 {
     padding: calc(var(--spacing) * 1.5);
-  }
-  .p-2 {
-    padding: calc(var(--spacing) * 2);
   }
   .p-4 {
     padding: calc(var(--spacing) * 4);
@@ -1062,9 +560,6 @@
   }
   .px-2 {
     padding-inline: calc(var(--spacing) * 2);
-  }
-  .px-2\.5 {
-    padding-inline: calc(var(--spacing) * 2.5);
   }
   .px-3 {
     padding-inline: calc(var(--spacing) * 3);
@@ -1099,27 +594,6 @@
   .py-5 {
     padding-block: calc(var(--spacing) * 5);
   }
-  .py-6 {
-    padding-block: calc(var(--spacing) * 6);
-  }
-  .apexcharts-canvas .apexcharts-legend-text {
-    font-size: 0.75rem !important;
-    font-weight: 500 !important;
-    padding-left: 1.25rem !important;
-    color: var(--color-body) !important;
-  }
-  :is([dir=rtl]) .apexcharts-canvas .apexcharts-legend-text {
-    padding-right: 0.5rem !important;
-  }
-  .apexcharts-canvas .apexcharts-legend-text:not(.apexcharts-inactive-legend):hover {
-    color: var(--color-heading) !important;
-  }
-  .dark .apexcharts-canvas .apexcharts-legend-text {
-    color: var(--color-body) !important;
-  }
-  .dark .apexcharts-canvas .apexcharts-legend-text:not(.apexcharts-inactive-legend):hover {
-    color: heading !important;
-  }
   .text-center {
     text-align: center;
   }
@@ -1151,34 +625,6 @@
     font-size: var(--text-xs);
     line-height: var(--tw-leading, var(--text-xs--line-height));
   }
-  .apexcharts-canvas .apexcharts-datalabels .apexcharts-text.apexcharts-pie-label {
-    font-size: 0.75rem,[object Object] !important;
-    font-weight: 600 !important;
-    text-shadow: none !important;
-    filter: none !important;
-  }
-  .apexcharts-canvas .apexcharts-xaxistooltip-text {
-    font-weight: 400 !important;
-    font-size: 0.875rem !important;
-  }
-  .apexcharts-canvas .apexcharts-tooltip .apexcharts-tooltip-text-y-label {
-    color: var(--color-body) !important;
-    font-size: 0.875rem !important;
-  }
-  .dark .apexcharts-canvas .apexcharts-tooltip .apexcharts-tooltip-text-y-label {
-    color: var(--color-body) !important;
-  }
-  .apexcharts-canvas .apexcharts-tooltip .apexcharts-tooltip-text-y-value {
-    color: var(--color-heading);
-    font-size: 0.875rem !important;
-  }
-  .dark .apexcharts-canvas .apexcharts-tooltip .apexcharts-tooltip-text-y-value {
-    color: white !important;
-  }
-  .leading-5 {
-    --tw-leading: var(--leading-5);
-    line-height: var(--leading-5);
-  }
   .leading-8 {
     --tw-leading: var(--leading-8);
     line-height: var(--leading-8);
@@ -1201,12 +647,6 @@
   }
   .text-body {
     color: var(--color-body);
-  }
-  .text-default {
-    color: var(--color-default);
-  }
-  .text-default-strong {
-    color: var(--color-default-strong);
   }
   .text-fg-danger {
     color: var(--color-fg-danger);
@@ -1238,9 +678,6 @@
   .text-white {
     color: var(--color-white);
   }
-  .underline {
-    text-decoration-line: underline;
-  }
   .shadow-md\/50 {
     --tw-shadow-alpha: 50%;
     --tw-shadow: 0 4px 6px -1px var(--tw-shadow-color, oklab(from rgb(0 0 0 / 0.1) l a b / 50%)), 0 2px 4px -2px var(--tw-shadow-color, oklab(from rgb(0 0 0 / 0.1) l a b / 50%));
@@ -1248,10 +685,6 @@
   }
   .shadow-2xl {
     --tw-shadow: 0 25px 50px -12px var(--tw-shadow-color, rgb(0 0 0 / 0.25));
-    box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
-  }
-  .shadow-md {
-    --tw-shadow: 0 4px 6px -1px var(--tw-shadow-color, rgb(0 0 0 / 0.1)), 0 2px 4px -2px var(--tw-shadow-color, rgb(0 0 0 / 0.1));
     box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
   }
   .shadow-xs {
@@ -1263,13 +696,6 @@
     @supports (color: color-mix(in lab, red, red)) {
       --tw-shadow-color: color-mix(in oklab, var(--color-primary-400) var(--tw-shadow-alpha), transparent);
     }
-  }
-  .outline {
-    outline-style: var(--tw-outline-style);
-    outline-width: 1px;
-  }
-  .filter {
-    filter: var(--tw-blur,) var(--tw-brightness,) var(--tw-contrast,) var(--tw-grayscale,) var(--tw-hue-rotate,) var(--tw-invert,) var(--tw-saturate,) var(--tw-sepia,) var(--tw-drop-shadow,);
   }
   .transition {
     transition-property: color, background-color, border-color, outline-color, text-decoration-color, fill, stroke, --tw-gradient-from, --tw-gradient-via, --tw-gradient-to, opacity, box-shadow, transform, translate, scale, rotate, filter, -webkit-backdrop-filter, backdrop-filter, display, content-visibility, overlay, pointer-events;
@@ -1283,12 +709,6 @@
   .ease-in-out {
     --tw-ease: var(--ease-in-out);
     transition-timing-function: var(--ease-in-out);
-  }
-  .text-shadow-default-strong {
-    --tw-text-shadow-color: oklch(92.8% 0.006 264.531);
-    @supports (color: color-mix(in lab, red, red)) {
-      --tw-text-shadow-color: color-mix(in oklab, var(--color-default-strong) var(--tw-text-shadow-alpha), transparent);
-    }
   }
   @media (hover: hover) {
     .group-hover\:bg-white\/50:is(:where(.group):hover *) {
@@ -1327,17 +747,11 @@
     .hover\:bg-neutral-secondary-medium:hover {
       background-color: var(--color-neutral-secondary-medium);
     }
-    .hover\:bg-neutral-tertiary-medium:hover {
-      background-color: var(--color-neutral-tertiary-medium);
-    }
     .hover\:bg-primary-600:hover {
       background-color: var(--color-primary-600);
     }
     .hover\:bg-primary-700:hover {
       background-color: var(--color-primary-700);
-    }
-    .hover\:text-heading:hover {
-      color: var(--color-heading);
     }
     .hover\:text-primary-700:hover {
       color: var(--color-primary-700);
@@ -1367,9 +781,6 @@
     .md\:mb-0 {
       margin-bottom: 0px;
     }
-    .md\:flex {
-      display: flex;
-    }
     .md\:grid {
       display: grid;
     }
@@ -1379,32 +790,17 @@
     .md\:w-1\/2 {
       width: calc(1 / 2 * 100%);
     }
-    .md\:w-1\/3 {
-      width: calc(1 / 3 * 100%);
-    }
-    .md\:w-1\/4 {
-      width: calc(1 / 4 * 100%);
-    }
     .md\:grid-cols-3 {
       grid-template-columns: repeat(3, minmax(0, 1fr));
     }
-    .md\:grid-cols-8 {
-      grid-template-columns: repeat(8, minmax(0, 1fr));
-    }
     .md\:flex-row {
       flex-direction: row;
-    }
-    .md\:justify-between {
-      justify-content: space-between;
     }
     .md\:justify-start {
       justify-content: flex-start;
     }
     .md\:gap-3 {
       gap: calc(var(--spacing) * 3);
-    }
-    .md\:gap-4 {
-      gap: calc(var(--spacing) * 4);
     }
     .md\:px-8 {
       padding-inline: calc(var(--spacing) * 8);
@@ -1976,26 +1372,6 @@
   inherits: false;
   initial-value: 0;
 }
-@property --tw-rotate-x {
-  syntax: "*";
-  inherits: false;
-}
-@property --tw-rotate-y {
-  syntax: "*";
-  inherits: false;
-}
-@property --tw-rotate-z {
-  syntax: "*";
-  inherits: false;
-}
-@property --tw-skew-x {
-  syntax: "*";
-  inherits: false;
-}
-@property --tw-skew-y {
-  syntax: "*";
-  inherits: false;
-}
 @property --tw-border-style {
   syntax: "*";
   inherits: false;
@@ -2078,64 +1454,6 @@
   inherits: false;
   initial-value: 0 0 #0000;
 }
-@property --tw-outline-style {
-  syntax: "*";
-  inherits: false;
-  initial-value: solid;
-}
-@property --tw-blur {
-  syntax: "*";
-  inherits: false;
-}
-@property --tw-brightness {
-  syntax: "*";
-  inherits: false;
-}
-@property --tw-contrast {
-  syntax: "*";
-  inherits: false;
-}
-@property --tw-grayscale {
-  syntax: "*";
-  inherits: false;
-}
-@property --tw-hue-rotate {
-  syntax: "*";
-  inherits: false;
-}
-@property --tw-invert {
-  syntax: "*";
-  inherits: false;
-}
-@property --tw-opacity {
-  syntax: "*";
-  inherits: false;
-}
-@property --tw-saturate {
-  syntax: "*";
-  inherits: false;
-}
-@property --tw-sepia {
-  syntax: "*";
-  inherits: false;
-}
-@property --tw-drop-shadow {
-  syntax: "*";
-  inherits: false;
-}
-@property --tw-drop-shadow-color {
-  syntax: "*";
-  inherits: false;
-}
-@property --tw-drop-shadow-alpha {
-  syntax: "<percentage>";
-  inherits: false;
-  initial-value: 100%;
-}
-@property --tw-drop-shadow-size {
-  syntax: "*";
-  inherits: false;
-}
 @property --tw-duration {
   syntax: "*";
   inherits: false;
@@ -2144,26 +1462,12 @@
   syntax: "*";
   inherits: false;
 }
-@property --tw-text-shadow-color {
-  syntax: "*";
-  inherits: false;
-}
-@property --tw-text-shadow-alpha {
-  syntax: "<percentage>";
-  inherits: false;
-  initial-value: 100%;
-}
 @layer properties {
   @supports ((-webkit-hyphens: none) and (not (margin-trim: inline))) or ((-moz-orient: inline) and (not (color:rgb(from red r g b)))) {
     *, ::before, ::after, ::backdrop {
       --tw-translate-x: 0;
       --tw-translate-y: 0;
       --tw-translate-z: 0;
-      --tw-rotate-x: initial;
-      --tw-rotate-y: initial;
-      --tw-rotate-z: initial;
-      --tw-skew-x: initial;
-      --tw-skew-y: initial;
       --tw-border-style: solid;
       --tw-leading: initial;
       --tw-font-weight: initial;
@@ -2182,24 +1486,8 @@
       --tw-ring-offset-width: 0px;
       --tw-ring-offset-color: #fff;
       --tw-ring-offset-shadow: 0 0 #0000;
-      --tw-outline-style: solid;
-      --tw-blur: initial;
-      --tw-brightness: initial;
-      --tw-contrast: initial;
-      --tw-grayscale: initial;
-      --tw-hue-rotate: initial;
-      --tw-invert: initial;
-      --tw-opacity: initial;
-      --tw-saturate: initial;
-      --tw-sepia: initial;
-      --tw-drop-shadow: initial;
-      --tw-drop-shadow-color: initial;
-      --tw-drop-shadow-alpha: 100%;
-      --tw-drop-shadow-size: initial;
       --tw-duration: initial;
       --tw-ease: initial;
-      --tw-text-shadow-color: initial;
-      --tw-text-shadow-alpha: 100%;
     }
   }
 }
