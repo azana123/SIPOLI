@@ -1,0 +1,87 @@
+----------------------------------------------------------------------
+
+Node.js / NPM (Dependencies untuk Tailwind CSS & Flowbite)
+
+----------------------------------------------------------------------
+
+node_modules/
+npm-debug.log
+yarn-error.log
+yarn-debug.log
+
+(Opsional) Jika Anda build CSS di server, Anda bisa meng-ignore file hasil build.
+
+Jika Anda build di lokal dan butuh file CSS-nya di repo, biarkan baris ini di-comment.
+
+public/css/tailwind.css
+
+dist/
+
+----------------------------------------------------------------------
+
+PHP / Web Server
+
+----------------------------------------------------------------------
+
+Folder vendor jika kedepannya Anda menggunakan Composer
+
+vendor/
+
+File log error dari PHP atau Apache/Nginx
+
+*.log
+error_log
+php_errors.log
+
+----------------------------------------------------------------------
+
+File Sensitif / Environment Variables
+
+----------------------------------------------------------------------
+
+.env
+.env.local
+.env.*.local
+.env.backup
+
+----------------------------------------------------------------------
+
+Folder Uploads (Opsional)
+
+----------------------------------------------------------------------
+
+Jika sistem SIPOLI memiliki fitur upload gambar/dokumen,
+
+sebaiknya ignore folder upload agar file dummy lokal tidak naik ke repo.
+
+assets/uploads/*
+
+!assets/uploads/.gitkeep
+
+public/uploads/*
+
+!public/uploads/.gitkeep
+
+----------------------------------------------------------------------
+
+IDE / Text Editor (VS Code, PHPStorm, dll)
+
+----------------------------------------------------------------------
+
+.idea/
+.vscode/
+*.swp
+*.swo
+
+----------------------------------------------------------------------
+
+Sistem Operasi
+
+----------------------------------------------------------------------
+
+.DS_Store
+.DS_Store?
+._*
+.Trashes
+ehthumbs.db
+Thumbs.db
