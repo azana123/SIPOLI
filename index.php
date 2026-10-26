@@ -14,11 +14,13 @@
 <body>
     <div class="w-full min-h-screen bg-primary-500">
         <main>
-            <a class="w-full p-2 text-page">Login / Register</section>
+            <section class="w-full py-4 px-6 text-page">
+                <a href="./auth/login.php">login</a>
+            </section>
             <section class="content bg-page rounded-t-2xl py-3 px-4.5  h-screen">
                 <div class="top-content flex justify-between">
                     <h4 class="font-bold text-lg">Jadwal Dokter</h4>
-                    <a href="#" class="action-link text-primary-400 hover:text-primary-700">
+                    <a href="./users/jadwal-dokter.php" class="action-link text-primary-400 hover:text-primary-700">
                         <span class="font-medium">Lihat Semua</span>
                         <i class="fas fa-chevron-right"></i>
                     </a>
@@ -150,18 +152,18 @@
                             </div>
                             <h5 class="text-lg tracking-tight text-heading leading-8">Umum</h5>
                         </a> -->
-                        <div class="bg-neutral-primary-soft max-w-sm p-6 border border-default rounded-base shadow-xs flex justify-between">
-                            <div class="icon w-12 h-12 rounded-full bg-primary-100 flex justify-center items-center self-center">
-                                <i class="far fa-calendar-alt text-primary text-2xl"></i>
+                        <div class="bg-neutral-primary-soft max-w-sm p-6 border border-primary shadow-md/50 shadow-primary-400 rounded-base shadow-xs flex justify-between">
+                            <div class="w-16 self-center">
+                                <img src="./assets/img/doc-pic.png" alt="">
                             </div>
                             <div class="desc">
                                 <h6 class="font-bold text-xl">Konseling</h6>
                                 <p class="doctor-name">Dr. Sarah Amelia</p>
                                 <p class="date">Jum, 18 Sep. 14.00</p>
                             </div>
-                            <div class="status-badge">
-                                <span class="bg-warning-soft text-fg-warning text-sm font-medium px-2 py-1 rounded">Menunggu</span>
-                            </div>
+                            <a class="icon self-center text-primary">
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
                         </div>
                     </div>
                 </section>
