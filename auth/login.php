@@ -29,22 +29,20 @@
             </div>
         </section>
         <section class="login-content  md:w-1/2 mt-8 px-6 md:px-8">
-            <div class="badge bg-primary-100 text-primary-500 text-center font-bold mb-5">Admin</div>
-            <h2 class="text-xl font-bold">Masuk ke dashboard admin</h2>
-            <p>Gunakan NIP dan password yang terdaftar.</p>
-            <form action="http://localhost/sipoli/auth/login.php" method="post" class="flex flex-col">
-                <div class="my-4">
-                    <label class="label mb-2" for="nip">NIP</label>
-                    <input type="text" id="nip" class="input border-primary-500 input-primary w-full" placeholder="Masukkan NIP" />
+            <span class="bg-primary-100 text-primary text-sm font-medium px-2 py-1 rounded">Admin</span>
+            <h2 class="text-xl font-bold mt-2">Masuk ke dashboard admin</h2>
+            <p>Gunakan Nomor Induk dan password yang terdaftar.</p>
+
+            <form action="http://localhost/sipoli/auth/login.php" method="post" class="flex flex-col mt-5">
+                <div class="mb-5">
+                    <label for="email" class="block mb-2.5 text-sm font-medium text-heading">Nomor Induk</label>
+                    <input type="email" id="email" class="bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-brand focus:border-brand block w-full px-3 py-2.5 shadow-xs placeholder:text-body" placeholder="Masukkan Nomor Induk" required />
                 </div>
-                <div class="mb-6 flex flex-col">
-                    <label class="label mb-2" for="password">Password</label>
-                    <label class="input border-primary-500 w-full input-primary">
-                        <input id="form-password" type="password" name="password" placeholder="Masukkan password" />
-                        <span class="label cursor-pointer" id="eye"><i class="fas fa-eye"></i></span>
-                    </label>
+                <div class="mb-5">
+                    <label for="password" class="block mb-2.5 text-sm font-medium text-heading">Password</label>
+                    <input type="password" id="password" class="bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-brand focus:border-brand block w-full px-3 py-2.5 shadow-xs placeholder:text-body" placeholder="••••••••" required />
                 </div>
-                <button class="btn btn-primary rounded-2xl w-full">Login</button>
+                <button class="bg-primary hover:bg-primary-600 py-3 rounded-full w-full text-page" type="submit">Login</button>
         </section>
     </div>
     <script src="./../assets/js/app.js"></script>
