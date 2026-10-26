@@ -1,12 +1,8 @@
 @import "tailwindcss";
-@plugin "daisyui";
+@import "flowbite/src/themes/default";
+@plugin "flowbite/plugin";
+@source "../node_modules/flowbite";
 
-@plugin "daisyui/theme" {
-  name: "light";                      /* Mengubah tema default 'light' */
-  default: true;
-  --color-primary: #0F7485;           /* Warna utama untuk input-primary, btn-primary, dll */
-  --color-primary-content: #ffffff;   /* Warna teks/ikon di atas warna primary (kontras) */
-}
 
 @theme {
   --color-primary: #0F7485!important;
