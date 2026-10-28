@@ -1,9 +1,13 @@
 -- =====================================================================
--- FITUR  : nomor antrean otomatis (reset per poli per hari)
--- CARA   : kirim no_antrean = 0 saat INSERT, trigger akan mengisinya.
---          Advisory lock mencegah nomor ganda saat input bersamaan.
--- DEPEND : tables/08_antrean
+-- FITUR   : Nomor antrean otomatis per poli per hari
+-- URUTAN  : features/13
+-- ISI     : fn_no_antrean_otomatis, trigger trg_no_antrean_otomatis
+-- DEPEND  : tables/09_antrean
 -- =====================================================================
+
+-- A0. Nomor antrean otomatis (reset per poli per hari)
+--     Kirim no_antrean = 0 saat INSERT, trigger akan mengisinya.
+--     Advisory lock mencegah nomor ganda saat input bersamaan.
 CREATE OR REPLACE FUNCTION fn_no_antrean_otomatis() RETURNS TRIGGER AS $$
 BEGIN
     IF NEW.no_antrean IS NULL OR NEW.no_antrean = 0 THEN

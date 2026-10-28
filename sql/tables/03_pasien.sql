@@ -1,8 +1,12 @@
 -- =====================================================================
--- TABEL  : pasien
--- CATATAN: user_id nullable, pasien walk-in poli umum belum tentu punya akun
--- DEPEND : 01_users
+-- TABEL   : pasien
+-- URUTAN  : tables/03
+-- ISI     : tabel pasien, index idx_pasien_nama, trigger trg_pasien_updated
+-- DEPEND  : 00_common.sql, tables/01_users.sql
 -- =====================================================================
+
+-- pasien
+-- user_id nullable: pasien walk-in poli umum belum tentu punya akun
 CREATE TABLE pasien (
     id               BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     user_id          BIGINT UNIQUE REFERENCES users(id) ON DELETE SET NULL,
@@ -16,6 +20,7 @@ CREATE TABLE pasien (
     golongan_darah   VARCHAR(3)
                      CHECK (golongan_darah IN ('A', 'B', 'AB', 'O', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-')),
     riwayat_alergi   TEXT,
+    is_active        BOOLEAN      NOT NULL DEFAULT TRUE,
     created_at       TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
     updated_at       TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
