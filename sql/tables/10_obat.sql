@@ -1,7 +1,11 @@
 -- =====================================================================
--- TABEL  : obat
--- DEPEND : 00_common
+-- TABEL   : obat
+-- URUTAN  : tables/10
+-- ISI     : tabel obat, index idx_obat_nama, trigger trg_obat_updated
+-- DEPEND  : 00_common.sql
 -- =====================================================================
+
+-- obat
 CREATE TABLE obat (
     id                 BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     kode_obat          VARCHAR(30)  NOT NULL UNIQUE,
@@ -12,6 +16,7 @@ CREATE TABLE obat (
     stok_minimum       INT          NOT NULL DEFAULT 0 CHECK (stok_minimum >= 0),
     tanggal_kadaluarsa DATE,
     keterangan         TEXT,
+    is_active          BOOLEAN      NOT NULL DEFAULT TRUE,
     created_at         TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
     updated_at         TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
