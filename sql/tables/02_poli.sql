@@ -1,7 +1,11 @@
 -- =====================================================================
--- TABEL  : poli (Umum, Gigi, Konseling)
--- DEPEND : -
+-- TABEL   : poli
+-- URUTAN  : tables/02
+-- ISI     : tabel poli
+-- DEPEND  : -
 -- =====================================================================
+
+-- poli : Umum, Gigi, Konseling
 CREATE TABLE poli (
     id               SMALLINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     nama             VARCHAR(50) NOT NULL UNIQUE,

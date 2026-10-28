@@ -1,8 +1,11 @@
 -- =====================================================================
--- TABEL  : resep_obat (detail obat per pemeriksaan, relasi M:N)
--- DEPEND : 09_obat, 10_pemeriksaan
--- FITUR  : features/03_stok_obat.sql (stok berkurang otomatis)
+-- TABEL   : resep_obat
+-- URUTAN  : tables/12
+-- ISI     : tabel resep_obat, index idx_resep_obat
+-- DEPEND  : tables/10_obat.sql, tables/11_pemeriksaan.sql
 -- =====================================================================
+
+-- resep_obat (detail obat per pemeriksaan, relasi M:N)
 CREATE TABLE resep_obat (
     id              BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     pemeriksaan_id  BIGINT       NOT NULL REFERENCES pemeriksaan(id) ON DELETE CASCADE,
