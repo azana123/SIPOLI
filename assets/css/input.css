@@ -3,23 +3,27 @@
 @plugin "flowbite/plugin";
 @source "../node_modules/flowbite";
 
-
 @theme {
-  --color-primary: #0F7485!important;
-  --color-primary-50: #EBF7F9;
-  --color-primary-100: #CEEDF3;
-  --color-primary-200: #97DCE8;
-  --color-primary-300: #4BC8DC;
-  --color-primary-400: #619FA7;
-  --color-primary-500: #0F7485;
-  --color-primary-600: #0C5C69;
+  --color-primary: #0f7485 !important;
+  --color-primary-50: #ebf7f9;
+  --color-primary-100: #ceedf3;
+  --color-primary-200: #97dce8;
+  --color-primary-300: #4bc8dc;
+  --color-primary-400: #619fa7;
+  --color-primary-400-05: rgb(from var(--color-primary-400) r g b / 0.6);
+  --color-primary-500: #0f7485;
+  --color-primary-600: #0c5c69;
   --color-primary-700: #094852;
 
-  --color-page: #F0F8FB;
+  --color-page: #f0f8fb;
 }
 
 @layer base {
   body {
     background: var(--color-page);
+  }
+
+  .btn-active {
+    background: rgb(from var(--color-primary-400) r g b / 0.6) !important;
   }
 }
