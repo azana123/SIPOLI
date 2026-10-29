@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>SIPOLI Login</title>
     <!-- style,css -->
     <link rel="stylesheet" href="./../assets/css/style.css">
     <!-- Google Icon CDN -->
@@ -33,16 +33,26 @@
             <h2 class="text-xl font-bold mt-2">Masuk ke dashboard admin</h2>
             <p>Gunakan Nomor Induk dan password yang terdaftar.</p>
 
-            <form action="http://localhost/sipoli/auth/login.php" method="post" class="flex flex-col mt-5">
+            <form action="process-login.php" method="post" class="flex flex-col mt-5">
+                <?php if (isset($_SESSION['error'])): ?>
+                    <div class="mb-4 p-3 bg-red-100 text-red-700 rounded-base text-sm">
+                        <?php 
+                            echo $_SESSION['error']; 
+                            unset($_SESSION['error']);
+                        ?>
+                    </div>
+                <?php endif; ?>
+
                 <div class="mb-5">
-                    <label for="email" class="block mb-2.5 text-sm font-medium text-heading">Nomor Induk</label>
-                    <input type="email" id="email" class="bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-brand focus:border-brand block w-full px-3 py-2.5 shadow-xs placeholder:text-body" placeholder="Masukkan Nomor Induk" required />
+                    <label for="username" class="block mb-2.5 text-sm font-medium text-heading">Username</label>
+                    <input type="text" name="username" id="username" class="bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-brand focus:border-brand block w-full px-3 py-2.5 shadow-xs placeholder:text-body" placeholder="Masukkan Nomor Induk" required />
                 </div>
                 <div class="mb-5">
                     <label for="password" class="block mb-2.5 text-sm font-medium text-heading">Password</label>
-                    <input type="password" id="password" class="bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-brand focus:border-brand block w-full px-3 py-2.5 shadow-xs placeholder:text-body" placeholder="••••••••" required />
+                    <input type="password" name="password" id="password" class="bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-brand focus:border-brand block w-full px-3 py-2.5 shadow-xs placeholder:text-body" placeholder="••••••••" required />
                 </div>
                 <button class="bg-primary hover:bg-primary-600 py-3 rounded-full w-full text-page" type="submit">Login</button>
+            </form>
         </section>
     </div>
     <script src="./../assets/js/app.js"></script>
