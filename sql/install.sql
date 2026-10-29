@@ -25,6 +25,7 @@
 \ir tables/15_inbox.sql
 \ir tables/16_php_sessions.sql
 \ir tables/17_audit_log.sql
+\ir tables/18_data_civitas.sql
 \ir features/01_autentikasi.sql
 \ir features/02_audit_log.sql
 \ir features/03_notifikasi_admin.sql
@@ -51,4 +52,6 @@
 \ir features/24_job_antrean.sql
 \ir features/25_job_scheduler.sql
 \ir features/26_views_dashboard.sql
+\ir features/27_validasi_civitas.sql
 \ir seeds/01_poli.sql
+\ir seeds/02_data_civitas.sql
