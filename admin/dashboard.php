@@ -37,15 +37,15 @@ $app_name = "SIPOLI";
                         <h4 class="text-2xl font-bold">45</h4>
                     </div>
                     <div class="bg-neutral-primary-soft block p-4 md:p-6 border whitespace-nowrap text-center md:text-left border-default rounded-base shadow-xs">
-                        <p class="text-gray-500 font-medium">Reservasi Hari ini</p>
+                        <p class="text-gray-500 font-medium">Kuota Tersedia</p>
                         <h4 class="text-2xl font-bold">45<span class="text-sm text-gray-400">/100</span></h4>
                     </div>
                     <div class="bg-yellow-100 block p-4 md:p-6 border whitespace-nowrap text-center md:text-left border-yellow-400 rounded-base shadow-xs text-yellow-900">
-                        <p class="font-medium">Reservasi Hari ini</p>
+                        <p class="font-medium">Konfirmasi H-1 Menunggu</p>
                         <h4 class="text-2xl font-bold">45</h4>
                     </div>
                     <div class="bg-blue-200 block p-4 md:p-6 border whitespace-nowrap text-center md:text-left border-blue-400 rounded-base shadow-xs text-blue-900">
-                        <p class="font-medium">Reservasi Hari ini</p>
+                        <p class="font-medium">Resep Menunggu</p>
                         <h4 class="text-2xl font-bold">45</h4>
                     </div>
                 </div>
@@ -58,25 +58,13 @@ $app_name = "SIPOLI";
                         <table class="w-full text-sm text-left rtl:text-right text-body">
                             <tbody class="text-primary-600">
                                 <tr class="bg-neutral-primary border-b border-primary-400-05">
-                                    <th scope="row" class="py-4 font-medium text-heading  whitespace-nowrap">
-                                        Apple MacBook Pro 17"
+                                    <th scope="row" class="py-4 font-medium text-primary-600  whitespace-nowrap">
+                                        3 Pasien konseling besok belum di konfirmasi
                                     </th>
-                                    <td class="px-6 py">
-                                        Silver
-                                    </td>
-                                </tr>
-                                <tr class="bg-neutral-primary border-b border-primary-400-05">
-                                    <th scope="row" class="py-4 font-medium text-heading  whitespace-nowrap">
-                                        Apple MacBook Pro 17"
-                                    </th>
-                                    <td class="px-6 py-4">
-                                        Silver
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        Laptop
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        <span class="inline-flex items-center px-2 py-1 text-heading text-xs font-medium rounded bg-gray-200">Selesai</span>
+                                    <td class="px-6 text-end">
+                                        <a href="">
+                                            <i class="fas fa-chevron-right"></i>
+                                        </a>
                                     </td>
                                 </tr>
                             </tbody>
