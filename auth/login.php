@@ -30,15 +30,15 @@
         </section>
         <section class="login-content  md:w-1/2 mt-8 px-6 md:px-8">
             <span class="bg-primary-100 text-primary text-sm font-medium px-2 py-1 rounded">Admin</span>
-            <h2 class="text-xl font-bold mt-2">Masuk ke dashboard admin</h2>
+            <h2 class="text-xl font-bold mt-2">Masuk ke dashboard</h2>
             <p>Gunakan Nomor Induk dan password yang terdaftar.</p>
 
             <form action="process-login.php" method="post" class="flex flex-col mt-5">
                 <?php if (isset($_SESSION['error'])): ?>
                     <div class="mb-4 p-3 bg-red-100 text-red-700 rounded-base text-sm">
-                        <?php 
-                            echo $_SESSION['error']; 
-                            unset($_SESSION['error']);
+                        <?php
+                        echo $_SESSION['error'];
+                        unset($_SESSION['error']);
                         ?>
                     </div>
                 <?php endif; ?>
@@ -53,6 +53,9 @@
                 </div>
                 <button class="bg-primary hover:bg-primary-600 py-3 rounded-full w-full text-page" type="submit">Login</button>
             </form>
+            <div class="mt-2">
+                <p class="text-center">Belum memiliki akun? <a href="./register.php" class="text-primary hover:text-primary-700 underline">Daftar</a> sekarang!</p>
+            </div>
         </section>
     </div>
     <script src="./../assets/js/app.js"></script>
