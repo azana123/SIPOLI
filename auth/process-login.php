@@ -2,7 +2,7 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-
+require __DIR__ . '/../includes/csrf.php';
 require __DIR__ . '/../config/database.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
