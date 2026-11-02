@@ -115,53 +115,53 @@ $app_name = "SIPOLI";
                         <table class="w-full text-sm text-left rtl:text-right text-body">
                             <thead class="text-xs text-heading uppercase bg-neutral-primary border-b border-primary-400-05">
                                 <tr>
-                                    <th scope="col" class="py-3">Pasien</th>
-                                    <th scope="col" class="py-3">Layanan & jadwal</th>
-                                    <th scope="col" class="py-3">Asal</th>
-                                    <th scope="col" class="py-3">Status</th>
-                                    <th scope="col" class="py-3">Aksi</th>
+                                    <th scope="col" class="p-3">Pasien</th>
+                                    <th scope="col" class="p-3">Layanan & jadwal</th>
+                                    <th scope="col" class="p-3">Asal</th>
+                                    <th scope="col" class="p-3">Status</th>
+                                    <th scope="col" class="p-3">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody class="text-primary-600">
                                 <tr class="bg-neutral-primary border-b border-primary-400-05">
-                                    <th scope="row" class="py-4 font-medium text-heading whitespace-nowrap">
+                                    <th scope="row" class="px-3 py-4 font-medium text-heading whitespace-nowrap">
                                         <div class="text-base">Alya Prameswari</div>
                                         <div class="text-xs font-normal">NIM · 2341720101</div>
                                     </th>
-                                    <td class="py-4">
+                                    <td class="px-3 py-4">
                                         <div class="font-medium text-heading">Poli Umum · 09.00–12.00</div>
                                         <div class="">dr. Andini Putri</div>
                                         <div class="text-xs ">24 Sep 2026 · WIB</div>
                                     </td>
-                                    <td class="py-4 align-top">
+                                    <td class="px-3 py-4 align-top">
                                         <span class="inline-flex items-center px-2 py-1 text-primary text-xs font-medium rounded bg-brand-softer">Online</span>
                                     </td>
-                                    <td class="py-4 align-top">
+                                    <td class="px-3 py-4 align-top">
                                         <span class="inline-flex items-center px-2 py-1 mb-1 text-fg-success-strong text-xs font-medium rounded bg-success-soft">Selesai</span>
                                         <div class="text-xs">Kunjungan selesai</div>
                                     </td>
-                                    <td class="py-4 align-top">
+                                    <td class="px-3 py-4 align-top">
                                         <button class="font-medium hover:underline text-primary cursor-pointer" data-modal-target="modal-detail-reservasi" data-modal-toggle="modal-detail-reservasi">Lihat</button>
                                     </td>
                                 </tr>
                                 <tr class="bg-neutral-primary border-b border-primary-400-05">
-                                    <th scope="row" class="py-4 font-medium text-heading whitespace-nowrap">
+                                    <th scope="row" class="px-3 py-4 font-medium text-heading whitespace-nowrap">
                                         <div class="text-base">Raka Aditya</div>
                                         <div class="text-xs font-normal">NIM · 2341720102</div>
                                     </th>
-                                    <td class="py-4">
+                                    <td class="px-3 py-4">
                                         <div class="font-medium text-heading">Poli Gigi · 09.00–12.00</div>
                                         <div class="">drg. Bima Pratama</div>
                                         <div class="text-xs">24 Sep 2026 · WIB</div>
                                     </td>
-                                    <td class="py-4 align-top">
+                                    <td class="px-3 py-4 align-top">
                                         <span class="inline-flex items-center px-2 py-1 text-primary text-xs font-medium rounded bg-brand-softer">Online</span>
                                     </td>
-                                    <td class="py-4 align-top">
+                                    <td class="px-3 py-4 align-top">
                                         <span class="inline-flex items-center px-2 py-1 mb-1 text-yellow-900 text-xs font-medium rounded bg-yellow-100">Perlu Reschedule</span>
                                         <div class="text-xs">Pasien Berhalangan</div>
                                     </td>
-                                    <td class="py-4 align-top">
+                                    <td class="px-3 py-4 align-top">
                                         <div class="flex items-center gap-3 pt-1">
                                             <a href="#" class="font-medium hover:underline text-primary">Lihat</a>
                                             <button type="button" class="inline-flex items-center px-3 py-1.5 text-primary text-sm font-medium rounded bg-brand-softer hover:bg-primary hover:text-white transition-all">Reschedule</button>
@@ -169,23 +169,23 @@ $app_name = "SIPOLI";
                                     </td>
                                 </tr>
                                 <tr class="bg-neutral-primary border-b border-primary-400-05">
-                                    <th scope="row" class="py-4 font-medium text-heading whitespace-nowrap">
+                                    <th scope="row" class="px-3 py-4 font-medium text-heading whitespace-nowrap">
                                         <div class="text-base">Raka Aditya</div>
                                         <div class="text-xs font-normal">NIM · 2341720102</div>
                                     </th>
-                                    <td class="py-4">
+                                    <td class="px-3 py-4">
                                         <div class="font-medium text-heading">Poli Gigi · 09.00–12.00</div>
                                         <div class="">drg. Bima Pratama</div>
                                         <div class="text-xs">24 Sep 2026 · WIB</div>
                                     </td>
-                                    <td class="py-4 align-top">
+                                    <td class="px-3 py-4 align-top">
                                         <span class="inline-flex items-center px-2 py-1 text-primary text-xs font-medium rounded bg-brand-softer">Online</span>
                                     </td>
-                                    <td class="py-4 align-top">
+                                    <td class="px-3 py-4 align-top">
                                         <span class="inline-flex items-center px-2 py-1 mb-1 text-primary text-xs font-medium rounded bg-brand-softer">Menunggu</span>
                                         <div class="text-xs">Belum check-in</div>
                                     </td>
-                                    <td class="py-4 align-top">
+                                    <td class="px-3 py-4 align-top">
                                         <div class="flex items-center gap-3 pt-1">
                                             <a href="#" class="font-medium hover:underline text-primary">Lihat</a>
                                             <button type="button" class="inline-flex items-center px-3 py-1.5 text-primary text-sm font-medium rounded bg-brand-softer hover:bg-primary hover:text-white transition-all">Check-in</button>
