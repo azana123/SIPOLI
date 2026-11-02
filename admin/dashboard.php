@@ -32,21 +32,21 @@ $app_name = "SIPOLI";
             <main class="flex-1 min-w-0 bg-page p-6">
                 <!-- Counter -->
                 <div class="counter grid grid-cols-2 md:grid-cols-4 gap-3.5">
-                    <div class="bg-neutral-primary-soft block p-4 md:p-6 border whitespace-nowrap text-center md:text-left border-default rounded-base shadow-xs">
+                    <div class="bg-neutral-primary-soft flex flex-col p-4 md:p-4 border whitespace-nowrap text-center md:text-left border-default rounded-base shadow-xs">
                         <p class="text-gray-500 font-medium">Reservasi Hari ini</p>
                         <h4 class="text-2xl font-bold">45</h4>
                     </div>
-                    <div class="bg-neutral-primary-soft block p-4 md:p-6 border whitespace-nowrap text-center md:text-left border-default rounded-base shadow-xs">
+                    <div class="bg-neutral-primary-soft flex flex-col p-4 md:p-4 border whitespace-nowrap text-center md:text-left border-default rounded-base shadow-xs">
                         <p class="text-gray-500 font-medium">Kuota Tersedia</p>
-                        <h4 class="text-2xl font-bold">45<span class="text-sm text-gray-400">/100</span></h4>
+                        <h4 class="text-2xl font-bold">45<span class= text-gray-400">/100</span></h4>
                     </div>
-                    <div class="bg-yellow-100 block p-4 md:p-6 border whitespace-nowrap text-center md:text-left border-yellow-400 rounded-base shadow-xs text-yellow-900">
+                    <div class="bg-yellow-100 flex flex-col p-4 md:p-4 border text-center md:text-left border-yellow-400 rounded-base shadow-xs text-yellow-900">
                         <p class="font-medium">Konfirmasi H-1 Menunggu</p>
                         <h4 class="text-2xl font-bold">45</h4>
                     </div>
-                    <div class="bg-blue-200 block p-4 md:p-6 border whitespace-nowrap text-center md:text-left border-blue-400 rounded-base shadow-xs text-blue-900">
+                    <div class="bg-blue-200 flex flex-col p-4 md:p-4 border whitespace-break-spaces md:whitespace-nowrap text-center md:text-left border-blue-400 rounded-base shadow-xs text-blue-900">
                         <p class="font-medium">Resep Menunggu</p>
-                        <h4 class="text-2xl font-bold">45</h4>
+                        <h4 class="text-2xl font-bold ">45</h4>
                     </div>
                 </div>
                 <!-- End of Counter -->
