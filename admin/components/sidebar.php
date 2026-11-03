@@ -5,7 +5,7 @@
         </a>
         <ul class="space-y-2 font-medium">
             <li>
-                <a href="#" class="flex items-center px-3 py-2.5 text-white rounded-base hover:bg-primary-400 btn-active">
+                <a href="<?= BASE_URL ?>/dashboard.php" class="flex items-center px-3 py-2.5 text-white rounded-base hover:bg-primary-400 btn-active">
                     <span class="ms-3">Dashboard</span>
                 </a>
             </li>
@@ -15,7 +15,7 @@
                 </a>
             </li>
             <li>
-                <a href="#" class="flex items-center px-3 py-2.5 text-white rounded-base hover:bg-primary-400 ">
+                <a href="<?= BASE_URL ?>/reservasi.php" class="flex items-center px-3 py-2.5 text-white rounded-base hover:bg-primary-400 ">
                     <span class="ms-3">Reservasi</span>
                 </a>
             </li>
@@ -45,7 +45,7 @@
                 </a>
             </li>
             <li>
-                <a href="#" class="flex items-center px-3 py-2.5 text-white rounded-base hover:bg-primary-400 ">
+                <a href="<?= BASE_URL ?>/notifikasi.php" class="flex items-center px-3 py-2.5 text-white rounded-base hover:bg-primary-400 ">
                     <span class="ms-3">Notifikasi</span>
                 </a>
             </li>
