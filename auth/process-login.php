@@ -1,77 +1,83 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
+declare(strict_types=1);
+
+require_once __DIR__ . '/../config/bootstrap.php';
+require_once __DIR__ . '/../middleware/csrf.php';
+require_once __DIR__ . '/../middleware/check-role.php';
+
+const PESAN_LOGIN_GAGAL = 'Username atau password salah, atau akun sedang tidak dapat digunakan.';
+
+const HASH_DUMMY = '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi';
+
+function login_gagal(string $pesan): void {
+    $_SESSION['error'] = $pesan;
+    redirect('auth/login.php');
 }
-require __DIR__ . '/../includes/csrf.php';
-require __DIR__ . '/../config/database.php';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $id = trim($_POST['username'] ?? '');
-    $pass = trim($_POST['password'] ?? '');
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    redirect('auth/login.php');
+}
 
-    if (!empty($id) && !empty($pass)) {
-        $stmt = $pdo->prepare("SELECT * FROM users WHERE username = :username");
-        $stmt->execute(['username' => $id]);
-        $userData = $stmt->fetch();
+csrf_verify();
 
-        if ($userData) {
-            // Cek akun terkunci -> jika terkunci langsung exit
-            if ($userData['locked_until'] && strtotime($userData['locked_until']) > time()) {
-                $_SESSION['error'] = "Akun Anda terkunci hingga " . $userData['locked_until'];
-                header("Location: login.php");
-                exit;
-            }
+$username = trim((string) ($_POST['username'] ?? ''));
+$password = (string) ($_POST['password'] ?? '');
 
-            // Validasi input password
-            if (password_verify($pass, $userData['password_hash']) || $pass === $userData['password_hash']) { // pakai data mockup tanpa di hash dulu soalnya halaman registrasi belum ada. Jadi akun di insert manual lewat psql
-                // login berhasil
-                $stmtSuccess = $pdo->prepare("SELECT fn_login_berhasil(:user_id)");
-                $stmtSuccess->execute(['user_id' => $userData['id']]);
+if ($username === '' || $password === '') {
+    login_gagal('Semua field harus diisi.');
+}
+if (strlen($username) > 50 || strlen($password) > 200) {
+    login_gagal(PESAN_LOGIN_GAGAL);
+}
 
-                // Mengamankan session ID
-                session_regenerate_id(true);
+try {
+    $st = $pdo->prepare(
+        "SELECT id, username, password_hash, role,
+                CASE WHEN is_active THEN 1 ELSE 0 END AS aktif,
+                CASE WHEN locked_until IS NOT NULL AND locked_until > NOW() THEN 1 ELSE 0 END AS terkunci
+         FROM users
+         WHERE username = :username"
+    );
+    $st->execute(['username' => $username]);
+    $user = $st->fetch();
 
-                // Menyimpan informasi ke session
-                $_SESSION['user_id'] = $userData['id'];
-                $_SESSION['username'] = $userData['username'];
-                $_SESSION['role'] = $userData['role'];
+    $passwordBenar = password_verify($password, $user ? $user['password_hash'] : HASH_DUMMY);
 
-                // Redirect ke dashboard by role
-                switch ($_SESSION['role']) {
-                    case 'admin':
-                        header("Location: ../admin/dashboard.php"); // isi kalo udah ada dashboard untuk setiap role
-                        break;
-                    case 'dokter':
-                        header("Location: dokter/dashboard.php");
-                        break;
-                    case 'pasien':
-                        header("Location: pasien/dashboard.php");
-                        break;
-                    default:
-                        //Role error handler
-                        header("Location: index.php");
-                        break;
-                    }
-                exit;
-            } else {
-                // Login gagal throw error -> call function rn_login_gagal
-                $stmtFail = $pdo->prepare("SELECT fn_login_gagal(:user_id)");
-                $stmtFail->execute(['user_id' => $userData['id']]);
-
-                $_SESSION['error'] = "Username dan Password tidak valid.";
-            }
-        } else {
-            $_SESSION['error'] = "Username dan Password tidak valid.";
-        }
-    } else {
-        $_SESSION['error'] = "Semua field harus diisi.";
+    // user tidak ada / nonaktif / sedang terkunci (tidak menambah hitungan gagal)
+    if (!$user || (int) $user['aktif'] !== 1 || (int) $user['terkunci'] === 1) {
+        login_gagal(PESAN_LOGIN_GAGAL);
     }
 
-    // Login gagal -> kembali ke login
-    header("Location: login.php");
-    exit;
-} else {
-    // Kembali ke login jika method !post
-    header("Location: login.php");
-    exit;
+    // password salah: tambah hitungan; 5x gagal -> database mengunci akun 15 menit
+    if (!$passwordBenar) {
+        $pdo->prepare('SELECT fn_login_gagal(:id)')->execute(['id' => $user['id']]);
+        login_gagal(PESAN_LOGIN_GAGAL);
+    }
+
+    // ambil id profil (admin.id / dokter.id / pasien.id) sesuai role; nama tabel dari whitelist
+    $tabelProfil = ['admin' => 'admin', 'dokter' => 'dokter', 'pasien' => 'pasien'];
+    if (!isset($tabelProfil[$user['role']])) {
+        login_gagal('Role pengguna tidak valid.');
+    }
+    $st = $pdo->prepare('SELECT id FROM ' . $tabelProfil[$user['role']] . ' WHERE user_id = :id');
+    $st->execute(['id' => $user['id']]);
+    $profil = $st->fetch();
+    if (!$profil) {
+        login_gagal('Profil akun belum lengkap. Hubungi admin.');
+    }
+
+    $pdo->prepare('SELECT fn_login_berhasil(:id)')->execute(['id' => $user['id']]);
+
+    session_regenerate_id(true);
+    unset($_SESSION['csrf_token']);
+
+    $_SESSION['user_id']   = (int) $user['id'];
+    $_SESSION['username']  = $user['username'];
+    $_SESSION['role']      = $user['role'];
+    $_SESSION['profil_id'] = (int) $profil['id'];
+
+    redirect_by_role($user['role']);
+} catch (PDOException $e) {
+    error_log('[login] ' . $e->getMessage());
+    login_gagal('Terjadi kesalahan pada sistem. Silakan coba kembali.');
 }
