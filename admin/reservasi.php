@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . "/../config/config.php";
 $page_title = "Reservasi";
 $app_name = "SIPOLI";
 ?>
