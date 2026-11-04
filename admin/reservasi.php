@@ -35,22 +35,22 @@ $app_name = "SIPOLI";
                 <div class="counter grid grid-cols-2 md:grid-cols-4 gap-2">
                     <div class="bg-neutral-primary-soft flex flex-col md:block p-4 md:px-4.5 md:py-3.5 border whitespace-nowrap text-center md:text-left border-default rounded-base shadow-xs">
                         <p class="text-gray-500 font-medium">Total Kunjungan</p>
-                        <h4 class="text-2xl font-bold my-1.5 flex-1">45</h4>
+                        <h4 class="text-4xl font-bold my-1.5 flex-1">45</h4>
                         <p class="text-xs text-gray-500 text-wrap">4 online &bull; 2 offline</p>
                     </div>
                     <div class="bg-neutral-primary-soft flex flex-col md:block p-4 md:px-4.5 md:py-3.5 border whitespace-nowrap text-center md:text-left border-default rounded-base shadow-xs">
                         <p class="text-gray-500 font-medium">Selesai</p>
-                        <h4 class="text-2xl font-bold my-1.5 flex-1">45</h4>
+                        <h4 class="text-4xl font-bold my-1.5 flex-1">45</h4>
                         <p class="text-xs text-gray-500 text-wrap">1 online &bull; 2 ditangani perawat</p>
                     </div>
                     <div class="bg-neutral-primary-soft flex flex-col md:block p-4 md:px-4.5 md:py-3.5 border whitespace-nowrap text-center md:text-left border-default rounded-base shadow-xs">
                         <p class="text-gray-500 font-medium">Menunggu</p>
-                        <h4 class="text-2xl font-bold my-1.5 flex-1">1</h4>
+                        <h4 class="text-4xl font-bold my-1.5 flex-1">1</h4>
                         <p class="text-xs text-gray-500 text-wrap">1 reservasi belum check-in</p>
                     </div>
                     <div class="bg-yellow-100 flex flex-col md:block p-4 md:px-4.5 md:py-3.5 border whitespace-nowrap text-center md:text-left border-yellow-400 rounded-base shadow-xs text-yellow-900">
                         <p class="font-medium">Perlu reschedule</p>
-                        <h4 class="text-2xl font-bold my-1.5 flex-1">45</h4>
+                        <h4 class="text-4xl font-bold my-1.5 flex-1">45</h4>
                         <p class="text-xs">1 lainnya dibatalkan</p>
                     </div>
                 </div>
