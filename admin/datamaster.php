@@ -1,7 +1,60 @@
 <?php
 require_once __DIR__ . "/../config/config.php";
+require_once __DIR__ . '/../middleware/check-role.php';
+check_role('admin');
+require_once __DIR__ . '/../config/database.php';
+
 $page_title = "Datamaster";
-$app_name = "SIPOLI";
+$app_name   = "SIPOLI";
+
+if (!function_exists('e')) {
+    function e($v): string
+    {
+        return htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
+    }
+}
+
+$totalPasien    = 0;
+$totalDokter    = 0;
+$totalPoli      = 0;
+$totalAdmin     = 0;
+
+try {
+    $stats = $pdo -> query("
+        SELECT 
+            (
+                SELECT COUNT(*)
+                FROM  admin a
+                JOIN  users u ON a.user_id = u.id
+                WHERE u.is_active = TRUE
+            ) AS total_admin,
+            (
+                SELECT COUNT(*)
+                FROM  pasien p
+                JOIN  users u ON p.user_id = u.id
+                WHERE u.is_active = TRUE
+            ) AS total_pasien,
+            (
+                SELECT COUNT(*)
+                FROM dokter d
+                JOIN users u ON d.user_id = u.id
+                WHERE u.is_active = TRUE
+            ) AS total_dokter,
+            (
+                SELECT COUNT(*)
+                FROM poli
+            ) AS total_poli
+    ")-> fetch();
+
+    $totalAdmin     = (int) $stats['total_admin'];
+    $totalPasien    = (int) $stats['total_pasien'];
+    $totalDokter    = (int) $stats['total_dokter'];
+    $totalPoli      = (int) $stats['total_poli'];
+} catch(PDOException $e) {
+    $errorDb = true;
+    error_log('[datamaster-admin] ' . $e->getMessage());
+}
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -30,6 +83,12 @@ $app_name = "SIPOLI";
 
             <!-- Content -->
             <main class="flex-1 min-w-0 bg-page p-6">
+
+                <?php if ($errorDb): ?>
+                    <div class="mb-3 p-4 text-sm text-red-800 bg-red-100 border border-red-300 rounded-base" role="alert">
+                        Data master gagal dimuat. Angka di bawah belum tentu benar. Periksa log server.
+                    </div>
+                <?php endif; ?>
                 <!-- datamaster -->
                 <div class="title-datamaster mb-2 text-gray-500 font-medium">
                     <p>Kelola data civitas akademika & layanan · Politeknik Negeri Malang</p>
@@ -40,10 +99,10 @@ $app_name = "SIPOLI";
                         <label for="pasien" class="inline-flex items-center justify-between gap-2 w-full p-4 bg-neutral-primary-soft border border-default rounded-base focus:border focus:border-primary cursor-pointer hover:bg-primary-50 peer-checked:bg-primary-50 peer-checked:border-[#12616b] transition-colors">
                             <div class="block">
                                 <div class="w-full font-bold text-primary">Pasien</div>
-                                <div class="w-full text-sm text-gray-500">Mahasiswa & pegawai</div>
+                                <div class="w-full text-sm text-gray-500">Civitas Akademika</div>
                             </div>
                             <div class="font-bold text-primary self-start text-sm">
-                                128
+                                <p><?= e($totalPasien); ?></p>
                             </div>
                         </label>
                     </div>
@@ -51,11 +110,13 @@ $app_name = "SIPOLI";
                         <input type="radio" id="tenaga-layanan" name="datamaster" value="tenaga-layanan" class="hidden peer" required />
                         <label for="tenaga-layanan" class="inline-flex items-center justify-between gap-2 w-full p-4 bg-neutral-primary-soft border border-default rounded-base focus:border focus:border-primary cursor-pointer hover:bg-primary-50 peer-checked:bg-primary-50 peer-checked:border-[#12616b] transition-colors">
                             <div class="block">
-                                <div class="w-full font-bold text-primary">Dokter / Psikologi</div>
+                                <div class="w-full font-bold text-primary">Dokter & Psikolog</div>
                                 <div class="w-full text-sm text-gray-500">Tenaga Layanan</div>
                             </div>
                             <div class="font-bold text-primary self-start text-sm">
-                                128
+                                <div class="font-bold text-primary self-start text-sm">
+                                    <p><?= e($totalDokter); ?></p>
+                                </div>
                             </div>
                         </label>
                     </div>
@@ -67,7 +128,9 @@ $app_name = "SIPOLI";
                                 <div class="w-full text-sm text-gray-500">Layanan medis tersedia</div>
                             </div>
                             <div class="font-bold text-primary self-start text-sm">
-                                3
+                                <div class="font-bold text-primary self-start text-sm">
+                                    <p><?= e($totalPoli); ?></p>
+                                </div>
                             </div>
                         </label>
                     </div>
@@ -79,7 +142,9 @@ $app_name = "SIPOLI";
                                 <div class="w-full text-sm text-gray-500">Pengelola SIPOLI</div>
                             </div>
                             <div class="font-bold text-primary self-start text-sm">
-                                3
+                                <div class="font-bold text-primary self-start text-sm">
+                                    <p><?= e($totalAdmin); ?></p>
+                                </div>
                             </div>
                         </label>
                     </div>
