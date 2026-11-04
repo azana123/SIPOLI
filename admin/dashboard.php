@@ -26,15 +26,22 @@ $errorDb               = false;
 try {
     $stats = $pdo->query("
         SELECT
-            (SELECT COUNT(*)
-               FROM reservasi r JOIN jadwal j ON j.id = r.jadwal_id
-              WHERE j.tanggal = fn_today() AND r.status <> 'dibatalkan')  AS reservasi_hari_ini,
-            (SELECT COUNT(*)
-               FROM reservasi r JOIN jadwal j ON j.id = r.jadwal_id
-              WHERE j.tanggal = fn_today() + 1 AND r.status = 'menunggu') AS konfirmasi_h1,
-            (SELECT COUNT(*)
-               FROM permintaan_obat WHERE status = 'menunggu')            AS resep_menunggu
-    ")->fetch(PDO::FETCH_ASSOC);
+            (
+                SELECT COUNT(*)
+                FROM reservasi r JOIN jadwal j ON j.id = r.jadwal_id
+                WHERE j.tanggal = fn_today() AND r.status <> 'dibatalkan'
+            ) AS reservasi_hari_ini,
+            (
+                SELECT COUNT(*)
+                FROM reservasi r JOIN jadwal j ON j.id = r.jadwal_id
+                WHERE j.tanggal = fn_today() + 1 AND r.status = 'menunggu'
+            ) AS konfirmasi_h1,
+            (
+                SELECT COUNT(*)
+                FROM permintaan_obat 
+                WHERE status = 'menunggu'
+            ) AS resep_menunggu
+    ")->fetch();
 
     $totalReservasiHariIni = (int) $stats['reservasi_hari_ini'];
     $totalKonfirmasiH1     = (int) $stats['konfirmasi_h1'];
@@ -55,7 +62,7 @@ try {
          WHERE po.butuh_reservasi
          GROUP BY po.id, po.nama
          ORDER BY po.nama
-    ")->fetchAll(PDO::FETCH_ASSOC);
+    ")->fetchAll();
 
     foreach ($kuotaPerPoli as $k) {
         $kuotaTotal    += (int) $k['kuota'];
@@ -74,7 +81,7 @@ try {
          WHERE j.tanggal = fn_today() AND r.status <> 'dibatalkan'
          ORDER BY j.jam_mulai, r.created_at
          LIMIT 5
-    ")->fetchAll(PDO::FETCH_ASSOC);
+    ")->fetchAll();
 } catch (PDOException $e) {
     $errorDb = true;
     error_log('[dashboard-admin] ' . $e->getMessage());

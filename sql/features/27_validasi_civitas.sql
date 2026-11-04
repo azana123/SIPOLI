@@ -1,21 +1,17 @@
 -- =====================================================================
 -- FITUR   : Validasi NIM/NIP civitas akademika (sistem tertutup)
 -- URUTAN  : features/27
--- ISI     : fn_validasi_civitas_pasien, trigger trg_validasi_civitas, fk_pasien_civitas, fn_cek_civitas, fn_registrasi_pasien
+-- ISI     : fk_pasien_civitas, fn_validasi_civitas_pasien, trigger trg_validasi_civitas,
+--           fn_sinkron_civitas_ke_pasien, trigger trg_sinkron_civitas_ke_pasien,
+--           fn_cek_civitas, fn_registrasi_pasien
 -- DEPEND  : tables/01_users, tables/03_pasien, tables/18_data_civitas
 -- =====================================================================
 
--- Pasien hanya boleh berasal dari data_civitas. Constraint ini ditambahkan di sini
--- (bukan di tabel pasien) karena data_civitas dibuat setelah pasien.
--- ON UPDATE CASCADE: jika NIM/NIP di data_civitas dikoreksi, pasien ikut berubah.
--- Gagal jika sudah ada pasien yang NIM/NIP-nya belum ada di data_civitas.
 ALTER TABLE pasien
     ADD CONSTRAINT fk_pasien_civitas
     FOREIGN KEY (nim_nip) REFERENCES data_civitas (nim_nip) ON UPDATE CASCADE;
 
 -- A. Trigger pada pasien: tolak NIM/NIP yang tidak terdaftar atau tidak aktif.
---    Identitas (nama, jenis kelamin, tanggal lahir, status civitas) selalu diambil
---    dari data_civitas, sehingga PHP cukup mengirim nim_nip (kolom lain boleh dikosongkan).
 CREATE OR REPLACE FUNCTION fn_validasi_civitas_pasien() RETURNS TRIGGER AS $$
 DECLARE
     c data_civitas%ROWTYPE;
@@ -43,9 +39,24 @@ CREATE TRIGGER trg_validasi_civitas
     BEFORE INSERT OR UPDATE OF nim_nip, nama, jenis_kelamin, tanggal_lahir, status_civitas ON pasien
     FOR EACH ROW EXECUTE FUNCTION fn_validasi_civitas_pasien();
 
+-- A2. Sinkronisasi otomatis jika data di data_civitas diperbarui (misal: koreksi ejaan nama)
+CREATE OR REPLACE FUNCTION fn_sinkron_civitas_ke_pasien() RETURNS TRIGGER AS $$
+BEGIN
+    UPDATE pasien
+       SET nama           = NEW.nama,
+           jenis_kelamin  = NEW.jenis_kelamin,
+           tanggal_lahir  = NEW.tanggal_lahir,
+           status_civitas = NEW.status_civitas
+     WHERE nim_nip = NEW.nim_nip;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_sinkron_civitas_ke_pasien
+    AFTER UPDATE OF nama, jenis_kelamin, tanggal_lahir, status_civitas ON data_civitas
+    FOR EACH ROW EXECUTE FUNCTION fn_sinkron_civitas_ke_pasien();
+
 -- B. Langkah 1 form registrasi: cek NIM/NIP + tanggal lahir.
---    Mengembalikan 0 baris jika tidak cocok / tidak aktif (tampilkan pesan generik di UI,
---    jangan beri tahu mana yang salah agar NIM tidak bisa ditebak).
 CREATE OR REPLACE FUNCTION fn_cek_civitas(p_nim_nip VARCHAR, p_tanggal_lahir DATE)
 RETURNS TABLE (nama VARCHAR, status_civitas VARCHAR, unit VARCHAR, sudah_terdaftar BOOLEAN) AS $$
     SELECT c.nama, c.status_civitas, c.unit,
@@ -57,11 +68,6 @@ RETURNS TABLE (nama VARCHAR, status_civitas VARCHAR, unit VARCHAR, sudah_terdaft
 $$ LANGUAGE sql STABLE;
 
 -- C. Langkah 2 form registrasi: buat akun + data pasien dalam satu transaksi.
---    Tanggal lahir berfungsi sebagai faktor kedua agar orang lain tidak bisa
---    mendaftar memakai NIM/NIP yang bukan miliknya.
---    Jika pasien walk-in sudah dibuat admin (belum punya akun), akunnya ditautkan.
---    password_hash dibuat di PHP (password_hash()), BUKAN password asli.
---    Mengembalikan pasien.id.
 CREATE OR REPLACE FUNCTION fn_registrasi_pasien(
     p_nim_nip VARCHAR, p_tanggal_lahir DATE, p_username VARCHAR, p_password_hash VARCHAR
 ) RETURNS BIGINT AS $$
