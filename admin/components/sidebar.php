@@ -10,7 +10,7 @@
                 </a>
             </li>
             <li>
-                <a href="#" class="flex items-center px-3 py-2.5 text-white rounded-base hover:bg-primary-400 ">
+                <a href="<?= BASE_URL ?>/jadwal.php" class="flex items-center px-3 py-2.5 text-white rounded-base hover:bg-primary-400 ">
                     <span class="ms-3">Jadwal & Kuota</span>
                 </a>
             </li>
@@ -20,27 +20,27 @@
                 </a>
             </li>
             <li>
-                <a href="#" class="flex items-center px-3 py-2.5 text-white rounded-base hover:bg-primary-400 ">
+                <a href="<?= BASE_URL ?>/datamaster.php" class="flex items-center px-3 py-2.5 text-white rounded-base hover:bg-primary-400 ">
                     <span class="ms-3">Data Master</span>
                 </a>
             </li>
             <li>
-                <a href="#" class="flex items-center px-3 py-2.5 text-white rounded-base hover:bg-primary-400 ">
+                <a href="<?= BASE_URL ?>/konfirmasi.php" class="flex items-center px-3 py-2.5 text-white rounded-base hover:bg-primary-400 ">
                     <span class="ms-3">Konfirmasi H-1</span>
                 </a>
             </li>
             <li>
-                <a href="#" class="flex items-center px-3 py-2.5 text-white rounded-base hover:bg-primary-400 ">
+                <a href="<?= BASE_URL ?>/obat.php" class="flex items-center px-3 py-2.5 text-white rounded-base hover:bg-primary-400 ">
                     <span class="ms-3">Obat & Stok</span>
                 </a>
             </li>
             <li>
-                <a href="#" class="flex items-center px-3 py-2.5 text-white rounded-base hover:bg-primary-400 ">
+                <a href="<?= BASE_URL ?>/resep.php" class="flex items-center px-3 py-2.5 text-white rounded-base hover:bg-primary-400 ">
                     <span class="ms-3">Resep</span>
                 </a>
             </li>
             <li>
-                <a href="#" class="flex items-center px-3 py-2.5 text-white rounded-base hover:bg-primary-400 ">
+                <a href="<?= BASE_URL ?>/kirim-informasi.php" class="flex items-center px-3 py-2.5 text-white rounded-base hover:bg-primary-400 ">
                     <span class="ms-3">Kirim Informasi</span>
                 </a>
             </li>
