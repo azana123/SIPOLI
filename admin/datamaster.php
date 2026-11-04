@@ -86,17 +86,19 @@ $app_name = "SIPOLI";
                 </div>
                 <!-- End of datamaster -->
 
-                <!-- Table Daftar Pasien -->
-                <?php require_once __DIR__ . '/components/datamaster/card-data-pasien.php'; ?>
+                <!-- Card Pasien -->
+                <?php require_once __DIR__ . '/components/datamaster/pasien/card-data-pasien.php'; ?>
+                <?php require_once __DIR__ . '/components/datamaster/pasien/detail-pasien.php'; ?>
+                <?php require_once __DIR__ . '/components/datamaster/pasien/form-data-pasien.php'; ?>
+                
+                <!-- Card Poli -->
                 <?php require_once __DIR__ . '/components/datamaster/card-data-poli.php'; ?>
+                <!-- Card Tenaga Layanan -->
                 <?php require_once __DIR__ . '/components/datamaster/card-data-tenaga-layanan.php'; ?>
                 <?php require_once __DIR__ . '/components/datamaster/card-data-admin.php'; ?>
             </main>
         </div>
     </div>
-
-    <?php require_once __DIR__ . '/components/detail-reservasi.php'; ?>
-
     <script src="./../../assets/js/app.js"></script>
     <script src="./../node_modules/flowbite/dist/flowbite.min.js"></script>
 </body>
