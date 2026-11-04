@@ -126,22 +126,22 @@ $statusBadge = [
                 <div class="counter grid grid-cols-2 md:grid-cols-4 gap-3.5">
                     <div class="bg-neutral-primary-soft flex flex-col p-4 md:p-4 border whitespace-nowrap text-center md:text-left border-default rounded-base shadow-xs">
                         <p class="text-gray-500 font-medium">Reservasi Hari ini</p>
-                        <h4 class="text-2xl font-bold"><?= e($totalReservasiHariIni) ?></h4>
+                        <h4 class="text-4xl font-bold"><?= e($totalReservasiHariIni) ?></h4>
                     </div>
                     <!-- Kuota Tersedia -->
                     <div class="bg-neutral-primary-soft block p-4 md:p-6 border whitespace-nowrap text-center md:text-left border-default rounded-base shadow-xs">
                         <p class="text-gray-500 font-medium">Kuota Tersedia</p>
-                        <h4 class="text-2xl font-bold"><?= e($kuotaTersedia) ?><span class="text-sm text-gray-400">/<?= e($kuotaTotal) ?></span></h4>
+                        <h4 class="text-4xl font-bold"><?= e($kuotaTersedia) ?><span class="text-2xl text-gray-400">/<?= e($kuotaTotal) ?></span></h4>
                     </div>
                     <!-- Konfirmasi H-1 -->
                     <div class="bg-yellow-100 block p-4 md:p-6 border whitespace-nowrap text-center md:text-left border-yellow-400 rounded-base shadow-xs text-yellow-900">
                         <p class="font-medium">Konfirmasi H-1 Menunggu</p>
-                        <h4 class="text-2xl font-bold"><?= e($totalKonfirmasiH1) ?></h4>
+                        <h4 class="text-4xl font-bold"><?= e($totalKonfirmasiH1) ?></h4>
                     </div>
                     <!-- Resep Menunggu -->
                     <div class="bg-blue-200 block p-4 md:p-6 border whitespace-nowrap text-center md:text-left border-blue-400 rounded-base shadow-xs text-blue-900">
                         <p class="font-medium">Resep Menunggu</p>
-                        <h4 class="text-2xl font-bold"><?= e($totalResepMenunggu) ?></h4>
+                        <h4 class="text-4xl font-bold"><?= e($totalResepMenunggu) ?></h4>
                     </div>
                 </div>
                 <!-- End of Counter -->
