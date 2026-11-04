@@ -1,5 +1,5 @@
 <nav class="bg-neutral-primary sticky top-0 z-30 border-b border-default">
-    <div class="max-w-7xl flex flex-wrap items-center justify-between mx-auto px-4 py-2.5">
+    <div class="flex flex-wrap items-center justify-between mx-auto px-4 py-2.5">
         <!-- Tambahan: Wrapper flex untuk Hamburger dan Title -->
         <div class="flex items-center justify-start">
             <!-- Hamburger Menu Toggle -->
