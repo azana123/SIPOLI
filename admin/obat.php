@@ -143,7 +143,7 @@ $app_name = "SIPOLI";
                                     <td class="px-4 py-4">Serbuk</td>
                                     <td class="px-4 py-4">Sachet</td>
                                     <td class="px-4 py-4 font-bold text-gray-900 flex items-center gap-2 mt-2 md:mt-0">
-                                        12 <span class="inline-flex items-center px-2 py-1 mb-1 text-yellow-900 text-xs font-medium rounded bg-yellow-100">Menipis</span>
+                                        5 <span class="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-orange-100 text-orange-800">Menipis</span>
                                     </td>
                                     <td class="px-4 py-4">
                                         <span class="inline-flex items-center px-2 py-1 mb-1 text-fg-success-strong text-xs font-medium rounded bg-success-soft">Aktif</span>
