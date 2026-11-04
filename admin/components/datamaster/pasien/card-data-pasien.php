@@ -69,8 +69,8 @@
                     </td>
                     <td class="px-3 py-4 align-top">
                         <div class="flex items-center gap-3">
-                            <a href="#" class="font-bold hover:underline text-primary">Lihat</a>
-                            <button type="button" class="inline-flex items-center p-1.5 text-primary rounded bg-brand-softer hover:bg-primary hover:text-white transition-all">
+                            <button type="button" data-modal-target="modal-detail-pasien" data-modal-toggle="modal-detail-pasien" class="font-bold hover:underline text-primary">Lihat</=>
+                            <button type="button" data-modal-target="modal-form-pasien" data-modal-toggle="modal-form-pasien" class="inline-flex items-center p-1.5 text-primary rounded bg-brand-softer hover:bg-primary hover:text-white transition-all">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
                                 </svg>
@@ -101,8 +101,8 @@
                     </td>
                     <td class="px-3 py-4 align-top">
                         <div class="flex items-center gap-3">
-                            <a href="#" class="font-bold hover:underline text-primary">Lihat</a>
-                            <button type="button" class="inline-flex items-center p-1.5 text-primary rounded bg-brand-softer hover:bg-primary hover:text-white transition-all">
+                            <button type="button" data-modal-target="modal-detail-pasien" data-modal-toggle="modal-detail-pasien" class="font-bold hover:underline text-primary">Lihat</=>
+                            <button type="button" data-modal-target="modal-form-pasien" data-modal-toggle="modal-form-pasien" class="inline-flex items-center p-1.5 text-primary rounded bg-brand-softer hover:bg-primary hover:text-white transition-all">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
                                 </svg>
@@ -133,8 +133,8 @@
                     </td>
                     <td class="px-3 py-4 align-top">
                         <div class="flex items-center gap-3">
-                            <a href="#" class="font-bold hover:underline text-primary">Lihat</a>
-                            <button type="button" class="inline-flex items-center p-1.5 text-primary rounded bg-brand-softer hover:bg-primary hover:text-white transition-all">
+                            <button type="button" data-modal-target="modal-detail-pasien" data-modal-toggle="modal-detail-pasien" class="font-bold hover:underline text-primary">Lihat</=>
+                            <button type="button" data-modal-target="modal-form-pasien" data-modal-toggle="modal-form-pasien" class="inline-flex items-center p-1.5 text-primary rounded bg-brand-softer hover:bg-primary hover:text-white transition-all">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
                                 </svg>
@@ -165,8 +165,8 @@
                     </td>
                     <td class="px-3 py-4 align-top">
                         <div class="flex items-center gap-3">
-                            <a href="#" class="font-bold hover:underline text-primary">Lihat</a>
-                            <button type="button" class="inline-flex items-center p-1.5 text-primary rounded bg-brand-softer hover:bg-primary hover:text-white transition-all">
+                            <button type="button" data-modal-target="modal-detail-pasien" data-modal-toggle="modal-detail-pasien" class="font-bold hover:underline text-primary">Lihat</=>
+                            <button type="button" data-modal-target="modal-form-pasien" data-modal-toggle="modal-form-pasien" class="inline-flex items-center p-1.5 text-primary rounded bg-brand-softer hover:bg-primary hover:text-white transition-all">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
                                 </svg>
