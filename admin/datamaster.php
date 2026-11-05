@@ -33,6 +33,66 @@ $totalAdmin  = 0;
 $rows     = [];
 $listPoli = [];
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'toggle_active') {
+    $entity   = $_POST['entity'] ?? '';
+    $targetId = (int) ($_POST['id'] ?? 0);
+    $newState = ($_POST['new_state'] ?? '0') === '1';
+    $backTab  = $_POST['tab'] ?? 'pasien';
+
+    try {
+        $pdo->beginTransaction();
+
+        if ($entity === 'pasien') {
+            $stmt = $pdo->prepare("UPDATE pasien SET is_active = :st WHERE id = :id RETURNING user_id");
+            $stmt->bindValue(':st', $newState, PDO::PARAM_BOOL);
+            $stmt->bindValue(':id', $targetId, PDO::PARAM_INT);
+            $stmt->execute();
+            $uId = $stmt->fetchColumn();
+
+            if ($uId) {
+                $stmtU = $pdo->prepare("UPDATE users SET is_active = :st WHERE id = :uid");
+                $stmtU->bindValue(':st', $newState, PDO::PARAM_BOOL);
+                $stmtU->bindValue(':uid', (int) $uId, PDO::PARAM_INT);
+                $stmtU->execute();
+            }
+        } elseif ($entity === 'dokter') {
+            $stmt = $pdo->prepare("UPDATE dokter SET is_active = :st WHERE id = :id RETURNING user_id");
+            $stmt->bindValue(':st', $newState, PDO::PARAM_BOOL);
+            $stmt->bindValue(':id', $targetId, PDO::PARAM_INT);
+            $stmt->execute();
+            $uId = $stmt->fetchColumn();
+
+            if ($uId) {
+                $stmtU = $pdo->prepare("UPDATE users SET is_active = :st WHERE id = :uid");
+                $stmtU->bindValue(':st', $newState, PDO::PARAM_BOOL);
+                $stmtU->bindValue(':uid', (int) $uId, PDO::PARAM_INT);
+                $stmtU->execute();
+            }
+        } elseif ($entity === 'admin') {
+            $stmt = $pdo->prepare("SELECT user_id FROM admin WHERE id = :id");
+            $stmt->execute([':id' => $targetId]);
+            $uId = $stmt->fetchColumn();
+
+            if ($uId) {
+                $stmtU = $pdo->prepare("UPDATE users SET is_active = :st WHERE id = :uid");
+                $stmtU->bindValue(':st', $newState, PDO::PARAM_BOOL);
+                $stmtU->bindValue(':uid', (int) $uId, PDO::PARAM_INT);
+                $stmtU->execute();
+            }
+        }
+
+        $pdo->commit();
+    } catch (PDOException $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        error_log('[datamaster-soft-delete] ' . $e->getMessage());
+    }
+
+    header("Location: datamaster.php?tab=" . urlencode($backTab));
+    exit;
+}
+
 try {
     $stats = $pdo->query("
         SELECT 
