@@ -1,17 +1,379 @@
 <?php
 require_once __DIR__ . "/../config/config.php";
+require_once __DIR__ . '/../middleware/check-role.php';
+check_role('admin');
+require_once __DIR__ . '/../config/database.php';
+
 $page_title = "Reservasi";
-$app_name = "SIPOLI";
+$app_name   = "SIPOLI";
+
+if (!function_exists('e')) {
+    function e($v): string
+    {
+        return htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
+    }
+}
+
+function formatTglSingkatRsv(string $dateStr): string
+{
+    $bulan = [1 => 'Jan', 2 => 'Feb', 3 => 'Mar', 4 => 'Apr', 5 => 'Mei', 6 => 'Jun', 7 => 'Jul', 8 => 'Agu', 9 => 'Sep', 10 => 'Okt', 11 => 'Nov', 12 => 'Des'];
+    $ts = strtotime($dateStr);
+    if (!$ts) return $dateStr;
+    return date('d', $ts) . ' ' . $bulan[(int) date('n', $ts)] . ' ' . date('Y', $ts);
+}
+
+try {
+    $todayDb = $pdo->query("SELECT fn_today()::text")->fetchColumn() ?: date('Y-m-d');
+} catch (PDOException $e) {
+    $todayDb = date('Y-m-d');
+}
+
+$flashSuccess = $_SESSION['flash_success'] ?? null;
+$flashError   = $_SESSION['flash_error'] ?? null;
+unset($_SESSION['flash_success'], $_SESSION['flash_error']);
+
+// PROSES POST: CHECK-IN, RESCHEDULE, DAN SOFT DELETE (BATALKAN)
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $action      = $_POST['action'] ?? '';
+    $redirectTgl = $_POST['redirect_tanggal'] ?? $todayDb;
+    $adminId     = isset($_SESSION['profil_id']) ? (int) $_SESSION['profil_id'] : null;
+
+    try {
+        $pdo->beginTransaction();
+
+        if (!empty($_SESSION['user_id'])) {
+            $stmtCfg = $pdo->prepare("SELECT set_config('app.user_id', :uid, true)");
+            $stmtCfg->execute([':uid' => (string) $_SESSION['user_id']]);
+        }
+
+        if ($action === 'checkin') {
+            $reservasiId = (int) ($_POST['reservasi_id'] ?? 0);
+
+            $stmtIns = $pdo->prepare("
+                INSERT INTO antrean (no_antrean, pasien_id, poli_id, reservasi_id, admin_id)
+                SELECT 0, r.pasien_id, j.poli_id, r.id, :admin_id
+                FROM reservasi r
+                JOIN jadwal j ON j.id = r.jadwal_id
+                WHERE r.id = :rsv_id
+                RETURNING no_antrean
+            ");
+            $stmtIns->bindValue(':admin_id', $adminId, $adminId === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
+            $stmtIns->bindValue(':rsv_id', $reservasiId, PDO::PARAM_INT);
+            $stmtIns->execute();
+            $noAntrean = $stmtIns->fetchColumn();
+
+            $stmtHadir = $pdo->prepare("UPDATE reservasi SET status = 'hadir' WHERE id = :id AND status = 'dikonfirmasi'");
+            $stmtHadir->execute([':id' => $reservasiId]);
+
+            $_SESSION['flash_success'] = "Check-in berhasil! Pasien masuk ke antrean nomor #" . (int) $noAntrean . ".";
+
+        } elseif ($action === 'reschedule') {
+            $reservasiId  = (int) ($_POST['reservasi_id'] ?? 0);
+            $jadwalBaruId = (int) ($_POST['jadwal_baru_id'] ?? 0);
+
+            $stmtRes = $pdo->prepare("SELECT fn_reschedule_reservasi(:rsv_id, :jadwal_baru_id)");
+            $stmtRes->execute([
+                ':rsv_id'         => $reservasiId,
+                ':jadwal_baru_id' => $jadwalBaruId
+            ]);
+
+            $_SESSION['flash_success'] = "Jadwal reservasi berhasil dijadwalkan ulang.";
+
+        } elseif ($action === 'batal_reservasi') {
+            $reservasiId = (int) ($_POST['reservasi_id'] ?? 0);
+            $stmtBtl = $pdo->prepare("
+                UPDATE reservasi
+                   SET status = 'dibatalkan', alasan_batal = 'admin'
+                 WHERE id = :id
+            ");
+            $stmtBtl->execute([':id' => $reservasiId]);
+
+            $stmtBtlAnt = $pdo->prepare("
+                UPDATE antrean SET status = 'batal'
+                 WHERE reservasi_id = :id AND status IN ('menunggu', 'diperiksa')
+            ");
+            $stmtBtlAnt->execute([':id' => $reservasiId]);
+
+            $_SESSION['flash_success'] = "Reservasi telah dibatalkan.";
+
+        } elseif ($action === 'batal_walkin') {
+            $antreanId = (int) ($_POST['antrean_id'] ?? 0);
+            $stmtBtl = $pdo->prepare("
+                UPDATE antrean SET status = 'batal'
+                 WHERE id = :id AND status IN ('menunggu', 'diperiksa')
+            ");
+            $stmtBtl->execute([':id' => $antreanId]);
+
+            $_SESSION['flash_success'] = "Kunjungan walk-in telah dibatalkan.";
+        }
+
+        $pdo->commit();
+    } catch (PDOException $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        $rawMsg = $e->getMessage();
+        if (str_contains($rawMsg, 'uq_antrean_reservasi')) {
+            $_SESSION['flash_error'] = "Reservasi ini sudah melakukan check-in sebelumnya.";
+        } elseif (preg_match('/ERROR:\s*(.+?)(\n|CONTEXT:|$)/s', $rawMsg, $matches)) {
+            $_SESSION['flash_error'] = trim($matches[1]);
+        } else {
+            $_SESSION['flash_error'] = "Gagal memproses tindakan: " . $rawMsg;
+        }
+        error_log('[reservasi-admin-post] ' . $rawMsg);
+    }
+
+    header("Location: reservasi.php?tanggal=" . urlencode($redirectTgl));
+    exit;
+}
+
+// PROSES GET: FILTER, STATISTIK COUNTER, DAN DAFTAR KUNJUNGAN GABUNGAN
+$filterTanggal = trim($_GET['tanggal'] ?? $todayDb);
+if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $filterTanggal)) {
+    $filterTanggal = $todayDb;
+}
+$filterPoli     = trim($_GET['poli_id'] ?? '');
+
+$filterStatus   = trim($_GET['status'] ?? '');
+
+// online | offline
+$filterAsal     = trim($_GET['asal'] ?? '');
+$search         = trim($_GET['q'] ?? '');
+
+// online | offline
+$detailSource   = $_GET['detail_src'] ?? '';
+$detailId       = isset($_GET['detail_id']) && ctype_digit((string) $_GET['detail_id']) ? (int) $_GET['detail_id'] : null;
+$rescheduleId   = isset($_GET['reschedule_id']) && ctype_digit((string) $_GET['reschedule_id']) ? (int) $_GET['reschedule_id'] : null;
+
+$listPoli          = [];
+$kunjunganRows     = [];
+$detailData        = null;
+$rescheduleData    = null;
+$jadwalPengganti   = [];
+$errorDb           = false;
+
+$cntOnlineTotal    = 0;
+$cntOfflineTotal   = 0;
+$cntOnlineSelesai  = 0;
+$cntOfflineSelesai = 0;
+$cntMenunggu       = 0;
+$cntBelumCheckin   = 0;
+$cntReschedule     = 0;
+$cntDibatalkan     = 0;
+
+try {
+    $listPoli = $pdo->query("SELECT id, nama FROM poli ORDER BY id ASC")->fetchAll();
+
+    $stmtCnt = $pdo->prepare("
+        SELECT
+            (SELECT COUNT(*) FROM reservasi r JOIN jadwal j ON j.id = r.jadwal_id WHERE j.tanggal = :tgl AND r.status <> 'dibatalkan') AS online_aktif,
+            (SELECT COUNT(*) FROM antrean a WHERE a.tanggal = :tgl AND a.reservasi_id IS NULL AND a.status <> 'batal') AS offline_aktif,
+            (SELECT COUNT(*) FROM reservasi r JOIN jadwal j ON j.id = r.jadwal_id WHERE j.tanggal = :tgl AND r.status = 'selesai') AS online_selesai,
+            (SELECT COUNT(*) FROM antrean a WHERE a.tanggal = :tgl AND a.reservasi_id IS NULL AND a.status = 'selesai') AS offline_selesai,
+            (SELECT COUNT(*) FROM reservasi r JOIN jadwal j ON j.id = r.jadwal_id WHERE j.tanggal = :tgl AND r.status IN ('menunggu', 'dikonfirmasi'))
+              + (SELECT COUNT(*) FROM antrean a WHERE a.tanggal = :tgl AND a.reservasi_id IS NULL AND a.status = 'menunggu') AS total_menunggu,
+            (SELECT COUNT(*) FROM reservasi r JOIN jadwal j ON j.id = r.jadwal_id WHERE j.tanggal = :tgl AND r.status = 'dikonfirmasi' AND NOT EXISTS (SELECT 1 FROM antrean a WHERE a.reservasi_id = r.id)) AS belum_checkin,
+            (SELECT COUNT(*) FROM reservasi r JOIN jadwal j ON j.id = r.jadwal_id WHERE j.tanggal = :tgl AND r.reschedule_count > 0) AS sudah_reschedule,
+            (SELECT COUNT(*) FROM reservasi r JOIN jadwal j ON j.id = r.jadwal_id WHERE j.tanggal = :tgl AND r.status IN ('dibatalkan', 'tidak_hadir'))
+              + (SELECT COUNT(*) FROM antrean a WHERE a.tanggal = :tgl AND a.reservasi_id IS NULL AND a.status = 'batal') AS total_batal
+    ");
+    $stmtCnt->execute([':tgl' => $filterTanggal]);
+    $c = $stmtCnt->fetch();
+
+    $cntOnlineTotal    = (int) ($c['online_aktif'] ?? 0);
+    $cntOfflineTotal   = (int) ($c['offline_aktif'] ?? 0);
+    $cntOnlineSelesai  = (int) ($c['online_selesai'] ?? 0);
+    $cntOfflineSelesai = (int) ($c['offline_selesai'] ?? 0);
+    $cntMenunggu       = (int) ($c['total_menunggu'] ?? 0);
+    $cntBelumCheckin   = (int) ($c['belum_checkin'] ?? 0);
+    $cntReschedule     = (int) ($c['sudah_reschedule'] ?? 0);
+    $cntDibatalkan     = (int) ($c['total_batal'] ?? 0);
+
+    $sqlUnion = "
+        SELECT * FROM (
+            -- A. Reservasi Online (Poli Gigi & Konseling)
+            SELECT 
+                r.id AS item_id,
+                'online' AS asal,
+                r.no_reservasi AS kode_tiket,
+                p.id AS pasien_id,
+                p.nama AS nama_pasien,
+                p.nim_nip,
+                p.status_civitas,
+                j.poli_id,
+                po.nama AS nama_poli,
+                d.nama AS nama_dokter,
+                j.tanggal,
+                j.jam_mulai,
+                j.jam_selesai,
+                r.status,
+                r.reschedule_count,
+                r.keluhan,
+                r.created_at,
+                a.id AS antrean_id,
+                a.no_antrean
+            FROM reservasi r
+            JOIN pasien p ON p.id = r.pasien_id
+            JOIN jadwal j ON j.id = r.jadwal_id
+            JOIN poli po  ON po.id = j.poli_id
+            LEFT JOIN dokter d  ON d.id = j.dokter_id
+            LEFT JOIN antrean a ON a.reservasi_id = r.id
+
+            UNION ALL
+
+            -- B. Walk-in Offline (Poli Umum tanpa reservasi_id)
+            SELECT 
+                a.id AS item_id,
+                'offline' AS asal,
+                ('ANT-' || lpad(a.no_antrean::text, 3, '0')) AS kode_tiket,
+                p.id AS pasien_id,
+                p.nama AS nama_pasien,
+                p.nim_nip,
+                p.status_civitas,
+                a.poli_id,
+                po.nama AS nama_poli,
+                COALESCE(d.nama, jd.nama) AS nama_dokter,
+                a.tanggal,
+                j.jam_mulai,
+                j.jam_selesai,
+                CASE a.status
+                    WHEN 'batal'     THEN 'dibatalkan'
+                    WHEN 'diperiksa' THEN 'hadir'
+                    ELSE a.status
+                END AS status,
+                0 AS reschedule_count,
+                pm.keluhan,
+                a.waktu_daftar AS created_at,
+                a.id AS antrean_id,
+                a.no_antrean
+            FROM antrean a
+            JOIN pasien p ON p.id = a.pasien_id
+            JOIN poli po  ON po.id = a.poli_id
+            LEFT JOIN dokter d     ON d.id = a.dokter_id
+            LEFT JOIN jadwal j     ON j.id = a.jadwal_id
+            LEFT JOIN dokter jd    ON jd.id = j.dokter_id
+            LEFT JOIN pemeriksaan pm ON pm.antrean_id = a.id
+            WHERE a.reservasi_id IS NULL
+        ) gabungan
+        WHERE tanggal = :tanggal
+    ";
+
+    $params = [':tanggal' => $filterTanggal];
+
+    if ($search !== '') {
+        $sqlUnion .= " AND (nama_pasien ILIKE :q OR nim_nip ILIKE :q OR kode_tiket ILIKE :q OR COALESCE(nama_dokter, '') ILIKE :q)";
+        $params[':q'] = '%' . $search . '%';
+    }
+    if ($filterPoli !== '' && ctype_digit($filterPoli)) {
+        $sqlUnion .= " AND poli_id = :poli_id";
+        $params[':poli_id'] = (int) $filterPoli;
+    }
+    if (in_array($filterAsal, ['online', 'offline'], true)) {
+        $sqlUnion .= " AND asal = :asal";
+        $params[':asal'] = $filterAsal;
+    }
+    if ($filterStatus !== '') {
+        $sqlUnion .= " AND status = :status";
+        $params[':status'] = $filterStatus;
+    }
+
+    $sqlUnion .= " ORDER BY COALESCE(jam_mulai, '08:00:00'::time) ASC, created_at ASC";
+
+    $stmtList = $pdo->prepare($sqlUnion);
+    $stmtList->execute($params);
+    $kunjunganRows = $stmtList->fetchAll();
+
+    if ($detailId !== null && in_array($detailSource, ['online', 'offline'], true)) {
+        if ($detailSource === 'online') {
+            $stmtDet = $pdo->prepare("
+                SELECT 
+                    'online' AS asal,
+                    r.id, r.no_reservasi AS kode_tiket, r.status, r.keluhan, r.reschedule_count,
+                    r.konfirmasi_diminta_at, r.dikonfirmasi_at, r.dibatalkan_at, r.alasan_batal, r.created_at,
+                    p.nama AS nama_pasien, p.nim_nip, p.status_civitas, p.no_hp,
+                    po.nama AS nama_poli, po.butuh_reservasi,
+                    d.nama AS nama_dokter,
+                    j.tanggal, j.jam_mulai, j.jam_selesai,
+                    a.id AS antrean_id, a.no_antrean
+                FROM reservasi r
+                JOIN pasien p ON p.id = r.pasien_id
+                JOIN jadwal j ON j.id = r.jadwal_id
+                JOIN poli po  ON po.id = j.poli_id
+                LEFT JOIN dokter d  ON d.id = j.dokter_id
+                LEFT JOIN antrean a ON a.reservasi_id = r.id
+                WHERE r.id = :id
+            ");
+            $stmtDet->execute([':id' => $detailId]);
+            $detailData = $stmtDet->fetch();
+        } else {
+            $stmtDet = $pdo->prepare("
+                SELECT 
+                    'offline' AS asal,
+                    a.id, ('ANT-' || lpad(a.no_antrean::text, 3, '0')) AS kode_tiket,
+                    a.status, pm.keluhan, 0 AS reschedule_count,
+                    NULL AS konfirmasi_diminta_at, NULL AS dikonfirmasi_at, NULL AS dibatalkan_at, NULL AS alasan_batal,
+                    a.waktu_daftar AS created_at,
+                    p.nama AS nama_pasien, p.nim_nip, p.status_civitas, p.no_hp,
+                    po.nama AS nama_poli, po.butuh_reservasi,
+                    COALESCE(d.nama, jd.nama) AS nama_dokter,
+                    a.tanggal, j.jam_mulai, j.jam_selesai,
+                    a.id AS antrean_id, a.no_antrean
+                FROM antrean a
+                JOIN pasien p ON p.id = a.pasien_id
+                JOIN poli po  ON po.id = a.poli_id
+                LEFT JOIN dokter d  ON d.id = a.dokter_id
+                LEFT JOIN jadwal j  ON j.id = a.jadwal_id
+                LEFT JOIN dokter jd ON jd.id = j.dokter_id
+                LEFT JOIN pemeriksaan pm ON pm.antrean_id = a.id
+                WHERE a.id = :id
+            ");
+            $stmtDet->execute([':id' => $detailId]);
+            $detailData = $stmtDet->fetch();
+        }
+    }
+
+    if ($rescheduleId !== null) {
+        $stmtRsc = $pdo->prepare("
+            SELECT r.id, r.no_reservasi, r.jadwal_id, r.status, r.reschedule_count,
+                   p.nama AS nama_pasien, p.nim_nip,
+                   j.poli_id, po.nama AS nama_poli, j.tanggal, j.jam_mulai, j.jam_selesai
+            FROM reservasi r
+            JOIN pasien p ON p.id = r.pasien_id
+            JOIN jadwal j ON j.id = r.jadwal_id
+            JOIN poli po  ON po.id = j.poli_id
+            WHERE r.id = :id
+        ");
+        $stmtRsc->execute([':id' => $rescheduleId]);
+        $rescheduleData = $stmtRsc->fetch();
+
+        if ($rescheduleData) {
+            $stmtJdw = $pdo->prepare("
+                SELECT id, dokter, tanggal, jam_mulai, jam_selesai, sisa_kuota
+                FROM v_jadwal_tersedia
+                WHERE poli_id = :poli_id AND id <> :jadwal_lama AND sisa_kuota > 0
+                ORDER BY tanggal ASC, jam_mulai ASC
+            ");
+            $stmtJdw->execute([
+                ':poli_id'     => $rescheduleData['poli_id'],
+                ':jadwal_lama' => $rescheduleData['jadwal_id']
+            ]);
+            $jadwalPengganti = $stmtJdw->fetchAll();
+        }
+    }
+
+} catch (PDOException $e) {
+    $errorDb = true;
+    error_log('[reservasi-admin-read] ' . $e->getMessage());
+}
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= $page_title ?> | <?= $app_name ?></title>
+    <title><?= e($page_title) ?> | <?= e($app_name) ?></title>
     <link rel="stylesheet" href="./../assets/css/style.css">
-    <!-- Fontawesome Icon CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.1.0/css/all.css" integrity="sha512-ajhUYg8JAATDFejqbeN7KbF2zyPbbqz04dgOLyGcYEk/MJD3V+HJhJLKvJ2VVlqrr4PwHeGTTWxbI+8teA7snw==" crossorigin="anonymous" referrerpolicy="no-referrer">
 </head>
 
@@ -19,9 +381,7 @@ $app_name = "SIPOLI";
     <div class="grid md:grid-cols-[16rem_minmax(0,1fr)] min-h-screen">
 
         <!-- Sidebar -->
-        <!-- Perubahan: Mengganti 'hidden md:block' menjadi 'fixed md:relative' agar dapat difungsikan sebagai drawer oleh flowbite di mode mobile -->
         <?php require_once __DIR__ . "/components/sidebar.php" ?>
-
 
         <!-- Main Area -->
         <div class="flex min-w-0 flex-col w-full">
@@ -31,87 +391,114 @@ $app_name = "SIPOLI";
 
             <!-- Content -->
             <main class="flex-1 min-w-0 bg-page p-6">
+
+                <?php if ($flashSuccess): ?>
+                    <div class="mb-4 p-4 text-sm text-emerald-800 bg-emerald-100 border border-emerald-300 rounded-base" role="alert">
+                        <?= e($flashSuccess) ?>
+                    </div>
+                <?php endif; ?>
+                <?php if ($flashError): ?>
+                    <div class="mb-4 p-4 text-sm text-red-800 bg-red-100 border border-red-300 rounded-base" role="alert">
+                        <?= e($flashError) ?>
+                    </div>
+                <?php endif; ?>
+                <?php if ($errorDb): ?>
+                    <div class="mb-4 p-4 text-sm text-red-800 bg-red-100 border border-red-300 rounded-base" role="alert">
+                        Data reservasi gagal dimuat. Periksa log server.
+                    </div>
+                <?php endif; ?>
+
                 <!-- Counter -->
                 <div class="counter grid grid-cols-2 md:grid-cols-4 gap-2">
                     <div class="bg-neutral-primary-soft flex flex-col md:block p-4 md:px-4.5 md:py-3.5 border whitespace-nowrap text-center md:text-left border-default rounded-base shadow-xs">
                         <p class="text-gray-500 font-medium">Total Kunjungan</p>
-                        <h4 class="text-4xl font-bold my-1.5 flex-1">45</h4>
-                        <p class="text-xs text-gray-500 text-wrap">4 online &bull; 2 offline</p>
+                        <h4 class="text-4xl font-bold my-1.5 flex-1"><?= e($cntOnlineTotal + $cntOfflineTotal) ?></h4>
+                        <p class="text-xs text-gray-500 text-wrap"><?= e($cntOnlineTotal) ?> online &bull; <?= e($cntOfflineTotal) ?> offline</p>
                     </div>
                     <div class="bg-neutral-primary-soft flex flex-col md:block p-4 md:px-4.5 md:py-3.5 border whitespace-nowrap text-center md:text-left border-default rounded-base shadow-xs">
                         <p class="text-gray-500 font-medium">Selesai</p>
-                        <h4 class="text-4xl font-bold my-1.5 flex-1">45</h4>
-                        <p class="text-xs text-gray-500 text-wrap">1 online &bull; 2 ditangani perawat</p>
+                        <h4 class="text-4xl font-bold my-1.5 flex-1"><?= e($cntOnlineSelesai + $cntOfflineSelesai) ?></h4>
+                        <p class="text-xs text-gray-500 text-wrap"><?= e($cntOnlineSelesai) ?> online &bull; <?= e($cntOfflineSelesai) ?> walk-in</p>
                     </div>
                     <div class="bg-neutral-primary-soft flex flex-col md:block p-4 md:px-4.5 md:py-3.5 border whitespace-nowrap text-center md:text-left border-default rounded-base shadow-xs">
                         <p class="text-gray-500 font-medium">Menunggu</p>
-                        <h4 class="text-4xl font-bold my-1.5 flex-1">1</h4>
-                        <p class="text-xs text-gray-500 text-wrap">1 reservasi belum check-in</p>
+                        <h4 class="text-4xl font-bold my-1.5 flex-1"><?= e($cntMenunggu) ?></h4>
+                        <p class="text-xs text-gray-500 text-wrap"><?= e($cntBelumCheckin) ?> terkonfirmasi belum check-in</p>
                     </div>
                     <div class="bg-yellow-100 flex flex-col md:block p-4 md:px-4.5 md:py-3.5 border whitespace-nowrap text-center md:text-left border-yellow-400 rounded-base shadow-xs text-yellow-900">
-                        <p class="font-medium">Perlu reschedule</p>
-                        <h4 class="text-4xl font-bold my-1.5 flex-1">45</h4>
-                        <p class="text-xs">1 lainnya dibatalkan</p>
+                        <p class="font-medium">Riwayat Reschedule / Batal</p>
+                        <h4 class="text-4xl font-bold my-1.5 flex-1"><?= e($cntReschedule) ?></h4>
+                        <p class="text-xs"><?= e($cntDibatalkan) ?> kunjungan dibatalkan</p>
                     </div>
                 </div>
                 <!-- End of Counter -->
 
-                <!-- Tindakan -->
+                <!-- Daftar Reservasi & Kunjungan -->
                 <div class="my-3 bg-neutral-primary-soft block p-6 border border-primary-100 rounded-base shadow-xs">
-                    <h4 class="text-lg font-bold">Daftar Reservasi</h4>
+                    <h4 class="text-lg font-bold">Daftar Reservasi & Kunjungan</h4>
 
-                    <div class="my-4 relative">
-                        <label for="search-reservation" class="mb-2 text-sm font-medium text-gray-900 sr-only">Cari</label>
-                        <input type="search" id="search-reservation" class="block w-full p-4 ps-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-primary focus:border-primary" placeholder="Cari data reservasi..." required />
-                        <div class="absolute inset-y-0 inset-s-0 flex items-center ps-3 pointer-events-none">
-                            <svg class="w-4 h-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
-                                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z" />
-                            </svg>
-                        </div>
-                    </div>
-
-                    <!-- Filter -->
-                    <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-                        <div class="flex flex-col">
-                            <label for="datepicker-autohide" class="text-sm text-primary-600">Tanggal kunjungan</label>
-                            <div class="relative max-w-sm mt-1">
-                                <div class="absolute inset-y-0 end-0 flex items-center pe-3 pointer-events-none">
-                                    <svg class="w-4 h-4 text-primary-700" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 10h16m-8-3V4M7 7V4m10 3V4M5 20h14a1 1 0 0 0 1-1V7a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1Zm3-7h.01v.01H8V13Zm4 0h.01v.01H12V13Zm4 0h.01v.01H16V13Zm-8 4h.01v.01H8V17Zm4 0h.01v.01H12V17Zm4 0h.01v.01H16V17Z" />
-                                    </svg>
-                                </div>
-                                <input id="datepicker-autohide" datepicker datepicker-autohide type="text" class="block w-full ps-3 pe-3  border border-primary-400-05 text-heading text-sm rounded-base focus:ring-brand focus:border-brand px-3 py-2.5 shadow-xs placeholder:text-body" placeholder="Pilih Tanggal">
+                    <!-- Form Filter (Method GET) -->
+                    <form method="GET" action="reservasi.php">
+                        <div class="my-4 relative">
+                            <label for="search-reservation" class="mb-2 text-sm font-medium text-gray-900 sr-only">Cari</label>
+                            <input type="search" id="search-reservation" name="q" value="<?= e($search) ?>" class="block w-full p-4 ps-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-primary focus:border-primary" placeholder="Cari nama pasien, NIM/NIP, dokter, atau nomor tiket (RSV / ANT)..." />
+                            <div class="absolute inset-y-0 inset-s-0 flex items-center ps-3 pointer-events-none">
+                                <svg class="w-4 h-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z" />
+                                </svg>
                             </div>
                         </div>
-                        <div class="flex flex-col">
-                            <label for="poli-filter" class="text-sm text-primary-600">Poli</label>
-                            <select id="poli-filter" class="border border-primary-400-05 text-heading text-sm rounded-base flex-1 mt-1">
-                                <option selected>Semua Poli</option>
-                                <option value="laptop">Laptop</option>
-                                <option value="desktop">Desktop</option>
-                            </select>
+
+                        <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+                            <div class="flex flex-col">
+                                <label for="filter-tanggal" class="text-sm text-primary-600">Tanggal kunjungan</label>
+                                <div class="relative mt-1">
+                                    <input id="filter-tanggal" name="tanggal" type="date" value="<?= e($filterTanggal) ?>" onchange="this.form.submit()" class="block w-full border border-primary-400-05 text-heading text-sm rounded-base focus:ring-primary focus:border-primary px-3 py-2.5 shadow-xs" />
+                                </div>
+                            </div>
+
+                            <div class="flex flex-col">
+                                <label for="poli-filter" class="text-sm text-primary-600">Poli</label>
+                                <select id="poli-filter" name="poli_id" onchange="this.form.submit()" class="border border-primary-400-05 text-heading text-sm rounded-base flex-1 mt-1 bg-white">
+                                    <option value="">Semua Poli</option>
+                                    <?php foreach ($listPoli as $p): ?>
+                                        <option value="<?= (int) $p['id'] ?>" <?= $filterPoli === (string) $p['id'] ? 'selected' : '' ?>>
+                                            <?= e($p['nama']) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+
+                            <div class="flex flex-col">
+                                <label for="status-filter" class="text-sm text-primary-600">Status</label>
+                                <select id="status-filter" name="status" onchange="this.form.submit()" class="border border-primary-400-05 text-heading text-sm rounded-base flex-1 mt-1 bg-white">
+                                    <option value="">Semua Status</option>
+                                    <option value="menunggu" <?= $filterStatus === 'menunggu' ? 'selected' : '' ?>>Menunggu</option>
+                                    <option value="dikonfirmasi" <?= $filterStatus === 'dikonfirmasi' ? 'selected' : '' ?>>Dikonfirmasi (Siap Check-in)</option>
+                                    <option value="hadir" <?= $filterStatus === 'hadir' ? 'selected' : '' ?>>Hadir / Diperiksa</option>
+                                    <option value="selesai" <?= $filterStatus === 'selesai' ? 'selected' : '' ?>>Selesai</option>
+                                    <option value="tidak_hadir" <?= $filterStatus === 'tidak_hadir' ? 'selected' : '' ?>>Tidak Hadir</option>
+                                    <option value="dibatalkan" <?= $filterStatus === 'dibatalkan' ? 'selected' : '' ?>>Dibatalkan</option>
+                                </select>
+                            </div>
+
+                            <div class="flex flex-col">
+                                <label for="asal-filter" class="text-sm text-primary-600">Asal</label>
+                                <select id="asal-filter" name="asal" onchange="this.form.submit()" class="border border-primary-400-05 text-heading text-sm rounded-base flex-1 mt-1 bg-white">
+                                    <option value="">Semua Asal</option>
+                                    <option value="online" <?= $filterAsal === 'online' ? 'selected' : '' ?>>Online (Reservasi)</option>
+                                    <option value="offline" <?= $filterAsal === 'offline' ? 'selected' : '' ?>>Offline (Walk-in)</option>
+                                </select>
+                            </div>
+
+                            <div class="flex flex-row gap-2 items-end">
+                                <a href="reservasi.php?tanggal=<?= urlencode($todayDb) ?>" class="inline-flex items-center justify-center px-3 py-2.5 text-primary text-sm font-medium rounded bg-brand-softer hover:bg-primary hover:text-white transition-all">Hari ini</a>
+                                <a href="reservasi.php" class="text-primary text-sm font-medium py-2.5 hover:underline">Reset Filter</a>
+                            </div>
                         </div>
-                        <div class="flex flex-col">
-                            <label for="status-filter" class="text-sm text-primary-600">Status</label>
-                            <select id="status-filter" class="border border-primary-400-05 text-heading text-sm rounded-base flex-1 mt-1">
-                                <option selected>Semua Status</option>
-                                <option value="laptop">Laptop</option>
-                                <option value="desktop">Desktop</option>
-                            </select>
-                        </div>
-                        <div class="flex flex-col">
-                            <label for="asal-filter" class="text-sm text-primary-600">Asal</label>
-                            <select id="asal-filter" class="border border-primary-400-05 text-heading text-sm rounded-base flex-1 mt-1">
-                                <option selected>Semua Asal</option>
-                                <option value="laptop">Laptop</option>
-                                <option value="desktop">Desktop</option>
-                            </select>
-                        </div>
-                        <div class="flex flex-row gap-2">
-                            <button type="button" class="inline-flex items-center justify-center px-3 py-2.5 text-primary text-sm self-end font-medium rounded bg-brand-softer hover:bg-primary hover:text-white transition-all">Hari ini</button>
-                            <a href="" class="text-primary text-sm font-medium py-2.5 self-end hover:underline">Reset Filter</a>
-                        </div>
-                    </div>
+                    </form>
+
+                    <!-- Tabel Data -->
                     <div class="relative overflow-x-auto overflow-y-auto h-1/2">
                         <table class="w-full text-sm text-left rtl:text-right text-body">
                             <thead class="text-xs text-heading uppercase bg-neutral-primary border-b border-primary-400-05">
@@ -124,75 +511,113 @@ $app_name = "SIPOLI";
                                 </tr>
                             </thead>
                             <tbody class="text-primary-600">
-                                <tr class="bg-neutral-primary border-b border-primary-400-05">
-                                    <th scope="row" class="px-3 py-4 font-medium text-heading whitespace-nowrap">
-                                        <div class="text-base">Alya Prameswari</div>
-                                        <div class="text-xs font-normal">NIM · 2341720101</div>
-                                    </th>
-                                    <td class="px-3 py-4">
-                                        <div class="font-medium text-heading">Poli Umum · 09.00–12.00</div>
-                                        <div class="">dr. Andini Putri</div>
-                                        <div class="text-xs ">24 Sep 2026 · WIB</div>
-                                    </td>
-                                    <td class="px-3 py-4 align-top">
-                                        <span class="inline-flex items-center px-2 py-1 text-primary text-xs font-medium rounded bg-brand-softer">Online</span>
-                                    </td>
-                                    <td class="px-3 py-4 align-top">
-                                        <span class="inline-flex items-center px-2 py-1 mb-1 text-fg-success-strong text-xs font-medium rounded bg-success-soft">Selesai</span>
-                                        <div class="text-xs">Kunjungan selesai</div>
-                                    </td>
-                                    <td class="px-3 py-4 align-top">
-                                        <button class="font-medium hover:underline text-primary cursor-pointer" data-modal-target="modal-detail-reservasi" data-modal-toggle="modal-detail-reservasi">Lihat</button>
-                                    </td>
-                                </tr>
-                                <tr class="bg-neutral-primary border-b border-primary-400-05">
-                                    <th scope="row" class="px-3 py-4 font-medium text-heading whitespace-nowrap">
-                                        <div class="text-base">Raka Aditya</div>
-                                        <div class="text-xs font-normal">NIM · 2341720102</div>
-                                    </th>
-                                    <td class="px-3 py-4">
-                                        <div class="font-medium text-heading">Poli Gigi · 09.00–12.00</div>
-                                        <div class="">drg. Bima Pratama</div>
-                                        <div class="text-xs">24 Sep 2026 · WIB</div>
-                                    </td>
-                                    <td class="px-3 py-4 align-top">
-                                        <span class="inline-flex items-center px-2 py-1 text-primary text-xs font-medium rounded bg-brand-softer">Online</span>
-                                    </td>
-                                    <td class="px-3 py-4 align-top">
-                                        <span class="inline-flex items-center px-2 py-1 mb-1 text-yellow-900 text-xs font-medium rounded bg-yellow-100">Perlu Reschedule</span>
-                                        <div class="text-xs">Pasien Berhalangan</div>
-                                    </td>
-                                    <td class="px-3 py-4 align-top">
-                                        <div class="flex items-center gap-3 pt-1">
-                                            <a href="#" class="font-medium hover:underline text-primary">Lihat</a>
-                                            <button type="button" class="inline-flex items-center px-3 py-1.5 text-primary text-sm font-medium rounded bg-brand-softer hover:bg-primary hover:text-white transition-all">Reschedule</button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr class="bg-neutral-primary border-b border-primary-400-05">
-                                    <th scope="row" class="px-3 py-4 font-medium text-heading whitespace-nowrap">
-                                        <div class="text-base">Raka Aditya</div>
-                                        <div class="text-xs font-normal">NIM · 2341720102</div>
-                                    </th>
-                                    <td class="px-3 py-4">
-                                        <div class="font-medium text-heading">Poli Gigi · 09.00–12.00</div>
-                                        <div class="">drg. Bima Pratama</div>
-                                        <div class="text-xs">24 Sep 2026 · WIB</div>
-                                    </td>
-                                    <td class="px-3 py-4 align-top">
-                                        <span class="inline-flex items-center px-2 py-1 text-primary text-xs font-medium rounded bg-brand-softer">Online</span>
-                                    </td>
-                                    <td class="px-3 py-4 align-top">
-                                        <span class="inline-flex items-center px-2 py-1 mb-1 text-primary text-xs font-medium rounded bg-brand-softer">Menunggu</span>
-                                        <div class="text-xs">Belum check-in</div>
-                                    </td>
-                                    <td class="px-3 py-4 align-top">
-                                        <div class="flex items-center gap-3 pt-1">
-                                            <a href="#" class="font-medium hover:underline text-primary">Lihat</a>
-                                            <button type="button" class="inline-flex items-center px-3 py-1.5 text-primary text-sm font-medium rounded bg-brand-softer hover:bg-primary hover:text-white transition-all">Check-in</button>
-                                        </div>
-                                    </td>
-                                </tr>
+                                <?php if (empty($kunjunganRows)): ?>
+                                    <tr class="bg-neutral-primary border-b border-primary-400-05">
+                                        <td colspan="5" class="px-3 py-8 text-center text-gray-500">
+                                            Belum ada data reservasi atau kunjungan pada tanggal dan filter ini.
+                                        </td>
+                                    </tr>
+                                <?php else: ?>
+                                    <?php foreach ($kunjunganRows as $row): ?>
+                                        <?php
+                                        $labelId = ($row['status_civitas'] === 'mahasiswa') ? 'NIM' : 'NIP';
+                                        $jamSesi = (!empty($row['jam_mulai']) && !empty($row['jam_selesai']))
+                                            ? str_replace(':', '.', substr($row['jam_mulai'], 0, 5)) . '–' . str_replace(':', '.', substr($row['jam_selesai'], 0, 5))
+                                            : 'Jam Layanan Walk-in';
+                                        $isToday = ($row['tanggal'] === $todayDb);
+                                        $canCheckin = ($row['asal'] === 'online' && $row['status'] === 'dikonfirmasi' && empty($row['antrean_id']) && $isToday);
+                                        $canReschedule = ($row['asal'] === 'online' && in_array($row['status'], ['menunggu', 'dikonfirmasi'], true) && (int) $row['reschedule_count'] < 1);
+                                        $canCancel = in_array($row['status'], ['menunggu', 'dikonfirmasi'], true);
+
+                                        $baseQ = http_build_query([
+                                            'tanggal' => $filterTanggal,
+                                            'poli_id' => $filterPoli,
+                                            'status'  => $filterStatus,
+                                            'asal'    => $filterAsal,
+                                            'q'       => $search,
+                                        ]);
+                                        ?>
+                                        <tr class="bg-neutral-primary border-b border-primary-400-05">
+                                            <th scope="row" class="px-3 py-4 font-medium text-heading whitespace-nowrap">
+                                                <div class="text-base font-bold"><?= e($row['nama_pasien']) ?></div>
+                                                <div class="text-xs font-normal text-gray-500"><?= $labelId ?> · <?= e($row['nim_nip']) ?></div>
+                                                <div class="text-xs font-normal text-gray-400"><?= e($row['kode_tiket']) ?></div>
+                                            </th>
+                                            <td class="px-3 py-4">
+                                                <div class="font-medium text-heading"><?= e($row['nama_poli']) ?> · <?= e($jamSesi) ?></div>
+                                                <div><?= e($row['nama_dokter'] ?? 'Dokter bertugas') ?></div>
+                                                <div class="text-xs text-gray-500"><?= e(formatTglSingkatRsv($row['tanggal'])) ?> · WIB</div>
+                                            </td>
+                                            <td class="px-3 py-4 align-top">
+                                                <?php if ($row['asal'] === 'online'): ?>
+                                                    <span class="inline-flex items-center px-2 py-1 text-primary text-xs font-medium rounded bg-brand-softer">Online</span>
+                                                <?php else: ?>
+                                                    <span class="inline-flex items-center px-2 py-1 text-gray-700 text-xs font-medium rounded bg-gray-100">Offline (Walk-in)</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td class="px-3 py-4 align-top">
+                                                <?php if ($row['status'] === 'selesai'): ?>
+                                                    <span class="inline-flex items-center px-2 py-1 mb-1 text-fg-success-strong text-xs font-medium rounded bg-success-soft">Selesai</span>
+                                                    <div class="text-xs text-gray-500">Kunjungan selesai</div>
+                                                <?php elseif ($row['status'] === 'hadir'): ?>
+                                                    <span class="inline-flex items-center px-2 py-1 mb-1 text-emerald-800 text-xs font-medium rounded bg-emerald-100">Hadir / Antrean #<?= (int) $row['no_antrean'] ?></span>
+                                                    <div class="text-xs text-gray-500">Sudah check-in</div>
+                                                <?php elseif ($row['status'] === 'dikonfirmasi'): ?>
+                                                    <span class="inline-flex items-center px-2 py-1 mb-1 text-primary text-xs font-medium rounded bg-brand-softer">Dikonfirmasi</span>
+                                                    <div class="text-xs text-gray-500"><?= $row['antrean_id'] ? 'Antrean #' . (int) $row['no_antrean'] : 'Belum check-in' ?></div>
+                                                <?php elseif ($row['status'] === 'menunggu'): ?>
+                                                    <span class="inline-flex items-center px-2 py-1 mb-1 text-yellow-900 text-xs font-medium rounded bg-yellow-100">Menunggu</span>
+                                                    <div class="text-xs text-gray-500"><?= $row['asal'] === 'online' ? 'Menunggu konfirmasi H-1' : 'Menunggu panggilan' ?></div>
+                                                <?php elseif ($row['status'] === 'tidak_hadir'): ?>
+                                                    <span class="inline-flex items-center px-2 py-1 mb-1 text-red-800 text-xs font-medium rounded bg-red-100">Tidak Hadir</span>
+                                                    <div class="text-xs text-gray-500">Melewati jadwal</div>
+                                                <?php else: ?>
+                                                    <span class="inline-flex items-center px-2 py-1 mb-1 text-gray-700 text-xs font-medium rounded bg-gray-200">Dibatalkan</span>
+                                                    <div class="text-xs text-gray-500">Nonaktif</div>
+                                                <?php endif; ?>
+
+                                                <?php if ((int) $row['reschedule_count'] > 0): ?>
+                                                    <span class="mt-1 inline-flex items-center px-2 py-0.5 text-[11px] font-medium rounded bg-amber-50 text-amber-700">
+                                                        Sudah Reschedule 1x
+                                                    </span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td class="px-3 py-4 align-top">
+                                                <div class="flex flex-wrap items-center gap-2 pt-1">
+                                                    <a href="reservasi.php?<?= $baseQ ?>&detail_src=<?= e($row['asal']) ?>&detail_id=<?= (int) $row['item_id'] ?>" class="font-medium hover:underline text-primary">Lihat</a>
+
+                                                    <?php if ($canCheckin): ?>
+                                                        <form method="POST" action="reservasi.php" class="inline">
+                                                            <input type="hidden" name="action" value="checkin">
+                                                            <input type="hidden" name="reservasi_id" value="<?= (int) $row['item_id'] ?>">
+                                                            <input type="hidden" name="redirect_tanggal" value="<?= e($filterTanggal) ?>">
+                                                            <button type="submit" class="inline-flex items-center px-3 py-1 text-primary text-xs font-semibold rounded bg-brand-softer hover:bg-primary hover:text-white transition-all cursor-pointer">
+                                                                Check-in
+                                                            </button>
+                                                        </form>
+                                                    <?php endif; ?>
+
+                                                    <?php if ($canReschedule): ?>
+                                                        <a href="reservasi.php?<?= $baseQ ?>&reschedule_id=<?= (int) $row['item_id'] ?>" class="inline-flex items-center px-3 py-1 text-amber-700 text-xs font-semibold rounded bg-amber-50 hover:bg-amber-600 hover:text-white transition-all">
+                                                            Reschedule
+                                                        </a>
+                                                    <?php endif; ?>
+
+                                                    <?php if ($canCancel): ?>
+                                                        <form method="POST" action="reservasi.php" class="inline" onsubmit="return confirm('Batalkan kunjungan/reservasi ini?')">
+                                                            <input type="hidden" name="action" value="<?= $row['asal'] === 'online' ? 'batal_reservasi' : 'batal_walkin' ?>">
+                                                            <input type="hidden" name="<?= $row['asal'] === 'online' ? 'reservasi_id' : 'antrean_id' ?>" value="<?= (int) $row['item_id'] ?>">
+                                                            <input type="hidden" name="redirect_tanggal" value="<?= e($filterTanggal) ?>">
+                                                            <button type="submit" class="inline-flex items-center px-2.5 py-1 text-red-700 text-xs font-semibold rounded bg-red-50 hover:bg-red-600 hover:text-white transition-all cursor-pointer">
+                                                                Batal
+                                                            </button>
+                                                        </form>
+                                                    <?php endif; ?>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
                             </tbody>
                         </table>
                     </div>
@@ -201,7 +626,59 @@ $app_name = "SIPOLI";
         </div>
     </div>
 
+    <!-- Modal Detail Reservasi -->
     <?php require_once __DIR__ . '/components/detail-reservasi.php'; ?>
+
+    <!-- Modal Reschedule Reservasi (Maks 1x via fn_reschedule_reservasi) -->
+    <?php if (!empty($rescheduleData)): ?>
+        <div id="modal-reschedule" tabindex="-1" aria-hidden="false" class="flex bg-gray-900/50 overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+            <div class="relative p-4 w-full max-w-lg max-h-full">
+                <div class="relative bg-white rounded-2xl shadow p-6">
+                    <div class="flex items-center justify-between pb-4 border-b border-gray-100">
+                        <h3 class="text-xl font-bold text-gray-900">Reschedule Reservasi</h3>
+                        <a href="reservasi.php?tanggal=<?= urlencode($filterTanggal) ?>" class="text-gray-400 hover:bg-gray-100 rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center">✕</a>
+                    </div>
+
+                    <form method="POST" action="reservasi.php" class="mt-4 space-y-4">
+                        <input type="hidden" name="action" value="reschedule">
+                        <input type="hidden" name="reservasi_id" value="<?= (int) $rescheduleData['id'] ?>">
+                        <input type="hidden" name="redirect_tanggal" value="<?= e($filterTanggal) ?>">
+
+                        <div class="p-4 bg-page rounded-base text-sm">
+                            <p class="font-bold text-gray-900"><?= e($rescheduleData['nama_pasien']) ?> (<?= e($rescheduleData['no_reservasi']) ?>)</p>
+                            <p class="text-xs text-gray-600 mt-1">
+                                Jadwal saat ini: <b><?= e($rescheduleData['nama_poli']) ?></b> &middot; <?= e($rescheduleData['tanggal']) ?> (<?= e(substr($rescheduleData['jam_mulai'], 0, 5)) ?>–<?= e(substr($rescheduleData['jam_selesai'], 0, 5)) ?>)
+                            </p>
+                        </div>
+
+                        <div>
+                            <label for="jadwal_baru_id" class="block mb-2 text-sm font-medium text-gray-900">Pilih Jadwal Baru (H+1 s.d. H+7 pada <?= e($rescheduleData['nama_poli']) ?>) *</label>
+                            <?php if (empty($jadwalPengganti)): ?>
+                                <div class="p-3 text-xs text-red-700 bg-red-50 rounded border border-red-200">
+                                    Tidak ada jadwal <?= e($rescheduleData['nama_poli']) ?> yang terbuka dan memiliki sisa kuota untuk H+1 s.d. H+7. Silakan buat atau publikasikan jadwal terlebih dahulu di menu Jadwal & Kuota.
+                                </div>
+                            <?php else: ?>
+                                <select id="jadwal_baru_id" name="jadwal_baru_id" required class="block w-full p-2.5 text-sm text-gray-900 border border-primary rounded-base bg-white">
+                                    <?php foreach ($jadwalPengganti as $jp): ?>
+                                        <option value="<?= (int) $jp['id'] ?>">
+                                            <?= e(formatTglSingkatRsv($jp['tanggal'])) ?> (<?= e(substr($jp['jam_mulai'], 0, 5)) ?>–<?= e(substr($jp['jam_selesai'], 0, 5)) ?>) · <?= e($jp['dokter'] ?? 'Dokter bertugas') ?> · Sisa kuota: <?= (int) $jp['sisa_kuota'] ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            <?php endif; ?>
+                        </div>
+
+                        <div class="flex justify-end gap-3 pt-3 border-t border-gray-100">
+                            <a href="reservasi.php?tanggal=<?= urlencode($filterTanggal) ?>" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">Batal</a>
+                            <?php if (!empty($jadwalPengganti)): ?>
+                                <button type="submit" class="px-5 py-2 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary-700">Simpan Reschedule</button>
+                            <?php endif; ?>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
 
     <script src="./../../assets/js/app.js"></script>
     <script src="./../node_modules/flowbite/dist/flowbite.min.js"></script>
