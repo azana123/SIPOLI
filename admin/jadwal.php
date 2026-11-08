@@ -616,8 +616,8 @@ foreach ($jadwalRows as $r) {
                     <div class="bg-white rounded-base p-4 border border-gray-200 flex items-start gap-3 shadow-sm">
                         <i class="far fa-calendar-alt text-primary-500 mt-1"></i>
                         <div>
-                            <h5 class="text-sm font-bold text-gray-900 mb-1">Penonaktifan jadwal (Soft Delete)</h5>
-                            <p class="text-xs text-gray-500 leading-relaxed">Menonaktifkan jadwal akan mengubah statusnya menjadi <b>Tutup</b>, menariknya dari publikasi, membatalkan reservasi aktif secara otomatis, dan menyimpan riwayatnya di sistem.</p>
+                            <h5 class="text-sm font-bold text-gray-900 mb-1">Penonaktifan jadwal</h5>
+                            <p class="text-xs text-gray-500 leading-relaxed">Menonaktifkan jadwal akan mengubah statusnya menjadi <b>Tutup</b>, membatalkan reservasi aktif secara otomatis, dan menyimpan riwayatnya di sistem.</p>
                         </div>
                     </div>
                 </div>
