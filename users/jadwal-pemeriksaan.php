@@ -95,7 +95,7 @@
                                 <p class="date text-sm">Jum, 18 Sep. 14.00</p>
                             </div>
                         </div>
-                        <a href="./users/jadwal-dokter.php" class="action-link text-page text-center rounded-full text-sm px-4 py-2.5 bg-primary-500 hover:bg-primary-700">
+                        <a href="./reservasi/jadwal-reservasi.php" class="action-link text-page text-center rounded-full text-sm px-4 py-2.5 bg-primary-500 hover:bg-primary-700">
                             <span class="font-medium">Reservasi</span>
                         </a>
                     </div>
