@@ -363,8 +363,9 @@ try {
                         <select name="bentuk" onchange="this.form.submit()" class="border border-primary-400-05 text-heading text-sm rounded-base p-2.5 bg-white">
                             <option value="">Semua Bentuk</option>
                             <?php foreach ($listBentuk as $b): ?>
-                                <option value="<?= e($b) ?>" <?= $filterBentuk === $b ? 'selected' : '' ?>>
-                                    <?= e(ucfirst($b)) ?>
+                                <?php $namaBentuk = (string) ($b['bentuk'] ?? ''); ?>
+                                <option value="<?= e($namaBentuk) ?>" <?= $filterBentuk === $namaBentuk ? 'selected' : '' ?>>
+                                    <?= e(ucfirst($namaBentuk)) ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
