@@ -25,8 +25,9 @@
                 </a>
             </li>
             <li>
-                <a href="<?= BASE_URL ?>/konfirmasi.php" class="flex items-center px-3 py-2.5 text-white rounded-base hover:bg-primary-400 <?= $page_title == "Konfirmasi H-1" ? 'btn-active' : '' ?>">
+                <a href="<?= BASE_URL ?>/konfirmasi.php" class="flex items-center px-3 py-2.5 text-white rounded-base hover:bg-primary-400 gap-2 <?= $page_title == "Konfirmasi H-1" ? 'btn-active' : '' ?>">
                     <span class="ms-3">Konfirmasi H-1</span>
+                    <div class="inline-flex items-center justify-center w-5 h-w-5 text-xs font-bold text-primary bg-white border-2 border-buffer rounded-full">8</div>
                 </a>
             </li>
             <li>
