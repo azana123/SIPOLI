@@ -14,8 +14,16 @@
 <body>
     <div class="w-full min-h-screen bg-primary-500">
         <main>
-            <section class="w-full py-4 px-6 text-page">
-                <a href="./auth/login.php">login</a>
+            <section class="flex justify-between w-full py-4 px-6 text-page">
+                <div class="profile flex gap-2 items-center">
+                    <div class="icon-profile text-2xl">
+                        <i class="fas fa-user-circle"></i>
+                    </div>
+                    <a href="./auth/login.php">login</a>
+                </div>
+                <div class="notifikasi text-2xl">
+                    <a href="./users/notifikasi.php"><i class="fas fa-bell"></i></a>
+                </div>
             </section>
             <section class="content bg-page rounded-t-2xl py-3 px-4.5  h-screen">
                 <div class="top-content flex justify-between">
@@ -110,7 +118,7 @@
                 <section class="schedule my-4.5">
                     <div class="title flex justify-between items-center">
                         <h4 class="font-bold text-lg">Jadwal Kontrol</h4>
-                        <a href="#" class="action-link text-primary-400 transition hover:text-primary-700">
+                        <a href="./users/reservasi/reservasi.php" class="action-link text-primary-400 transition hover:text-primary-700">
                             <span class="font-medium">Lihat Semua</span>
                             <i class="fas fa-chevron-right"></i>
                         </a>
