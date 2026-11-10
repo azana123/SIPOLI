@@ -1,17 +1,17 @@
 -- =====================================================================
 -- FITUR   : Validasi NIM/NIP civitas akademika (sistem tertutup)
 -- URUTAN  : features/27
--- ISI     : fk_pasien_civitas, fn_validasi_civitas_pasien, trigger trg_validasi_civitas,
---           fn_sinkron_civitas_ke_pasien, trigger trg_sinkron_civitas_ke_pasien,
---           fn_cek_civitas, fn_registrasi_pasien
--- DEPEND  : tables/01_users, tables/03_pasien, tables/18_data_civitas
+-- DEPEND  : tables/01_users, tables/03_pasien, tables/04_admin, tables/18_data_civitas
 -- =====================================================================
 
 ALTER TABLE pasien
     ADD CONSTRAINT fk_pasien_civitas
     FOREIGN KEY (nim_nip) REFERENCES data_civitas (nim_nip) ON UPDATE CASCADE;
 
--- A. Trigger pada pasien: tolak NIM/NIP yang tidak terdaftar atau tidak aktif.
+ALTER TABLE admin
+    ADD CONSTRAINT fk_admin_civitas
+    FOREIGN KEY (nim_nip) REFERENCES data_civitas (nim_nip) ON UPDATE CASCADE;
+
 CREATE OR REPLACE FUNCTION fn_validasi_civitas_pasien() RETURNS TRIGGER AS $$
 DECLARE
     c data_civitas%ROWTYPE;
@@ -39,7 +39,6 @@ CREATE TRIGGER trg_validasi_civitas
     BEFORE INSERT OR UPDATE OF nim_nip, nama, jenis_kelamin, tanggal_lahir, status_civitas ON pasien
     FOR EACH ROW EXECUTE FUNCTION fn_validasi_civitas_pasien();
 
--- A2. Sinkronisasi otomatis jika data di data_civitas diperbarui (misal: koreksi ejaan nama)
 CREATE OR REPLACE FUNCTION fn_sinkron_civitas_ke_pasien() RETURNS TRIGGER AS $$
 BEGIN
     UPDATE pasien
@@ -56,7 +55,6 @@ CREATE TRIGGER trg_sinkron_civitas_ke_pasien
     AFTER UPDATE OF nama, jenis_kelamin, tanggal_lahir, status_civitas ON data_civitas
     FOR EACH ROW EXECUTE FUNCTION fn_sinkron_civitas_ke_pasien();
 
--- B. Langkah 1 form registrasi: cek NIM/NIP + tanggal lahir.
 CREATE OR REPLACE FUNCTION fn_cek_civitas(p_nim_nip VARCHAR, p_tanggal_lahir DATE)
 RETURNS TABLE (nama VARCHAR, status_civitas VARCHAR, unit VARCHAR, sudah_terdaftar BOOLEAN) AS $$
     SELECT c.nama, c.status_civitas, c.unit,
@@ -67,7 +65,6 @@ RETURNS TABLE (nama VARCHAR, status_civitas VARCHAR, unit VARCHAR, sudah_terdaft
        AND c.status_keanggotaan = 'aktif';
 $$ LANGUAGE sql STABLE;
 
--- C. Langkah 2 form registrasi: buat akun + data pasien dalam satu transaksi.
 CREATE OR REPLACE FUNCTION fn_registrasi_pasien(
     p_nim_nip VARCHAR, p_tanggal_lahir DATE, p_username VARCHAR, p_password_hash VARCHAR
 ) RETURNS BIGINT AS $$
