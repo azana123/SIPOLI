@@ -385,7 +385,6 @@ try {
                         </select>
 
                         <div class="flex items-center gap-3">
-                            <button type="submit" class="px-3 py-2 text-xs font-semibold text-white bg-primary rounded-base hover:bg-primary-600">Cari</button>
                             <a href="obat.php" class="text-xs font-medium text-primary-600 hover:underline">Reset</a>
                         </div>
                     </form>
