@@ -26,10 +26,10 @@ unset($_SESSION['old']);
 </head>
 
 <body>
-    <div class="w-full min-h-screen bg-page overflow-hidden flex flex-col md:flex-row md:flex-row-reverse">
+    <div class="w-full min-h-screen bg-page overflow-hidden flex flex-col md:flex-row-reverse">
         <section class="login-sidebar bg-primary-500 md:w-1/2 p-4 flex flex-col">
             <div class="brand-name">
-                <h1 class="text-2xl font-bold text-white">Sipoli</h1>
+                <a href="./../index.php" class="text-2xl font-bold text-white">Sipoli</a>
             </div>
             <div class="flex flex-col flex-1 items-center justify-center">
                 <div class="content">
@@ -57,28 +57,38 @@ unset($_SESSION['old']);
 
                 <div class="mb-5">
                     <label for="nim_nip" class="block mb-2.5 text-sm font-medium text-heading">NIM/NIP</label>
-                    <input type="text" name="nim_nip" id="nim_nip" inputmode="numeric" pattern="[0-9]{8,20}" maxlength="20" value="<?= e($old['nim_nip'] ?? '') ?>" class="bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-brand focus:border-brand block w-full px-3 py-2.5 shadow-xs placeholder:text-body" placeholder="Masukkan NIM atau NIP" required />
+                    <input type="text" name="nim_nip" id="nim_nip" inputmode="numeric" pattern="[0-9]{8,20}" maxlength="20" value="<?= e($old['nim_nip'] ?? '') ?>" class="bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-primary focus:border-primary block w-full px-3 py-2.5 shadow-xs placeholder:text-body" placeholder="Masukkan NIM atau NIP" required />
                 </div>
 
                 <div class="mb-5">
                     <label for="tanggal_lahir" class="block mb-2.5 text-sm font-medium text-heading">Tanggal Lahir</label>
-                    <input type="date" name="tanggal_lahir" id="tanggal_lahir" max="<?= e(date('Y-m-d')) ?>" value="<?= e($old['tanggal_lahir'] ?? '') ?>" class="bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-brand focus:border-brand block w-full px-3 py-2.5 shadow-xs placeholder:text-body" required />
+                    <input type="date" name="tanggal_lahir" id="tanggal_lahir" max="<?= e(date('Y-m-d')) ?>" value="<?= e($old['tanggal_lahir'] ?? '') ?>" class="bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-primary focus:border-primary block w-full px-3 py-2.5 shadow-xs placeholder:text-body" required />
                     <p class="mt-1 text-xs text-gray-500">Dipakai untuk memverifikasi bahwa NIM/NIP ini milik Anda.</p>
                 </div>
 
                 <div class="mb-5">
                     <label for="username" class="block mb-2.5 text-sm font-medium text-heading">Username</label>
-                    <input type="text" name="username" id="username" minlength="4" maxlength="30" autocomplete="username" value="<?= e($old['username'] ?? '') ?>" class="bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-brand focus:border-brand block w-full px-3 py-2.5 shadow-xs placeholder:text-body" placeholder="Masukkan username" required />
+                    <input type="text" name="username" id="username" minlength="4" maxlength="30" autocomplete="username" value="<?= e($old['username'] ?? '') ?>" class="bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-primary focus:border-primary block w-full px-3 py-2.5 shadow-xs placeholder:text-body" placeholder="Masukkan username" required />
                 </div>
 
                 <div class="mb-5">
                     <label for="password" class="block mb-2.5 text-sm font-medium text-heading">Password</label>
-                    <input type="password" name="password" id="password" minlength="8" maxlength="72" autocomplete="new-password" class="bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-brand focus:border-brand block w-full px-3 py-2.5 shadow-xs placeholder:text-body" placeholder="Minimal 8 karakter" required />
+                    <div class="relative">
+                        <input type="password" name="password" id="form-password" minlength="8" maxlength="72" autocomplete="new-password" class="bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-primary focus:border-primary block w-full px-3 py-2.5 shadow-xs placeholder:text-body" placeholder="••••••••" required />
+                        <div id="eye" class="absolute inset-y-0 inset-e-0 flex items-center text-primary pe-3.5 cursor-pointer transition-colors hover:text-primary-700">
+                            <i class="fa fa-eye" aria-hidden="true"></i>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="mb-5">
                     <label for="confirm_password" class="block mb-2.5 text-sm font-medium text-heading">Konfirmasi Password</label>
-                    <input type="password" name="confirm_password" id="confirm_password" minlength="8" maxlength="72" autocomplete="new-password" class="bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-brand focus:border-brand block w-full px-3 py-2.5 shadow-xs placeholder:text-body" placeholder="••••••••" required />
+                    <div class="relative">
+                        <input type="password" name="confirm_password" id="form-password" minlength="8" maxlength="72" autocomplete="new-password" class="bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-primary focus:border-primary block w-full px-3 py-2.5 shadow-xs placeholder:text-body" placeholder="••••••••" required />
+                        <div id="eye" class="absolute inset-y-0 inset-e-0 flex items-center text-primary pe-3.5 cursor-pointer transition-colors hover:text-primary-700">
+                            <i class="fa fa-eye" aria-hidden="true"></i>
+                        </div>
+                    </div>
                 </div>
 
                 <button class="bg-primary hover:bg-primary-600 py-2.5 text-sm rounded-full w-full text-page mt-2" type="submit">Daftar</button>
