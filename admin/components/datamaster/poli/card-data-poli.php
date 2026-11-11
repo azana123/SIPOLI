@@ -2,12 +2,14 @@
     <div class="flex justify-between items-center mb-4">
         <h4 class="text-lg font-bold">Daftar Poli</h4>
 
-        <button id="add-data-poli" data-modal-target="modal-form-poli" data-modal-toggle="modal-form-poli" class="hidden md:inline-flex items-center text-white bg-primary hover:bg-primary-700 box-border border border-transparent focus:ring-4 focus:ring-primary-400 shadow-xs font-medium leading-5 rounded text-xs px-2.5 py-1 focus:outline-none mr-3 cursor-pointer">
-            <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#fff" class="mr-1">
-                <path d="M440-440H200v-80h240v-240h80v240h240v80H520v240h-80v-240Z" />
-            </svg>
-            Tambah Data Poli
-        </button>
+        <?php if (!empty($isSuperAdmin)): ?>
+            <button id="add-data-poli" data-modal-target="modal-form-poli" data-modal-toggle="modal-form-poli" class="hidden md:inline-flex items-center text-white bg-primary hover:bg-primary-700 box-border border border-transparent focus:ring-4 focus:ring-primary-400 shadow-xs font-medium leading-5 rounded text-xs px-2.5 py-1 focus:outline-none mr-3 cursor-pointer">
+                <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#fff" class="mr-1">
+                    <path d="M440-440H200v-80h240v-240h80v240h240v80H520v240h-80v-240Z" />
+                </svg>
+                Tambah Data Poli
+            </button>
+        <?php endif; ?>
     </div>
 
     <!-- Filter -->
@@ -30,7 +32,7 @@
 
         <div class="flex flex-col">
             <label for="reservasi-filter" class="text-sm text-primary-600">Tipe Layanan</label>
-            <select id="reservasi-filter" name="reservasi" onchange="this.form.submit()" class="border border-primary-400-05 text-heading text-sm rounded-base flex-1 mt-1">
+            <select id="reservasi-filter" name="reservasi" onchange="this.form.submit()" class="border border-primary-400-05 text-heading text-sm rounded-base flex-1 mt-1 bg-white">
                 <option value="">Semua Tipe</option>
                 <option value="ya" <?= $reserv === 'ya' ? 'selected' : '' ?>>Wajib Reservasi</option>
                 <option value="tidak" <?= $reserv === 'tidak' ? 'selected' : '' ?>>Walk-in (Tanpa Reservasi)</option>
@@ -83,15 +85,14 @@
                             </td>
                             <td class="px-3 py-4 align-top">
                                 <div class="flex items-center gap-3">
-                                    <a href="?tab=tenaga-layanan&poli_id=<?= (int) $row['id'] ?>" class="font-bold hover:underline text-primary">Lihat Dokter</a>
-                                    <button type="button" class="inline-flex items-center p-1.5 text-primary rounded bg-brand-softer hover:bg-primary hover:text-white transition-all">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
-                                        </svg>
-                                    </button>
-                                    <button type="button" class="group inline-flex items-center p-1.5 text-primary rounded bg-brand-softer hover:bg-primary hover:text-white transition-all ">
-                                        <i class="far fa-trash-alt text-primary text-sm group-hover:text-white transition-colors"></i>
-                                    </button>
+                                    <a href="datamaster.php?tab=tenaga-layanan&poli_id=<?= (int) $row['id'] ?>" class="font-bold hover:underline text-primary">Lihat Dokter</a>
+                                    <?php if (!empty($isSuperAdmin)): ?>
+                                        <a href="datamaster.php?tab=poli&edit_id=<?= (int) $row['id'] ?>" title="Edit Poli" class="inline-flex items-center p-1.5 text-primary rounded bg-brand-softer hover:bg-primary hover:text-white transition-all">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+                                            </svg>
+                                        </a>
+                                    <?php endif; ?>
                                 </div>
                             </td>
                         </tr>

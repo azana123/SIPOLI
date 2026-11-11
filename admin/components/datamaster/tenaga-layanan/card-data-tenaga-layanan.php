@@ -30,7 +30,7 @@
 
         <div class="flex flex-col">
             <label for="poli-filter" class="text-sm text-primary-600">Spesialis / Poli</label>
-            <select id="poli-filter" name="poli_id" onchange="this.form.submit()" class="border border-primary-400-05 text-heading text-sm rounded-base flex-1 mt-1">
+            <select id="poli-filter" name="poli_id" onchange="this.form.submit()" class="border border-primary-400-05 text-heading text-sm rounded-base flex-1 mt-1 bg-white">
                 <option value="">Semua Poli</option>
                 <?php foreach ($listPoli as $p): ?>
                     <option value="<?= (int) $p['id'] ?>" <?= $poliId === (string) $p['id'] ? 'selected' : '' ?>>
@@ -42,7 +42,7 @@
 
         <div class="flex flex-col">
             <label for="status-dokter" class="text-sm text-primary-600">Status</label>
-            <select id="status-dokter" name="status" onchange="this.form.submit()" class="border border-primary-400-05 text-heading text-sm rounded-base flex-1 mt-1">
+            <select id="status-dokter" name="status" onchange="this.form.submit()" class="border border-primary-400-05 text-heading text-sm rounded-base flex-1 mt-1 bg-white">
                 <option value="">Semua Status</option>
                 <option value="aktif" <?= $status === 'aktif' ? 'selected' : '' ?>>Aktif</option>
                 <option value="non-aktif" <?= $status === 'non-aktif' ? 'selected' : '' ?>>Non-Aktif</option>
@@ -73,7 +73,15 @@
                     </tr>
                 <?php else: ?>
                     <?php foreach ($rows as $row): ?>
-                        <tr class="bg-neutral-primary border-b border-primary-400-05">
+                        <?php
+                        $baseQ = http_build_query([
+                            'tab'     => 'tenaga-layanan',
+                            'q'       => $search,
+                            'poli_id' => $poliId,
+                            'status'  => $status,
+                        ]);
+                        ?>
+                        <tr class="<?= $row['status_aktif'] ? 'bg-neutral-primary' : 'bg-gray-50 opacity-75' ?> border-b border-primary-400-05">
                             <th scope="row" class="px-3 py-4 font-medium text-heading whitespace-nowrap">
                                 <div class="text-base font-bold"><?= e($row['nama']) ?></div>
                                 <div class="text-xs font-normal text-gray-500 mt-1">STR · <?= e($row['no_str'] ?? '-') ?></div>
@@ -97,15 +105,24 @@
                             </td>
                             <td class="px-3 py-4 align-top">
                                 <div class="flex items-center gap-3">
-                                    <a href="?tab=tenaga-layanan&detail_id=<?= (int) $row['id'] ?>" class="font-bold hover:underline text-primary">Lihat</a>
-                                    <button type="button" class="inline-flex items-center p-1.5 text-primary rounded bg-brand-softer hover:bg-primary hover:text-white transition-all">
+                                    <a href="datamaster.php?<?= $baseQ ?>&detail_id=<?= (int) $row['id'] ?>" class="font-bold hover:underline text-primary">Lihat</a>
+
+                                    <a href="datamaster.php?<?= $baseQ ?>&edit_id=<?= (int) $row['id'] ?>" title="Edit Tenaga Layanan" class="inline-flex items-center p-1.5 text-primary rounded bg-brand-softer hover:bg-primary hover:text-white transition-all">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
                                         </svg>
-                                    </button>
-                                    <button type="button" class="group inline-flex items-center p-1.5 text-primary rounded bg-brand-softer hover:bg-primary hover:text-white transition-all ">
-                                        <i class="far fa-trash-alt text-primary text-sm group-hover:text-white transition-colors"></i>
-                                    </button>
+                                    </a>
+
+                                    <form method="POST" action="datamaster.php" class="inline" onsubmit="return confirm('<?= $row['status_aktif'] ? 'Nonaktifkan tenaga layanan ini?' : 'Aktifkan kembali tenaga layanan ini?' ?>')">
+                                        <input type="hidden" name="action" value="toggle_active">
+                                        <input type="hidden" name="tab" value="tenaga-layanan">
+                                        <input type="hidden" name="entity" value="dokter">
+                                        <input type="hidden" name="id" value="<?= (int) $row['id'] ?>">
+                                        <input type="hidden" name="new_state" value="<?= $row['status_aktif'] ? '0' : '1' ?>">
+                                        <button type="submit" title="<?= $row['status_aktif'] ? 'Nonaktifkan Tenaga Layanan' : 'Aktifkan Tenaga Layanan' ?>" class="group inline-flex items-center p-1.5 rounded transition-all cursor-pointer <?= $row['status_aktif'] ? 'text-primary bg-brand-softer hover:bg-red-600 hover:text-white' : 'text-emerald-700 bg-emerald-50 hover:bg-emerald-600 hover:text-white' ?>">
+                                            <i class="far <?= $row['status_aktif'] ? 'fa-trash-alt' : 'fa-check-circle' ?> text-sm transition-colors"></i>
+                                        </button>
+                                    </form>
                                 </div>
                             </td>
                         </tr>

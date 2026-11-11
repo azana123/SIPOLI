@@ -15,83 +15,437 @@ if (!function_exists('e')) {
     }
 }
 
+$flashSuccess = $_SESSION['flash_success'] ?? null;
+$flashError   = $_SESSION['flash_error'] ?? null;
+unset($_SESSION['flash_success'], $_SESSION['flash_error']);
+
+// Cek status Super Admin dari sesi admin yang sedang login
+$isSuperAdmin   = false;
+$currentAdminId = (int) ($_SESSION['profil_id'] ?? 0);
+try {
+    if ($currentAdminId > 0) {
+        $stmtSuper = $pdo->prepare("SELECT is_super FROM admin WHERE id = :id");
+        $stmtSuper->execute([':id' => $currentAdminId]);
+        $admRow = $stmtSuper->fetch();
+        $isSuperAdmin = !empty($admRow['is_super']);
+    }
+} catch (PDOException $e) {
+    $isSuperAdmin = false;
+}
+
 $validTabs = ['pasien', 'tenaga-layanan', 'poli', 'admin'];
 $activeTab = isset($_GET['tab']) && in_array($_GET['tab'], $validTabs, true) ? $_GET['tab'] : 'pasien';
 
-$search  = trim($_GET['q'] ?? '');
-$status  = trim($_GET['status'] ?? '');
-$civitas = trim($_GET['civitas'] ?? '');
-$poliId  = trim($_GET['poli_id'] ?? '');
-$reserv  = trim($_GET['reservasi'] ?? '');
-$tipeAdm = trim($_GET['tipe_admin'] ?? '');
-
-$totalPasien = 0;
-$totalDokter = 0;
-$totalPoli   = 0;
-$totalAdmin  = 0;
-
-$rows     = [];
-$listPoli = [];
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'toggle_active') {
-    $entity   = $_POST['entity'] ?? '';
-    $targetId = (int) ($_POST['id'] ?? 0);
-    $newState = ($_POST['new_state'] ?? '0') === '1';
-    $backTab  = $_POST['tab'] ?? 'pasien';
+// =====================================================================
+// PROSES POST: SIMPAN PASIEN, TENAGA LAYANAN, POLI, ADMIN & UBAH STATUS
+// =====================================================================
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $action  = $_POST['action'] ?? '';
+    $backTab = $_POST['tab'] ?? 'pasien';
 
     try {
         $pdo->beginTransaction();
 
-        if ($entity === 'pasien') {
-            $stmt = $pdo->prepare("UPDATE pasien SET is_active = :st WHERE id = :id RETURNING user_id");
-            $stmt->bindValue(':st', $newState, PDO::PARAM_BOOL);
-            $stmt->bindValue(':id', $targetId, PDO::PARAM_INT);
-            $stmt->execute();
-            $uId = $stmt->fetchColumn();
+        if (!empty($_SESSION['user_id'])) {
+            $stmtCfg = $pdo->prepare("SELECT set_config('app.user_id', :uid, true)");
+            $stmtCfg->execute([':uid' => (string) $_SESSION['user_id']]);
+        }
 
-            if ($uId) {
-                $stmtU = $pdo->prepare("UPDATE users SET is_active = :st WHERE id = :uid");
-                $stmtU->bindValue(':st', $newState, PDO::PARAM_BOOL);
-                $stmtU->bindValue(':uid', (int) $uId, PDO::PARAM_INT);
-                $stmtU->execute();
+        // 1. TAMBAH / EDIT PASIEN
+        if ($action === 'save_pasien') {
+            $pasienId = !empty($_POST['pasien_id']) ? (int) $_POST['pasien_id'] : 0;
+            $nimNip   = trim($_POST['nim_nip'] ?? '');
+            $noHp     = trim($_POST['no_hp'] ?? '');
+            $goldar   = trim($_POST['golongan_darah'] ?? '');
+            $alergi   = trim($_POST['riwayat_alergi'] ?? '');
+
+            $validGoldar = ['A', 'B', 'AB', 'O', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+            $goldarVal   = in_array($goldar, $validGoldar, true) ? $goldar : null;
+
+            if ($pasienId > 0) {
+                $stmtUpd = $pdo->prepare("
+                    UPDATE pasien
+                       SET no_hp          = :no_hp,
+                           golongan_darah = :goldar,
+                           riwayat_alergi = :alergi
+                     WHERE id = :id
+                ");
+                $stmtUpd->bindValue(':no_hp', $noHp !== '' ? $noHp : null, $noHp !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
+                $stmtUpd->bindValue(':goldar', $goldarVal, $goldarVal !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
+                $stmtUpd->bindValue(':alergi', $alergi !== '' ? $alergi : null, $alergi !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
+                $stmtUpd->bindValue(':id', $pasienId, PDO::PARAM_INT);
+                $stmtUpd->execute();
+
+                $_SESSION['flash_success'] = "Data pasien berhasil diperbarui.";
+            } else {
+                if ($nimNip === '') {
+                    throw new Exception("NIM / NIP wajib diisi.");
+                }
+                $stmtIns = $pdo->prepare("
+                    INSERT INTO pasien (nim_nip, nama, jenis_kelamin, tanggal_lahir, status_civitas, no_hp, golongan_darah, riwayat_alergi)
+                    VALUES (:nim_nip, '-', 'L', CURRENT_DATE, 'mahasiswa', :no_hp, :goldar, :alergi)
+                    RETURNING nama
+                ");
+                $stmtIns->bindValue(':nim_nip', $nimNip, PDO::PARAM_STR);
+                $stmtIns->bindValue(':no_hp', $noHp !== '' ? $noHp : null, $noHp !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
+                $stmtIns->bindValue(':goldar', $goldarVal, $goldarVal !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
+                $stmtIns->bindValue(':alergi', $alergi !== '' ? $alergi : null, $alergi !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
+                $stmtIns->execute();
+                $insertedRow = $stmtIns->fetch();
+
+                $_SESSION['flash_success'] = "Pasien " . ($insertedRow['nama'] ?? '') . " ({$nimNip}) berhasil ditambahkan.";
             }
-        } elseif ($entity === 'dokter') {
-            $stmt = $pdo->prepare("UPDATE dokter SET is_active = :st WHERE id = :id RETURNING user_id");
-            $stmt->bindValue(':st', $newState, PDO::PARAM_BOOL);
-            $stmt->bindValue(':id', $targetId, PDO::PARAM_INT);
-            $stmt->execute();
-            $uId = $stmt->fetchColumn();
 
-            if ($uId) {
-                $stmtU = $pdo->prepare("UPDATE users SET is_active = :st WHERE id = :uid");
-                $stmtU->bindValue(':st', $newState, PDO::PARAM_BOOL);
-                $stmtU->bindValue(':uid', (int) $uId, PDO::PARAM_INT);
-                $stmtU->execute();
+        // 2. TAMBAH / EDIT TENAGA LAYANAN (DOKTER / PSIKOLOG)
+        } elseif ($action === 'save_dokter') {
+            $dokterId = !empty($_POST['dokter_id']) ? (int) $_POST['dokter_id'] : 0;
+            $nama     = trim($_POST['nama'] ?? '');
+            $username = trim($_POST['username'] ?? '');
+            $password = (string) ($_POST['password'] ?? '');
+            $poliId   = (int) ($_POST['poli_id'] ?? 0);
+            $profesi  = strtolower(trim($_POST['profesi'] ?? ''));
+            $noStr    = trim($_POST['no_str'] ?? '');
+            $noHp     = trim($_POST['no_hp'] ?? '');
+
+            if ($nama === '' || $username === '' || $poliId <= 0) {
+                throw new Exception("Nama lengkap, username, dan poli wajib diisi.");
             }
-        } elseif ($entity === 'admin') {
-            $stmt = $pdo->prepare("SELECT user_id FROM admin WHERE id = :id");
-            $stmt->execute([':id' => $targetId]);
-            $uId = $stmt->fetchColumn();
+            if (!in_array($profesi, ['dokter umum', 'dokter gigi', 'psikolog'], true)) {
+                throw new Exception("Pilihan profesi tidak valid.");
+            }
 
-            if ($uId) {
-                $stmtU = $pdo->prepare("UPDATE users SET is_active = :st WHERE id = :uid");
-                $stmtU->bindValue(':st', $newState, PDO::PARAM_BOOL);
-                $stmtU->bindValue(':uid', (int) $uId, PDO::PARAM_INT);
-                $stmtU->execute();
+            if ($dokterId > 0) {
+                $stmtGet = $pdo->prepare("SELECT user_id FROM dokter WHERE id = :id");
+                $stmtGet->execute([':id' => $dokterId]);
+                $dRow = $stmtGet->fetch();
+                if (!$dRow) {
+                    throw new Exception("Data tenaga layanan tidak ditemukan.");
+                }
+                $uId = (int) $dRow['user_id'];
+
+                if ($password !== '') {
+                    if (strlen($password) < 8) {
+                        throw new Exception("Password baru minimal 8 karakter.");
+                    }
+                    $stmtU = $pdo->prepare("UPDATE users SET username = :u, password_hash = :p WHERE id = :id");
+                    $stmtU->execute([
+                        ':u'  => $username,
+                        ':p'  => password_hash($password, PASSWORD_BCRYPT),
+                        ':id' => $uId,
+                    ]);
+                } else {
+                    $stmtU = $pdo->prepare("UPDATE users SET username = :u WHERE id = :id");
+                    $stmtU->execute([':u' => $username, ':id' => $uId]);
+                }
+
+                $stmtD = $pdo->prepare("
+                    UPDATE dokter
+                       SET poli_id = :poli_id,
+                           nama    = :nama,
+                           no_str  = :no_str,
+                           no_hp   = :no_hp,
+                           profesi = :profesi
+                     WHERE id = :id
+                ");
+                $stmtD->bindValue(':poli_id', $poliId, PDO::PARAM_INT);
+                $stmtD->bindValue(':nama', $nama, PDO::PARAM_STR);
+                $stmtD->bindValue(':no_str', $noStr !== '' ? $noStr : null, $noStr !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
+                $stmtD->bindValue(':no_hp', $noHp !== '' ? $noHp : null, $noHp !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
+                $stmtD->bindValue(':profesi', $profesi, PDO::PARAM_STR);
+                $stmtD->bindValue(':id', $dokterId, PDO::PARAM_INT);
+                $stmtD->execute();
+
+                $_SESSION['flash_success'] = "Data tenaga layanan {$nama} berhasil diperbarui.";
+            } else {
+                if (strlen($password) < 8) {
+                    throw new Exception("Password untuk akun baru wajib diisi minimal 8 karakter.");
+                }
+
+                $stmtU = $pdo->prepare("
+                    INSERT INTO users (username, password_hash, role, is_active, must_change_password)
+                    VALUES (:u, :p, 'dokter', TRUE, FALSE)
+                    RETURNING id
+                ");
+                $stmtU->execute([
+                    ':u' => $username,
+                    ':p' => password_hash($password, PASSWORD_BCRYPT),
+                ]);
+                $uRow = $stmtU->fetch();
+                $uId  = (int) $uRow['id'];
+
+                $stmtD = $pdo->prepare("
+                    INSERT INTO dokter (user_id, poli_id, nama, no_str, no_hp, profesi, is_active)
+                    VALUES (:uid, :poli_id, :nama, :no_str, :no_hp, :profesi, TRUE)
+                ");
+                $stmtD->bindValue(':uid', $uId, PDO::PARAM_INT);
+                $stmtD->bindValue(':poli_id', $poliId, PDO::PARAM_INT);
+                $stmtD->bindValue(':nama', $nama, PDO::PARAM_STR);
+                $stmtD->bindValue(':no_str', $noStr !== '' ? $noStr : null, $noStr !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
+                $stmtD->bindValue(':no_hp', $noHp !== '' ? $noHp : null, $noHp !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
+                $stmtD->bindValue(':profesi', $profesi, PDO::PARAM_STR);
+                $stmtD->execute();
+
+                $_SESSION['flash_success'] = "Tenaga layanan {$nama} berhasil ditambahkan.";
+            }
+
+        // 3. TAMBAH / EDIT POLI
+        } elseif ($action === 'save_poli') {
+            if (!$isSuperAdmin) { // cek super admin apa bukan
+                throw new Exception("Hanya Super Admin yang memiliki akses untuk menambah atau mengubah data Poli.");
+            }
+
+            $idPoli         = !empty($_POST['poli_id_PK']) ? (int) $_POST['poli_id_PK'] : 0;
+            $namaPoli       = trim($_POST['nama'] ?? '');
+            $butuhReservasi = (($_POST['butuh_reservasi'] ?? '0') === '1');
+            $kuotaHarian    = $butuhReservasi ? max(1, (int) ($_POST['kuota_harian'] ?? 5)) : null;
+            $durasiMenit    = !empty($_POST['durasi_menit']) ? max(5, (int) $_POST['durasi_menit']) : null;
+
+            if ($namaPoli === '') {
+                throw new Exception("Nama poli wajib diisi.");
+            }
+
+            if ($idPoli > 0) {
+                $stmtP = $pdo->prepare("
+                    UPDATE poli
+                       SET nama            = :nama,
+                           butuh_reservasi = :butuh,
+                           kuota_harian    = :kuota,
+                           durasi_menit    = :durasi
+                     WHERE id = :id
+                ");
+                $stmtP->bindValue(':nama', $namaPoli, PDO::PARAM_STR);
+                $stmtP->bindValue(':butuh', $butuhReservasi, PDO::PARAM_BOOL);
+                $stmtP->bindValue(':kuota', $kuotaHarian, $kuotaHarian === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
+                $stmtP->bindValue(':durasi', $durasiMenit, $durasiMenit === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
+                $stmtP->bindValue(':id', $idPoli, PDO::PARAM_INT);
+                $stmtP->execute();
+
+                $_SESSION['flash_success'] = "Data {$namaPoli} berhasil diperbarui.";
+            } else {
+                $stmtP = $pdo->prepare("
+                    INSERT INTO poli (nama, butuh_reservasi, kuota_harian, durasi_menit)
+                    VALUES (:nama, :butuh, :kuota, :durasi)
+                ");
+                $stmtP->bindValue(':nama', $namaPoli, PDO::PARAM_STR);
+                $stmtP->bindValue(':butuh', $butuhReservasi, PDO::PARAM_BOOL);
+                $stmtP->bindValue(':kuota', $kuotaHarian, $kuotaHarian === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
+                $stmtP->bindValue(':durasi', $durasiMenit, $durasiMenit === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
+                $stmtP->execute();
+
+                $_SESSION['flash_success'] = "Poli {$namaPoli} berhasil ditambahkan.";
+            }
+
+        // 4. TAMBAH / EDIT ADMIN
+        } elseif ($action === 'save_admin') {
+            if (!$isSuperAdmin) { // cek super admin apa bukan
+                throw new Exception("Hanya Super Admin yang memiliki akses untuk mengelola akun Admin.");
+            }
+
+            $adminId  = !empty($_POST['admin_id']) ? (int) $_POST['admin_id'] : 0;
+            $nimNip   = trim($_POST['nim_nip'] ?? '');
+            $username = trim($_POST['username'] ?? '');
+            $password = (string) ($_POST['password'] ?? '');
+            $noHp     = trim($_POST['no_hp'] ?? '');
+            $isSuper  = (($_POST['is_super'] ?? '0') === '1');
+
+            if ($username === '') {
+                throw new Exception("Username wajib diisi.");
+            }
+
+            if ($adminId > 0) {
+                if ($adminId === $currentAdminId && !$isSuper) {
+                    throw new Exception("Anda tidak dapat menurunkan peran Super Admin milik Anda sendiri.");
+                }
+
+                $stmtGet = $pdo->prepare("SELECT user_id FROM admin WHERE id = :id");
+                $stmtGet->execute([':id' => $adminId]);
+                $aRow = $stmtGet->fetch();
+                if (!$aRow) {
+                    throw new Exception("Data admin tidak ditemukan.");
+                }
+                $uId = (int) $aRow['user_id'];
+
+                if ($password !== '') {
+                    if (strlen($password) < 8) {
+                        throw new Exception("Password baru minimal 8 karakter.");
+                    }
+                    $stmtU = $pdo->prepare("UPDATE users SET username = :u, password_hash = :p WHERE id = :id");
+                    $stmtU->execute([
+                        ':u'  => $username,
+                        ':p'  => password_hash($password, PASSWORD_BCRYPT),
+                        ':id' => $uId,
+                    ]);
+                } else {
+                    $stmtU = $pdo->prepare("UPDATE users SET username = :u WHERE id = :id");
+                    $stmtU->execute([':u' => $username, ':id' => $uId]);
+                }
+
+                $stmtA = $pdo->prepare("
+                    UPDATE admin
+                       SET no_hp    = :no_hp,
+                           is_super = :is_super
+                     WHERE id = :id
+                ");
+                $stmtA->bindValue(':no_hp', $noHp !== '' ? $noHp : null, $noHp !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
+                $stmtA->bindValue(':is_super', $isSuper, PDO::PARAM_BOOL);
+                $stmtA->bindValue(':id', $adminId, PDO::PARAM_INT);
+                $stmtA->execute();
+
+                $_SESSION['flash_success'] = "Data admin berhasil diperbarui.";
+            } else {
+                if ($nimNip === '' || strlen($password) < 8) {
+                    throw new Exception("NIM/NIP civitas wajib diisi dan password minimal 8 karakter.");
+                }
+
+                $stmtCiv = $pdo->prepare("SELECT nama, status_keanggotaan FROM data_civitas WHERE nim_nip = :nim");
+                $stmtCiv->execute([':nim' => $nimNip]);
+                $civRow = $stmtCiv->fetch();
+
+                if (!$civRow) {
+                    throw new Exception("NIM/NIP {$nimNip} tidak ditemukan di database civitas akademika.");
+                }
+                if ($civRow['status_keanggotaan'] !== 'aktif') {
+                    throw new Exception("Civitas dengan NIM/NIP {$nimNip} tidak berstatus aktif.");
+                }
+
+                $stmtU = $pdo->prepare("
+                    INSERT INTO users (username, password_hash, role, is_active, must_change_password)
+                    VALUES (:u, :p, 'admin', TRUE, FALSE)
+                    RETURNING id
+                ");
+                $stmtU->execute([
+                    ':u' => $username,
+                    ':p' => password_hash($password, PASSWORD_BCRYPT),
+                ]);
+                $uRow = $stmtU->fetch();
+                $uId  = (int) $uRow['id'];
+
+                $stmtA = $pdo->prepare("
+                    INSERT INTO admin (user_id, nama, nim_nip, is_super, no_hp)
+                    VALUES (:uid, :nama, :nim_nip, :is_super, :no_hp)
+                ");
+                $stmtA->bindValue(':uid', $uId, PDO::PARAM_INT);
+                $stmtA->bindValue(':nama', $civRow['nama'], PDO::PARAM_STR);
+                $stmtA->bindValue(':nim_nip', $nimNip, PDO::PARAM_STR);
+                $stmtA->bindValue(':is_super', $isSuper, PDO::PARAM_BOOL);
+                $stmtA->bindValue(':no_hp', $noHp !== '' ? $noHp : null, $noHp !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
+                $stmtA->execute();
+
+                $_SESSION['flash_success'] = "Admin baru atas nama {$civRow['nama']} berhasil ditambahkan.";
+            }
+
+        // 5. TOGGLE STATUS AKTIF / NON-AKTIF
+        } elseif ($action === 'toggle_active') {
+            $entity   = $_POST['entity'] ?? '';
+            $targetId = (int) ($_POST['id'] ?? 0);
+            $newState = ($_POST['new_state'] ?? '0') === '1';
+
+            if ($entity === 'admin' && !$isSuperAdmin) {
+                throw new Exception("Hanya Super Admin yang memiliki akses untuk mengubah status akun Admin.");
+            }
+            if ($entity === 'admin' && $targetId === $currentAdminId && !$newState) {
+                throw new Exception("Anda tidak dapat menonaktifkan akun Anda sendiri.");
+            }
+
+            if ($entity === 'pasien') {
+                $stmt = $pdo->prepare("UPDATE pasien SET is_active = :st WHERE id = :id RETURNING user_id");
+                $stmt->bindValue(':st', $newState, PDO::PARAM_BOOL);
+                $stmt->bindValue(':id', $targetId, PDO::PARAM_INT);
+                $stmt->execute();
+                $res = $stmt->fetch();
+
+                if (!empty($res['user_id'])) {
+                    $stmtU = $pdo->prepare("UPDATE users SET is_active = :st WHERE id = :uid");
+                    $stmtU->bindValue(':st', $newState, PDO::PARAM_BOOL);
+                    $stmtU->bindValue(':uid', (int) $res['user_id'], PDO::PARAM_INT);
+                    $stmtU->execute();
+                }
+                $_SESSION['flash_success'] = $newState ? "Data pasien berhasil diaktifkan kembali." : "Data pasien berhasil dinonaktifkan.";
+
+            } elseif ($entity === 'dokter') {
+                $stmt = $pdo->prepare("UPDATE dokter SET is_active = :st WHERE id = :id RETURNING user_id");
+                $stmt->bindValue(':st', $newState, PDO::PARAM_BOOL);
+                $stmt->bindValue(':id', $targetId, PDO::PARAM_INT);
+                $stmt->execute();
+                $res = $stmt->fetch();
+
+                if (!empty($res['user_id'])) {
+                    $stmtU = $pdo->prepare("UPDATE users SET is_active = :st WHERE id = :uid");
+                    $stmtU->bindValue(':st', $newState, PDO::PARAM_BOOL);
+                    $stmtU->bindValue(':uid', (int) $res['user_id'], PDO::PARAM_INT);
+                    $stmtU->execute();
+                }
+                $_SESSION['flash_success'] = $newState ? "Data tenaga layanan berhasil diaktifkan kembali." : "Data tenaga layanan berhasil dinonaktifkan.";
+
+            } elseif ($entity === 'admin') {
+                $stmt = $pdo->prepare("SELECT user_id FROM admin WHERE id = :id");
+                $stmt->execute([':id' => $targetId]);
+                $res = $stmt->fetch();
+
+                if (!empty($res['user_id'])) {
+                    $stmtU = $pdo->prepare("UPDATE users SET is_active = :st WHERE id = :uid");
+                    $stmtU->bindValue(':st', $newState, PDO::PARAM_BOOL);
+                    $stmtU->bindValue(':uid', (int) $res['user_id'], PDO::PARAM_INT);
+                    $stmtU->execute();
+                }
+                $_SESSION['flash_success'] = $newState ? "Akun admin berhasil diaktifkan kembali." : "Akun admin berhasil dinonaktifkan.";
             }
         }
 
         $pdo->commit();
-    } catch (PDOException $e) {
+    } catch (Exception $e) {
         if ($pdo->inTransaction()) {
             $pdo->rollBack();
         }
-        error_log('[datamaster-soft-delete] ' . $e->getMessage());
+        $rawMsg = $e->getMessage();
+        if (str_contains($rawMsg, 'users_username_key')) {
+            $_SESSION['flash_error'] = "Username tersebut sudah digunakan oleh akun lain.";
+        } elseif (str_contains($rawMsg, 'dokter_no_str_key')) {
+            $_SESSION['flash_error'] = "Nomor STR tersebut sudah terdaftar.";
+        } elseif (str_contains($rawMsg, 'admin_nim_nip_key')) {
+            $_SESSION['flash_error'] = "NIM/NIP tersebut sudah terdaftar sebagai Admin.";
+        } elseif (str_contains($rawMsg, 'pasien_nim_nip_key')) {
+            $_SESSION['flash_error'] = "Pasien dengan NIM/NIP tersebut sudah terdaftar.";
+        } elseif (str_contains($rawMsg, 'poli_nama_key')) {
+            $_SESSION['flash_error'] = "Nama poli tersebut sudah ada.";
+        } elseif (preg_match('/ERROR:\s*(.+?)(\n|CONTEXT:|$)/s', $rawMsg, $matches)) {
+            $_SESSION['flash_error'] = trim($matches[1]);
+        } else {
+            $_SESSION['flash_error'] = $rawMsg;
+        }
+        error_log('[datamaster-post] ' . $rawMsg);
     }
 
     header("Location: datamaster.php?tab=" . urlencode($backTab));
     exit;
 }
+
+// =====================================================================
+// PROSES GET: FILTER, STATISTIK COUNTER, DAN DAFTAR DATA MASTER
+// =====================================================================
+$search   = trim($_GET['q'] ?? '');
+$status   = trim($_GET['status'] ?? '');
+$civitas  = trim($_GET['civitas'] ?? '');
+$poliId   = trim($_GET['poli_id'] ?? '');
+$reserv   = trim($_GET['reservasi'] ?? '');
+$tipeAdm  = trim($_GET['tipe_admin'] ?? '');
+$detailId = isset($_GET['detail_id']) && ctype_digit((string) $_GET['detail_id']) ? (int) $_GET['detail_id'] : null;
+$editId   = isset($_GET['edit_id']) && ctype_digit((string) $_GET['edit_id']) ? (int) $_GET['edit_id'] : null;
+
+$totalPasien  = 0;
+$totalDokter  = 0;
+$totalPoli    = 0;
+$totalAdmin   = 0;
+$rows         = [];
+$listPoli     = [];
+
+$detailPasien = null;
+$editPasien   = null;
+$detailDokter = null;
+$editDokter   = null;
+$editPoli     = null;
+$detailAdmin  = null;
+$editAdmin    = null;
 
 try {
     $stats = $pdo->query("
@@ -145,7 +499,7 @@ try {
 
         $sql = "
             SELECT p.id, p.nim_nip, p.nama, p.jenis_kelamin, p.tanggal_lahir,
-                   p.no_hp, p.status_civitas, p.golongan_darah,
+                   p.no_hp, p.status_civitas, p.golongan_darah, p.riwayat_alergi,
                    u.username,
                    (p.is_active AND COALESCE(u.is_active, TRUE)) AS status_aktif
             FROM pasien p
@@ -154,11 +508,32 @@ try {
         if ($where) {
             $sql .= " WHERE " . implode(" AND ", $where);
         }
-        $sql .= " ORDER BY p.nama ASC";
+        $sql .= " ORDER BY (p.is_active AND COALESCE(u.is_active, TRUE)) DESC, p.nama ASC";
 
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
         $rows = $stmt->fetchAll();
+
+        if ($detailId !== null) {
+            $stmtDet = $pdo->prepare("
+                SELECT p.*, u.username, (p.is_active AND COALESCE(u.is_active, TRUE)) AS status_aktif
+                FROM pasien p
+                LEFT JOIN users u ON p.user_id = u.id
+                WHERE p.id = :id
+            ");
+            $stmtDet->execute([':id' => $detailId]);
+            $detailPasien = $stmtDet->fetch();
+        }
+        if ($editId !== null) {
+            $stmtEd = $pdo->prepare("
+                SELECT p.*, u.username
+                FROM pasien p
+                LEFT JOIN users u ON p.user_id = u.id
+                WHERE p.id = :id
+            ");
+            $stmtEd->execute([':id' => $editId]);
+            $editPasien = $stmtEd->fetch();
+        }
 
     } elseif ($activeTab === 'tenaga-layanan') {
         $listPoli = $pdo->query("SELECT id, nama FROM poli ORDER BY id ASC")->fetchAll();
@@ -178,7 +553,7 @@ try {
         }
 
         $sql = "
-            SELECT d.id, d.nama, d.no_str, d.no_hp, d.profesi,
+            SELECT d.id, d.poli_id, d.nama, d.no_str, d.no_hp, d.profesi,
                    po.nama AS nama_poli, u.username,
                    (d.is_active AND u.is_active) AS status_aktif
             FROM dokter d
@@ -188,11 +563,33 @@ try {
         if ($where) {
             $sql .= " WHERE " . implode(" AND ", $where);
         }
-        $sql .= " ORDER BY d.nama ASC";
+        $sql .= " ORDER BY (d.is_active AND u.is_active) DESC, d.nama ASC";
 
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
         $rows = $stmt->fetchAll();
+
+        if ($detailId !== null) {
+            $stmtDet = $pdo->prepare("
+                SELECT d.*, po.nama AS nama_poli, u.username, (d.is_active AND u.is_active) AS status_aktif
+                FROM dokter d
+                JOIN users u ON d.user_id = u.id
+                JOIN poli po ON d.poli_id = po.id
+                WHERE d.id = :id
+            ");
+            $stmtDet->execute([':id' => $detailId]);
+            $detailDokter = $stmtDet->fetch();
+        }
+        if ($editId !== null) {
+            $stmtEd = $pdo->prepare("
+                SELECT d.*, u.username
+                FROM dokter d
+                JOIN users u ON d.user_id = u.id
+                WHERE d.id = :id
+            ");
+            $stmtEd->execute([':id' => $editId]);
+            $editDokter = $stmtEd->fetch();
+        }
 
     } elseif ($activeTab === 'poli') {
         if ($search !== '') {
@@ -220,6 +617,12 @@ try {
         $stmt->execute($params);
         $rows = $stmt->fetchAll();
 
+        if ($editId !== null) {
+            $stmtEd = $pdo->prepare("SELECT * FROM poli WHERE id = :id");
+            $stmtEd->execute([':id' => $editId]);
+            $editPoli = $stmtEd->fetch();
+        }
+
     } elseif ($activeTab === 'admin') {
         if ($search !== '') {
             $where[] = "(a.nama ILIKE :q OR COALESCE(a.nim_nip, '') ILIKE :q OR COALESCE(a.no_hp, '') ILIKE :q OR u.username ILIKE :q)";
@@ -239,7 +642,7 @@ try {
         $sql = "
             SELECT a.id, a.nama, a.nim_nip, a.no_hp, a.is_super,
                    u.username, u.is_active AS status_aktif,
-                   dc.status_civitas, dc.tanggal_lahir, dc.jenis_kelamin
+                   dc.status_civitas, dc.tanggal_lahir, dc.jenis_kelamin, dc.unit
             FROM admin a
             JOIN users u ON a.user_id = u.id
             LEFT JOIN data_civitas dc ON a.nim_nip = dc.nim_nip
@@ -247,11 +650,35 @@ try {
         if ($where) {
             $sql .= " WHERE " . implode(" AND ", $where);
         }
-        $sql .= " ORDER BY a.is_super DESC, a.nama ASC";
+        $sql .= " ORDER BY a.is_super DESC, u.is_active DESC, a.nama ASC";
 
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
         $rows = $stmt->fetchAll();
+
+        if ($detailId !== null) {
+            $stmtDet = $pdo->prepare("
+                SELECT a.*, u.username, u.is_active AS status_aktif,
+                       dc.status_civitas, dc.tanggal_lahir, dc.jenis_kelamin, dc.unit
+                FROM admin a
+                JOIN users u ON a.user_id = u.id
+                LEFT JOIN data_civitas dc ON a.nim_nip = dc.nim_nip
+                WHERE a.id = :id
+            ");
+            $stmtDet->execute([':id' => $detailId]);
+            $detailAdmin = $stmtDet->fetch();
+        }
+        if ($editId !== null) {
+            $stmtEd = $pdo->prepare("
+                SELECT a.*, u.username, dc.status_civitas, dc.tanggal_lahir, dc.jenis_kelamin
+                FROM admin a
+                JOIN users u ON a.user_id = u.id
+                LEFT JOIN data_civitas dc ON a.nim_nip = dc.nim_nip
+                WHERE a.id = :id
+            ");
+            $stmtEd->execute([':id' => $editId]);
+            $editAdmin = $stmtEd->fetch();
+        }
     }
 
 } catch (PDOException $e) {
@@ -285,6 +712,16 @@ try {
             <!-- Content -->
             <main class="flex-1 min-w-0 bg-page p-6">
 
+                <?php if ($flashSuccess): ?>
+                    <div class="mb-4 p-4 text-sm text-emerald-800 bg-emerald-100 border border-emerald-300 rounded-base" role="alert">
+                        <?= e($flashSuccess) ?>
+                    </div>
+                <?php endif; ?>
+                <?php if ($flashError): ?>
+                    <div class="mb-4 p-4 text-sm text-red-800 bg-red-100 border border-red-300 rounded-base" role="alert">
+                        <?= e($flashError) ?>
+                    </div>
+                <?php endif; ?>
                 <?php if ($errorDb): ?>
                     <div class="mb-3 p-4 text-sm text-red-800 bg-red-100 border border-red-300 rounded-base" role="alert">
                         Data master gagal dimuat. Angka di bawah belum tentu benar. Periksa log server.
@@ -358,20 +795,28 @@ try {
                     </div>
                 </div>
 
+                <!-- Panggil Komponen Kartu & Modal Berdasarkan Sub-Folder Baru -->
                 <?php
                 switch ($activeTab) {
                     case 'tenaga-layanan':
-                        require_once __DIR__ . '/components/datamaster/card-data-tenaga-layanan.php';
+                        require_once __DIR__ . '/components/datamaster/tenaga-layanan/card-data-tenaga-layanan.php';
+                        require_once __DIR__ . '/components/datamaster/tenaga-layanan/detail-tenaga-layanan.php';
+                        require_once __DIR__ . '/components/datamaster/tenaga-layanan/form-data-tenaga-layanan.php';
                         break;
                     case 'poli':
-                        require_once __DIR__ . '/components/datamaster/card-data-poli.php';
+                        require_once __DIR__ . '/components/datamaster/poli/card-data-poli.php';
+                        require_once __DIR__ . '/components/datamaster/poli/form-data-poli.php';
                         break;
                     case 'admin':
-                        require_once __DIR__ . '/components/datamaster/card-data-admin.php';
+                        require_once __DIR__ . '/components/datamaster/admin/card-data-admin.php';
+                        require_once __DIR__ . '/components/datamaster/admin/detail-admin.php';
+                        require_once __DIR__ . '/components/datamaster/admin/form-data-admin.php';
                         break;
                     case 'pasien':
                     default:
                         require_once __DIR__ . '/components/datamaster/pasien/card-data-pasien.php';
+                        require_once __DIR__ . '/components/datamaster/pasien/detail-pasien.php';
+                        require_once __DIR__ . '/components/datamaster/pasien/form-data-pasien.php';
                         break;
                 }
                 ?>
