@@ -22,9 +22,11 @@ $options = [
     PDO::ATTR_EMULATE_PREPARES   => false,
 ];
 
+$endpointId = explode('.', $host)[0];
+
 try {
     $pdo = new PDO(
-        "pgsql:host=$host;port=$port;dbname=$db;sslmode=$sslmode;connect_timeout=10",
+        "pgsql:host=$host;port=$port;dbname=$db;sslmode=$sslmode;options=endpoint=$endpointId;connect_timeout=10",
         $user,
         $pass,
         $options
