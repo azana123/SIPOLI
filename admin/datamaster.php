@@ -379,7 +379,8 @@ try {
         </div>
     </div>
 
-    <?php require_once __DIR__ . '/components/detail-reservasi.php'; ?>
+    <?php require_once __DIR__ . '/components/datamaster/pasien/form-data-pasien.php'; ?>
+    <?php require_once __DIR__ . '/components/datamaster/pasien/detail-pasien.php'; ?>
 
     <script src="./../../assets/js/app.js"></script>
     <script src="./../node_modules/flowbite/dist/flowbite.min.js"></script>
