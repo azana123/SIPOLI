@@ -111,18 +111,15 @@ $fullQuotaDate = [1, 5, 14]; // Tanggal kuota penuh (titik merah)
             <!-- Grid Tanggal -->
             <div class="grid grid-cols-7 gap-y-4 text-center">
                 <?php
-                // 1. Render tanggal bulan sebelumnya (Teks pudar)
                 for ($i = $firstDayOfMonth - 1; $i >= 0; $i--) {
                     $day = $prevMonthDays - $i;
                     echo "<div class='text-sm text-gray-300 font-medium py-2'>$day</div>";
                 }
 
-                // 2. Render tanggal bulan ini
                 for ($day = 1; $day <= $daysInMonth; $day++) {
                     $dayFormatted = sprintf("%02d", $day);
 
-                    // Logika Styling Status
-                    $isPast = ($day >= 1 && $day <= $dayNow - 1); // Simulasi hari berlalu (teks pudar)
+                    $isPast = ($day >= 1 && $day <= $dayNow - 1);
                     $isH7 = ($day >= $dayNow + 7);
 
                     $wrapperClass = "flex flex-col items-center justify-center";
@@ -143,11 +140,10 @@ $fullQuotaDate = [1, 5, 14]; // Tanggal kuota penuh (titik merah)
                         $textClass .= " text-gray-900 hover:bg-gray-100 rounded";
                     }
 
-                    // Logika Titik Merah (Kuota Penuh)
                     for ($i = 0; $i < count($fullQuotaDate); $i++) {
                         if ($day == $fullQuotaDate[$i]) {
                             $dotIndicator = "<div class='w-1.5 h-1.5 bg-red-600 rounded-full mt-1'></div>";
-                            $textClass .= " text-gray-300"; // Disable interaksi visual
+                            $textClass .= " text-gray-300";
                         }
                     }
 
@@ -160,8 +156,8 @@ $fullQuotaDate = [1, 5, 14]; // Tanggal kuota penuh (titik merah)
 
                 // 3. Render sisa kotak untuk bulan berikutnya
                 $totalCells = $firstDayOfMonth + $daysInMonth;
-                $remainingCells = 42 - $totalCells; // Selalu 6 baris agar tinggi UI konsisten
-                if ($remainingCells < 7) $remainingCells += 7; // Minimal baris pelengkap
+                $remainingCells = 42 - $totalCells;
+                if ($remainingCells < 7) $remainingCells += 7;
 
                 for ($day = 1; $day <= $remainingCells; $day++) {
                     $dayFormatted = sprintf("%02d", $day);

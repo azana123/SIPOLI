@@ -2,12 +2,14 @@
     <div class="flex justify-between items-center mb-4">
         <h4 class="text-lg font-bold">Daftar Admin</h4>
 
-        <button id="add-data-admin" data-modal-target="modal-form-admin" data-modal-toggle="modal-form-admin" class="hidden md:inline-flex items-center text-white bg-primary hover:bg-primary-700 box-border border border-transparent focus:ring-4 focus:ring-primary-400 shadow-xs font-medium leading-5 rounded text-xs px-2.5 py-1 focus:outline-none mr-3 cursor-pointer">
-            <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#fff" class="mr-1">
-                <path d="M440-440H200v-80h240v-240h80v240h240v80H520v240h-80v-240Z" />
-            </svg>
-            Tambah Data Admin
-        </button>
+        <?php if (!empty($isSuperAdmin)): ?>
+            <button id="add-data-admin" data-modal-target="modal-form-admin" data-modal-toggle="modal-form-admin" class="hidden md:inline-flex items-center text-white bg-primary hover:bg-primary-700 box-border border border-transparent focus:ring-4 focus:ring-primary-400 shadow-xs font-medium leading-5 rounded text-xs px-2.5 py-1 focus:outline-none mr-3 cursor-pointer">
+                <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#fff" class="mr-1">
+                    <path d="M440-440H200v-80h240v-240h80v240h240v80H520v240h-80v-240Z" />
+                </svg>
+                Tambah Data Admin
+            </button>
+        <?php endif; ?>
     </div>
 
     <!-- Filter -->
@@ -30,7 +32,7 @@
 
         <div class="flex flex-col">
             <label for="tipe-admin-filter" class="text-sm text-primary-600">Peran Admin</label>
-            <select id="tipe-admin-filter" name="tipe_admin" onchange="this.form.submit()" class="border border-primary-400-05 text-heading text-sm rounded-base flex-1 mt-1">
+            <select id="tipe-admin-filter" name="tipe_admin" onchange="this.form.submit()" class="border border-primary-400-05 text-heading text-sm rounded-base flex-1 mt-1 bg-white">
                 <option value="">Semua Admin</option>
                 <option value="super" <?= $tipeAdm === 'super' ? 'selected' : '' ?>>Super Admin</option>
                 <option value="regular" <?= $tipeAdm === 'regular' ? 'selected' : '' ?>>Regular Admin</option>
@@ -39,7 +41,7 @@
 
         <div class="flex flex-col">
             <label for="status-admin-filter" class="text-sm text-primary-600">Status</label>
-            <select id="status-admin-filter" name="status" onchange="this.form.submit()" class="border border-primary-400-05 text-heading text-sm rounded-base flex-1 mt-1">
+            <select id="status-admin-filter" name="status" onchange="this.form.submit()" class="border border-primary-400-05 text-heading text-sm rounded-base flex-1 mt-1 bg-white">
                 <option value="">Semua Status</option>
                 <option value="aktif" <?= $status === 'aktif' ? 'selected' : '' ?>>Aktif</option>
                 <option value="non-aktif" <?= $status === 'non-aktif' ? 'selected' : '' ?>>Non-Aktif</option>
@@ -76,11 +78,17 @@
                             'P'     => 'Perempuan',
                             default => '-',
                         };
+                        $baseQ = http_build_query([
+                            'tab'        => 'admin',
+                            'q'          => $search,
+                            'tipe_admin' => $tipeAdm,
+                            'status'     => $status,
+                        ]);
                         ?>
-                        <tr class="bg-neutral-primary border-b border-primary-400-05">
+                        <tr class="<?= $row['status_aktif'] ? 'bg-neutral-primary' : 'bg-gray-50 opacity-75' ?> border-b border-primary-400-05">
                             <th scope="row" class="px-3 py-4 font-medium text-heading whitespace-nowrap">
                                 <div class="text-base font-bold"><?= e($row['nama']) ?></div>
-                                <div class="text-xs font-normal text-gray-500 mt-1">NIP · <?= e($row['nim_nip'] ?? '-') ?></div>
+                                <div class="text-xs font-normal text-gray-500 mt-1">NIP/NIM · <?= e($row['nim_nip'] ?? '-') ?></div>
                             </th>
                             <td class="px-3 py-4 align-top">
                                 <div class="text-sm font-medium text-heading"><?= e($row['username']) ?></div>
@@ -101,15 +109,26 @@
                             </td>
                             <td class="px-3 py-4 align-top">
                                 <div class="flex items-center gap-3">
-                                    <a href="?tab=admin&detail_id=<?= (int) $row['id'] ?>" class="font-bold hover:underline text-primary">Lihat</a>
-                                    <button type="button" class="inline-flex items-center p-1.5 text-primary rounded bg-brand-softer hover:bg-primary hover:text-white transition-all">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
-                                        </svg>
-                                    </button>
-                                    <button type="button" class="group inline-flex items-center p-1.5 text-primary rounded bg-brand-softer hover:bg-primary hover:text-white transition-all ">
-                                        <i class="far fa-trash-alt text-primary text-sm group-hover:text-white transition-colors"></i>
-                                    </button>
+                                    <a href="datamaster.php?<?= $baseQ ?>&detail_id=<?= (int) $row['id'] ?>" class="font-bold hover:underline text-primary">Lihat</a>
+                                    <?php if (!empty($isSuperAdmin)): ?>
+                                        <a href="datamaster.php?<?= $baseQ ?>&edit_id=<?= (int) $row['id'] ?>" title="Edit Admin" class="inline-flex items-center p-1.5 text-primary rounded bg-brand-softer hover:bg-primary hover:text-white transition-all">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+                                            </svg>
+                                        </a>
+                                        <?php if ((int) $row['id'] !== $currentAdminId): ?>
+                                            <form method="POST" action="datamaster.php" class="inline" onsubmit="return confirm('<?= $row['status_aktif'] ? 'Nonaktifkan akun admin ini?' : 'Aktifkan kembali akun admin ini?' ?>')">
+                                                <input type="hidden" name="action" value="toggle_active">
+                                                <input type="hidden" name="tab" value="admin">
+                                                <input type="hidden" name="entity" value="admin">
+                                                <input type="hidden" name="id" value="<?= (int) $row['id'] ?>">
+                                                <input type="hidden" name="new_state" value="<?= $row['status_aktif'] ? '0' : '1' ?>">
+                                                <button type="submit" title="<?= $row['status_aktif'] ? 'Nonaktifkan Admin' : 'Aktifkan Admin' ?>" class="group inline-flex items-center p-1.5 rounded transition-all cursor-pointer <?= $row['status_aktif'] ? 'text-primary bg-brand-softer hover:bg-red-600 hover:text-white' : 'text-emerald-700 bg-emerald-50 hover:bg-emerald-600 hover:text-white' ?>">
+                                                    <i class="far <?= $row['status_aktif'] ? 'fa-trash-alt' : 'fa-check-circle' ?> text-sm transition-colors"></i>
+                                                </button>
+                                            </form>
+                                        <?php endif; ?>
+                                    <?php endif; ?>
                                 </div>
                             </td>
                         </tr>
