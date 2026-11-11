@@ -143,7 +143,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ");
             $stmtTutup->execute([':id' => $id]);
 
-            $_SESSION['flash_success'] = "Jadwal telah dinonaktifkan (Ditutup). Seluruh reservasi aktif pada jadwal ini otomatis dibatalkan dan pasien telah diberi notifikasi.";
+            $_SESSION['flash_success'] = "Jadwal berhasil ditutup. Seluruh reservasi aktif pada jadwal ini otomatis dibatalkan dan pasien telah diberi notifikasi.";
         }
     } catch (PDOException $e) {
         $rawMsg = $e->getMessage();
@@ -157,7 +157,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (preg_match('/ERROR:\s*(.+?)(\n|CONTEXT:|$)/s', $rawMsg, $matches)) {
                 $_SESSION['flash_error'] = trim($matches[1]);
             } else {
-                $_SESSION['flash_error'] = "Terjadi kesalahan database saat memproses jadwal.";
+                $_SESSION['flash_error'] = "Terjadi kesalahan saat memproses jadwal.";
             }
         }
         error_log('[jadwal-admin-crud] ' . $rawMsg);
@@ -486,7 +486,7 @@ foreach ($jadwalRows as $r) {
                                 <option value="" <?= $filterStatus === '' ? 'selected' : '' ?>>Semua jadwal aktif</option>
                                 <option value="buka" <?= $filterStatus === 'buka' ? 'selected' : '' ?>>Tersedia (Buka)</option>
                                 <option value="penuh" <?= $filterStatus === 'penuh' ? 'selected' : '' ?>>Penuh</option>
-                                <option value="tutup" <?= $filterStatus === 'tutup' ? 'selected' : '' ?>>Nonaktif / Ditutup (Arsip)</option>
+                                <option value="tutup" <?= $filterStatus === 'tutup' ? 'selected' : '' ?>>Ditutup</option>
                                 <option value="semua" <?= $filterStatus === 'semua' ? 'selected' : '' ?>>Tampilkan Semua (Termasuk Tutup)</option>
                             </select>
                         </div>
@@ -575,7 +575,7 @@ foreach ($jadwalRows as $r) {
                                                 <?php elseif ($row['status'] === 'penuh'): ?>
                                                     <span class="inline-flex items-center px-2 py-1 mb-1 text-red-800 text-xs font-medium rounded bg-red-100">Penuh</span>
                                                 <?php else: ?>
-                                                    <span class="inline-flex items-center px-2 py-1 mb-1 text-gray-700 text-xs font-medium rounded bg-gray-200">Nonaktif (Tutup)</span>
+                                                    <span class="inline-flex items-center px-2 py-1 mb-1 text-gray-700 text-xs font-medium rounded bg-gray-200">Tutup</span>
                                                 <?php endif; ?>
                                                 <div class="text-xs text-gray-500">
                                                     <?= $row['dipublikasi'] ? 'Dipublikasikan' : 'Tidak dipublikasi' ?>
@@ -616,8 +616,8 @@ foreach ($jadwalRows as $r) {
                     <div class="bg-white rounded-base p-4 border border-gray-200 flex items-start gap-3 shadow-sm">
                         <i class="far fa-calendar-alt text-primary-500 mt-1"></i>
                         <div>
-                            <h5 class="text-sm font-bold text-gray-900 mb-1">Penonaktifan jadwal</h5>
-                            <p class="text-xs text-gray-500 leading-relaxed">Menonaktifkan jadwal akan mengubah statusnya menjadi <b>Tutup</b>, membatalkan reservasi aktif secara otomatis, dan menyimpan riwayatnya di sistem.</p>
+                            <h5 class="text-sm font-bold text-gray-900 mb-1">Penutupan jadwal</h5>
+                            <p class="text-xs text-gray-500 leading-relaxed">Menutup jadwal akan menariknya dari daftar jadwal publik, membatalkan reservasi aktif secara otomatis, dan mengirimkan pemberitahuan kepada pasien.</p>
                         </div>
                     </div>
                 </div>

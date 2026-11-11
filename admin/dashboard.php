@@ -164,7 +164,7 @@ $statusBadge = [
                                         <?= e($totalKonfirmasiH1) ?> Pasien konseling/reservasi belum dikonfirmasi
                                     </th>
                                     <td class="px-6 text-end">
-                                        <a href="./konfirmasi-h1.php">
+                                        <a href="./konfirmasi.php">
                                             <i class="fas fa-chevron-right"></i>
                                         </a>
                                     </td>
@@ -178,7 +178,7 @@ $statusBadge = [
                 <div class="my-3 bg-neutral-primary-soft block p-6 border border-primary-100 rounded-base shadow-xs">
                     <div class="title-card flex items-center justify-between mb-4">
                         <h4 class="text-lg font-bold">Reservasi Hari ini</h4>
-                        <a href="./users/jadwal-pemeriksaan.php" class="action-link text-primary-400 hover:text-primary-700">
+                        <a href="./reservasi.php" class="action-link text-primary-400 hover:text-primary-700">
                             <span class="font-medium text-sm">Lihat Semua</span>
                             <i class="fas fa-chevron-right"></i>
                         </a>
@@ -264,8 +264,6 @@ $statusBadge = [
 
         </div>
     </div>
-
-    <?php require_once __DIR__ . '/components/form-pasien-offline.php'; ?>
 
     <script src="./../assets/js/app.js"></script>
     <script src="./../node_modules/flowbite/dist/flowbite.min.js"></script>
