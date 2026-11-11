@@ -27,7 +27,7 @@ $success = flash_pull('success');
     <div class="w-full min-h-screen bg-page overflow-hidden flex flex-col md:flex-row">
         <section class="login-sidebar bg-primary-500 md:w-1/2 p-4 flex flex-col">
             <div class="brand-name">
-                <h1 class="text-2xl font-bold text-white">Sipoli</h1>
+                <a href="./../index.php" class="text-2xl font-bold text-white">Sipoli</a>
             </div>
             <div class="flex flex-col flex-1 items-center justify-center">
                 <div class="content">
@@ -61,11 +61,16 @@ $success = flash_pull('success');
 
                 <div class="mb-5">
                     <label for="username" class="block mb-2.5 text-sm font-medium text-heading">Username</label>
-                    <input type="text" name="username" id="username" maxlength="50" autocomplete="username" class="bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-brand focus:border-brand block w-full px-3 py-2.5 shadow-xs placeholder:text-body" placeholder="Masukkan username" required />
+                    <input type="text" name="username" id="username" maxlength="50" autocomplete="username" class="bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-primary focus:border-primary block w-full px-3 py-2.5 shadow-xs placeholder:text-body" placeholder="Masukkan username" required />
                 </div>
                 <div class="mb-5">
                     <label for="password" class="block mb-2.5 text-sm font-medium text-heading">Password</label>
-                    <input type="password" name="password" id="password" autocomplete="current-password" class="bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-brand focus:border-brand block w-full px-3 py-2.5 shadow-xs placeholder:text-body" placeholder="••••••••" required />
+                    <div class="relative">
+                        <input type="password" name="password" id="form-password" autocomplete="current-password" class="bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-primary focus:border-primary block w-full px-3 py-2.5 shadow-xs placeholder:text-body" placeholder="••••••••" required />
+                        <div id="eye" class="absolute inset-y-0 inset-e-0 flex items-center text-primary pe-3.5 cursor-pointer transition-colors hover:text-primary-700">
+                            <i class="fa fa-eye" aria-hidden="true"></i>
+                        </div>
+                    </div>
                 </div>
                 <button class="bg-primary hover:bg-primary-600 py-3 rounded-full w-full text-page" type="submit">Login</button>
             </form>
