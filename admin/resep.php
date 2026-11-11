@@ -67,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'updat
 
         $stmtUpd = $pdo->prepare("
             UPDATE permintaan_obat
-               SET status           = :status,
+               SET status           = :status::text,
                    diproses_oleh    = COALESCE(:admin_id, diproses_oleh),
                    waktu_diserahkan = CASE WHEN :status = 'diserahkan' THEN NOW() ELSE waktu_diserahkan END,
                    catatan          = COALESCE(NULLIF(:catatan, ''), catatan)
