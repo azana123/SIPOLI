@@ -363,8 +363,9 @@ try {
                         <select name="bentuk" onchange="this.form.submit()" class="border border-primary-400-05 text-heading text-sm rounded-base p-2.5 bg-white">
                             <option value="">Semua Bentuk</option>
                             <?php foreach ($listBentuk as $b): ?>
-                                <option value="<?= e($b) ?>" <?= $filterBentuk === $b ? 'selected' : '' ?>>
-                                    <?= e(ucfirst($b)) ?>
+                                <?php $namaBentuk = (string) ($b['bentuk'] ?? ''); ?>
+                                <option value="<?= e($namaBentuk) ?>" <?= $filterBentuk === $namaBentuk ? 'selected' : '' ?>>
+                                    <?= e(ucfirst($namaBentuk)) ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
@@ -384,7 +385,6 @@ try {
                         </select>
 
                         <div class="flex items-center gap-3">
-                            <button type="submit" class="px-3 py-2 text-xs font-semibold text-white bg-primary rounded-base hover:bg-primary-600">Cari</button>
                             <a href="obat.php" class="text-xs font-medium text-primary-600 hover:underline">Reset</a>
                         </div>
                     </form>

@@ -1,13 +1,10 @@
--- =====================================================================
--- SIPOLI - INSTALL DATABASE (jalankan dari folder database/)
---
---   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -1 -f install.sql
---
--- -1 = seluruh file dijalankan dalam SATU transaksi (gagal -> rollback total).
--- Gunakan koneksi DIRECT Neon (bukan -pooler). Urutan di bawah = urutan wajib.
--- =====================================================================
+\set ON_ERROR_STOP on
+
+BEGIN;
 
 \ir 00_common.sql
+
+-- 1. Tabel (20 Entitas)
 \ir tables/01_users.sql
 \ir tables/02_poli.sql
 \ir tables/03_pasien.sql
@@ -26,6 +23,10 @@
 \ir tables/16_php_sessions.sql
 \ir tables/17_audit_log.sql
 \ir tables/18_data_civitas.sql
+\ir tables/19_pengaturan_klinik.sql
+\ir tables/20_jadwal_admin.sql
+
+-- 2. Fitur (28 Modul Trigger, Function & View)
 \ir features/01_autentikasi.sql
 \ir features/02_audit_log.sql
 \ir features/03_notifikasi_admin.sql
@@ -53,5 +54,10 @@
 \ir features/25_job_scheduler.sql
 \ir features/26_views_dashboard.sql
 \ir features/27_validasi_civitas.sql
+\ir features/28_kontak_admin.sql
+
+-- 3. Data Awal (Seeds)
 \ir seeds/01_poli.sql
 \ir seeds/02_data_civitas.sql
+
+COMMIT;
