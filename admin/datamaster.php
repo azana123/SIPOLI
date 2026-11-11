@@ -19,7 +19,6 @@ $flashSuccess = $_SESSION['flash_success'] ?? null;
 $flashError   = $_SESSION['flash_error'] ?? null;
 unset($_SESSION['flash_success'], $_SESSION['flash_error']);
 
-// Cek status Super Admin dari sesi admin yang sedang login
 $isSuperAdmin   = false;
 $currentAdminId = (int) ($_SESSION['profil_id'] ?? 0);
 try {
@@ -51,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmtCfg->execute([':uid' => (string) $_SESSION['user_id']]);
         }
 
-        // 1. TAMBAH / EDIT PASIEN
+        // TAMBAH / EDIT PASIEN
         if ($action === 'save_pasien') {
             $pasienId = !empty($_POST['pasien_id']) ? (int) $_POST['pasien_id'] : 0;
             $nimNip   = trim($_POST['nim_nip'] ?? '');
@@ -79,7 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['flash_success'] = "Data pasien berhasil diperbarui.";
             } else {
                 if ($nimNip === '') {
-                    throw new Exception("NIM / NIP wajib diisi.");
+                    throw new Exception("NIM atau NIP wajib diisi.");
                 }
                 $stmtIns = $pdo->prepare("
                     INSERT INTO pasien (nim_nip, nama, jenis_kelamin, tanggal_lahir, status_civitas, no_hp, golongan_darah, riwayat_alergi)
@@ -93,10 +92,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmtIns->execute();
                 $insertedRow = $stmtIns->fetch();
 
-                $_SESSION['flash_success'] = "Pasien " . ($insertedRow['nama'] ?? '') . " ({$nimNip}) berhasil ditambahkan.";
+                $_SESSION['flash_success'] = "Data pasien " . ($insertedRow['nama'] ?? '') . " ({$nimNip}) berhasil ditambahkan.";
             }
 
-        // 2. TAMBAH / EDIT TENAGA LAYANAN (DOKTER / PSIKOLOG)
+        // TAMBAH / EDIT TENAGA LAYANAN (DOKTER / PSIKOLOG)
         } elseif ($action === 'save_dokter') {
             $dokterId = !empty($_POST['dokter_id']) ? (int) $_POST['dokter_id'] : 0;
             $nama     = trim($_POST['nama'] ?? '');
@@ -107,11 +106,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $noStr    = trim($_POST['no_str'] ?? '');
             $noHp     = trim($_POST['no_hp'] ?? '');
 
-            if ($nama === '' || $username === '' || $poliId <= 0) {
-                throw new Exception("Nama lengkap, username, dan poli wajib diisi.");
+            if ($nama === '' or $username === '' or $poliId <= 0) {
+                throw new Exception("Nama lengkap, username, dan poli layanan wajib diisi.");
             }
             if (!in_array($profesi, ['dokter umum', 'dokter gigi', 'psikolog'], true)) {
-                throw new Exception("Pilihan profesi tidak valid.");
+                throw new Exception("Pilihan profesi tidak sesuai.");
             }
 
             if ($dokterId > 0) {
@@ -125,7 +124,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 if ($password !== '') {
                     if (strlen($password) < 8) {
-                        throw new Exception("Password baru minimal 8 karakter.");
+                        throw new Exception("Kata sandi baru minimal terdiri dari 8 karakter.");
                     }
                     $stmtU = $pdo->prepare("UPDATE users SET username = :u, password_hash = :p WHERE id = :id");
                     $stmtU->execute([
@@ -158,7 +157,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['flash_success'] = "Data tenaga layanan {$nama} berhasil diperbarui.";
             } else {
                 if (strlen($password) < 8) {
-                    throw new Exception("Password untuk akun baru wajib diisi minimal 8 karakter.");
+                    throw new Exception("Kata sandi untuk akun baru wajib diisi minimal 8 karakter.");
                 }
 
                 $stmtU = $pdo->prepare("
@@ -188,9 +187,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['flash_success'] = "Tenaga layanan {$nama} berhasil ditambahkan.";
             }
 
-        // 3. TAMBAH / EDIT POLI
+        // TAMBAH / EDIT POLI
         } elseif ($action === 'save_poli') {
-            if (!$isSuperAdmin) { // cek super admin apa bukan
+            if (!$isSuperAdmin) {
                 throw new Exception("Hanya Super Admin yang memiliki akses untuk menambah atau mengubah data Poli.");
             }
 
@@ -235,9 +234,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['flash_success'] = "Poli {$namaPoli} berhasil ditambahkan.";
             }
 
-        // 4. TAMBAH / EDIT ADMIN
+        // TAMBAH / EDIT ADMIN
         } elseif ($action === 'save_admin') {
-            if (!$isSuperAdmin) { // cek super admin apa bukan
+            if (!$isSuperAdmin) {
                 throw new Exception("Hanya Super Admin yang memiliki akses untuk mengelola akun Admin.");
             }
 
@@ -267,7 +266,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 if ($password !== '') {
                     if (strlen($password) < 8) {
-                        throw new Exception("Password baru minimal 8 karakter.");
+                        throw new Exception("Kata sandi baru minimal terdiri dari 8 karakter.");
                     }
                     $stmtU = $pdo->prepare("UPDATE users SET username = :u, password_hash = :p WHERE id = :id");
                     $stmtU->execute([
@@ -291,10 +290,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmtA->bindValue(':id', $adminId, PDO::PARAM_INT);
                 $stmtA->execute();
 
-                $_SESSION['flash_success'] = "Data admin berhasil diperbarui.";
+                $_SESSION['flash_success'] = "Data pengelola berhasil diperbarui.";
             } else {
-                if ($nimNip === '' || strlen($password) < 8) {
-                    throw new Exception("NIM/NIP civitas wajib diisi dan password minimal 8 karakter.");
+                if ($nimNip === '' or strlen($password) < 8) {
+                    throw new Exception("NIM/NIP civitas wajib diisi dan kata sandi minimal 8 karakter.");
                 }
 
                 $stmtCiv = $pdo->prepare("SELECT nama, status_keanggotaan FROM data_civitas WHERE nim_nip = :nim");
@@ -302,10 +301,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $civRow = $stmtCiv->fetch();
 
                 if (!$civRow) {
-                    throw new Exception("NIM/NIP {$nimNip} tidak ditemukan di database civitas akademika.");
+                    throw new Exception("NIM/NIP {$nimNip} tidak ditemukan pada data civitas akademika.");
                 }
                 if ($civRow['status_keanggotaan'] !== 'aktif') {
-                    throw new Exception("Civitas dengan NIM/NIP {$nimNip} tidak berstatus aktif.");
+                    throw new Exception("Civitas dengan NIM/NIP {$nimNip} sudah tidak berstatus aktif.");
                 }
 
                 $stmtU = $pdo->prepare("
@@ -334,7 +333,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['flash_success'] = "Admin baru atas nama {$civRow['nama']} berhasil ditambahkan.";
             }
 
-        // 5. TOGGLE STATUS AKTIF / NON-AKTIF
+        // UBAH STATUS AKTIF / NON-AKTIF
         } elseif ($action === 'toggle_active') {
             $entity   = $_POST['entity'] ?? '';
             $targetId = (int) ($_POST['id'] ?? 0);
@@ -407,7 +406,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif (str_contains($rawMsg, 'pasien_nim_nip_key')) {
             $_SESSION['flash_error'] = "Pasien dengan NIM/NIP tersebut sudah terdaftar.";
         } elseif (str_contains($rawMsg, 'poli_nama_key')) {
-            $_SESSION['flash_error'] = "Nama poli tersebut sudah ada.";
+            $_SESSION['flash_error'] = "Nama poli tersebut sudah digunakan.";
         } elseif (preg_match('/ERROR:\s*(.+?)(\n|CONTEXT:|$)/s', $rawMsg, $matches)) {
             $_SESSION['flash_error'] = trim($matches[1]);
         } else {
@@ -484,11 +483,11 @@ try {
 
     if ($activeTab === 'pasien') {
         if ($search !== '') {
-            $where[] = "(p.nama ILIKE :q OR p.nim_nip ILIKE :q OR COALESCE(p.no_hp, '') ILIKE :q OR COALESCE(u.username, '') ILIKE :q)";
+            $where[]      = "(p.nama ILIKE :q OR p.nim_nip ILIKE :q OR COALESCE(p.no_hp, '') ILIKE :q OR COALESCE(u.username, '') ILIKE :q)";
             $params[':q'] = '%' . $search . '%';
         }
         if (in_array($civitas, ['mahasiswa', 'dosen', 'staf'], true)) {
-            $where[] = "p.status_civitas = :civitas";
+            $where[]            = "p.status_civitas = :civitas";
             $params[':civitas'] = $civitas;
         }
         if ($status === 'aktif') {
@@ -539,11 +538,11 @@ try {
         $listPoli = $pdo->query("SELECT id, nama FROM poli ORDER BY id ASC")->fetchAll();
 
         if ($search !== '') {
-            $where[] = "(d.nama ILIKE :q OR COALESCE(d.no_str, '') ILIKE :q OR COALESCE(d.no_hp, '') ILIKE :q OR u.username ILIKE :q)";
+            $where[]      = "(d.nama ILIKE :q OR COALESCE(d.no_str, '') ILIKE :q OR COALESCE(d.no_hp, '') ILIKE :q OR u.username ILIKE :q)";
             $params[':q'] = '%' . $search . '%';
         }
         if ($poliId !== '' && ctype_digit($poliId)) {
-            $where[] = "d.poli_id = :poli_id";
+            $where[]            = "d.poli_id = :poli_id";
             $params[':poli_id'] = (int) $poliId;
         }
         if ($status === 'aktif') {
@@ -593,7 +592,7 @@ try {
 
     } elseif ($activeTab === 'poli') {
         if ($search !== '') {
-            $where[] = "po.nama ILIKE :q";
+            $where[]      = "po.nama ILIKE :q";
             $params[':q'] = '%' . $search . '%';
         }
         if ($reserv === 'ya') {
@@ -625,7 +624,7 @@ try {
 
     } elseif ($activeTab === 'admin') {
         if ($search !== '') {
-            $where[] = "(a.nama ILIKE :q OR COALESCE(a.nim_nip, '') ILIKE :q OR COALESCE(a.no_hp, '') ILIKE :q OR u.username ILIKE :q)";
+            $where[]      = "(a.nama ILIKE :q OR COALESCE(a.nim_nip, '') ILIKE :q OR COALESCE(a.no_hp, '') ILIKE :q OR u.username ILIKE :q)";
             $params[':q'] = '%' . $search . '%';
         }
         if ($tipeAdm === 'super') {
@@ -694,10 +693,10 @@ try {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= e($page_title) ?> | <?= e($app_name) ?></title>
     <link rel="stylesheet" href="./../assets/css/style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.1.0/css/all.css" integrity="sha512-ajhUYg8JAATDFejqbeN7KbF2zyPbbqz04dgOLyGcYEk/MJD3V+HJhJLKvJ2VVlqrr4PwHeGTTWxbI+8teA7snw==" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </head>
 
-<body>
+<body class="bg-page text-gray-800 antialiased">
     <div class="grid md:grid-cols-[16rem_minmax(0,1fr)] min-h-screen">
 
         <!-- Sidebar -->
@@ -710,7 +709,7 @@ try {
             <?php require_once __DIR__ . "/components/navbar.php" ?>
 
             <!-- Content -->
-            <main class="flex-1 min-w-0 bg-page p-6">
+            <main class="flex-1 min-w-0 bg-page p-6 md:p-8">
 
                 <?php if ($flashSuccess): ?>
                     <div class="mb-4 p-4 text-sm text-emerald-800 bg-emerald-100 border border-emerald-300 rounded-base" role="alert">
@@ -723,79 +722,74 @@ try {
                     </div>
                 <?php endif; ?>
                 <?php if ($errorDb): ?>
-                    <div class="mb-3 p-4 text-sm text-red-800 bg-red-100 border border-red-300 rounded-base" role="alert">
-                        Data master gagal dimuat. Angka di bawah belum tentu benar. Periksa log server.
+                    <div class="mb-4 p-4 text-sm text-red-800 bg-red-100 border border-red-300 rounded-base" role="alert">
+                        Data master belum dapat dimuat saat ini. Silakan muat ulang halaman.
                     </div>
                 <?php endif; ?>
 
-                <div class="title-datamaster mb-2 text-gray-500 font-medium">
-                    <p>Kelola data civitas akademika & layanan · Politeknik Negeri Malang</p>
+                <div class="mb-4 text-sm text-gray-600 font-medium">
+                    <p>Kelola data civitas akademika, tenaga layanan, dan poli &middot; Politeknik Negeri Malang</p>
                 </div>
 
                 <!-- Selector Tab Datamaster -->
-                <div class="datamaster grid grid-cols-2 md:grid-cols-4 gap-2">
-                    <div class="pasien">
+                <div class="datamaster grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <div>
                         <input type="radio" id="pasien" name="datamaster" value="pasien" class="hidden peer"
                             <?= $activeTab === 'pasien' ? 'checked' : '' ?>
                             onchange="window.location.href='?tab=pasien'" />
-                        <label for="pasien" class="inline-flex items-center justify-between gap-2 w-full p-4 bg-neutral-primary-soft border border-default rounded-base focus:border focus:border-primary cursor-pointer hover:bg-primary-50 peer-checked:bg-primary-50 peer-checked:border-[#12616b] transition-colors">
-                            <div class="block">
-                                <div class="w-full font-bold text-primary">Pasien</div>
-                                <div class="w-full text-sm text-gray-500">Civitas Akademika</div>
+                        <label for="pasien" class="flex flex-col justify-between w-full p-5 bg-white border border-gray-200 rounded-base shadow-sm cursor-pointer hover:bg-primary-50/40 peer-checked:bg-primary-50/70 peer-checked:border-primary transition-all">
+                            <div class="flex justify-between items-start mb-2">
+                                <span class="text-sm font-semibold text-gray-700">Pasien</span>
+                                <i class="fas fa-user-injured text-primary-500"></i>
                             </div>
-                            <div class="font-bold text-primary self-start text-sm">
-                                <p><?= e($totalPasien); ?></p>
-                            </div>
+                            <h3 class="text-3xl font-bold text-gray-900 mb-1"><?= e($totalPasien) ?></h3>
+                            <span class="text-xs text-gray-500">Civitas Akademika Aktif</span>
                         </label>
                     </div>
 
-                    <div class="tenaga-layanan">
+                    <div>
                         <input type="radio" id="tenaga-layanan" name="datamaster" value="tenaga-layanan" class="hidden peer"
                             <?= $activeTab === 'tenaga-layanan' ? 'checked' : '' ?>
                             onchange="window.location.href='?tab=tenaga-layanan'" />
-                        <label for="tenaga-layanan" class="inline-flex items-center justify-between gap-2 w-full p-4 bg-neutral-primary-soft border border-default rounded-base focus:border focus:border-primary cursor-pointer hover:bg-primary-50 peer-checked:bg-primary-50 peer-checked:border-[#12616b] transition-colors">
-                            <div class="block">
-                                <div class="w-full font-bold text-primary">Dokter & Psikolog</div>
-                                <div class="w-full text-sm text-gray-500">Tenaga Layanan</div>
+                        <label for="tenaga-layanan" class="flex flex-col justify-between w-full p-5 bg-white border border-gray-200 rounded-base shadow-sm cursor-pointer hover:bg-primary-50/40 peer-checked:bg-primary-50/70 peer-checked:border-primary transition-all">
+                            <div class="flex justify-between items-start mb-2">
+                                <span class="text-sm font-semibold text-gray-700">Dokter &amp; Psikolog</span>
+                                <i class="fas fa-user-md text-primary-500"></i>
                             </div>
-                            <div class="font-bold text-primary self-start text-sm">
-                                <p><?= e($totalDokter); ?></p>
-                            </div>
+                            <h3 class="text-3xl font-bold text-gray-900 mb-1"><?= e($totalDokter) ?></h3>
+                            <span class="text-xs text-gray-500">Tenaga Layanan Aktif</span>
                         </label>
                     </div>
 
-                    <div class="poli">
+                    <div>
                         <input type="radio" id="poli" name="datamaster" value="poli" class="hidden peer"
                             <?= $activeTab === 'poli' ? 'checked' : '' ?>
                             onchange="window.location.href='?tab=poli'" />
-                        <label for="poli" class="inline-flex items-center justify-between gap-2 w-full p-4 bg-neutral-primary-soft border border-default rounded-base focus:border focus:border-primary cursor-pointer hover:bg-primary-50 peer-checked:bg-primary-50 peer-checked:border-[#12616b] transition-colors">
-                            <div class="block">
-                                <div class="w-full font-bold text-primary">Poli</div>
-                                <div class="w-full text-sm text-gray-500">Layanan medis tersedia</div>
+                        <label for="poli" class="flex flex-col justify-between w-full p-5 bg-white border border-gray-200 rounded-base shadow-sm cursor-pointer hover:bg-primary-50/40 peer-checked:bg-primary-50/70 peer-checked:border-primary transition-all">
+                            <div class="flex justify-between items-start mb-2">
+                                <span class="text-sm font-semibold text-gray-700">Poli Layanan</span>
+                                <i class="far fa-hospital text-primary-500"></i>
                             </div>
-                            <div class="font-bold text-primary self-start text-sm">
-                                <p><?= e($totalPoli); ?></p>
-                            </div>
+                            <h3 class="text-3xl font-bold text-gray-900 mb-1"><?= e($totalPoli) ?></h3>
+                            <span class="text-xs text-gray-500">Unit Layanan Medis</span>
                         </label>
                     </div>
 
-                    <div class="admin">
+                    <div>
                         <input type="radio" id="admin" name="datamaster" value="admin" class="hidden peer"
                             <?= $activeTab === 'admin' ? 'checked' : '' ?>
                             onchange="window.location.href='?tab=admin'" />
-                        <label for="admin" class="inline-flex items-center justify-between gap-2 w-full p-4 bg-neutral-primary-soft border border-default rounded-base focus:border focus:border-primary cursor-pointer hover:bg-primary-50 peer-checked:bg-primary-50 peer-checked:border-[#12616b] transition-colors">
-                            <div class="block">
-                                <div class="w-full font-bold text-primary">Admin</div>
-                                <div class="w-full text-sm text-gray-500">Pengelola SIPOLI</div>
+                        <label for="admin" class="flex flex-col justify-between w-full p-5 bg-white border border-gray-200 rounded-base shadow-sm cursor-pointer hover:bg-primary-50/40 peer-checked:bg-primary-50/70 peer-checked:border-primary transition-all">
+                            <div class="flex justify-between items-start mb-2">
+                                <span class="text-sm font-semibold text-gray-700">Admin</span>
+                                <i class="fas fa-user-shield text-primary-500"></i>
                             </div>
-                            <div class="font-bold text-primary self-start text-sm">
-                                <p><?= e($totalAdmin); ?></p>
-                            </div>
+                            <h3 class="text-3xl font-bold text-gray-900 mb-1"><?= e($totalAdmin) ?></h3>
+                            <span class="text-xs text-gray-500">Pengelola Poliklinik</span>
                         </label>
                     </div>
                 </div>
 
-                <!-- Panggil Komponen Kartu & Modal Berdasarkan Sub-Folder Baru -->
                 <?php
                 switch ($activeTab) {
                     case 'tenaga-layanan':
@@ -824,7 +818,7 @@ try {
         </div>
     </div>
 
-    <script src="./../../assets/js/app.js"></script>
+    <script src="./../assets/js/app.js"></script>
     <script src="./../node_modules/flowbite/dist/flowbite.min.js"></script>
 </body>
 

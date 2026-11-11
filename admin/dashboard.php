@@ -14,6 +14,10 @@ if (!function_exists('e')) {
     }
 }
 
+$flashSuccess = $_SESSION['flash_success'] ?? null;
+$flashError   = $_SESSION['flash_error'] ?? null;
+unset($_SESSION['flash_success'], $_SESSION['flash_error']);
+
 $totalReservasiHariIni = 0;
 $kuotaTotal            = 0;
 $kuotaTersedia         = 0;
@@ -43,9 +47,9 @@ try {
             ) AS resep_menunggu
     ")->fetch();
 
-    $totalReservasiHariIni = (int) $stats['reservasi_hari_ini'];
-    $totalKonfirmasiH1     = (int) $stats['konfirmasi_h1'];
-    $totalResepMenunggu    = (int) $stats['resep_menunggu'];
+    $totalReservasiHariIni = (int) ($stats['reservasi_hari_ini'] ?? 0);
+    $totalKonfirmasiH1     = (int) ($stats['konfirmasi_h1'] ?? 0);
+    $totalResepMenunggu    = (int) ($stats['resep_menunggu'] ?? 0);
 
     $kuotaPerPoli = $pdo->query("
         SELECT po.nama,
@@ -87,13 +91,12 @@ try {
     error_log('[dashboard-admin] ' . $e->getMessage());
 }
 
-// sesuaikan nanti warnanya
 $statusBadge = [
-    'menunggu'     => ['Menunggu',     'bg-danger-soft text-fg-danger-strong'],
+    'menunggu'     => ['Menunggu',     'bg-yellow-100 text-yellow-900'],
     'dikonfirmasi' => ['Dikonfirmasi', 'bg-success-soft text-fg-success-strong'],
     'hadir'        => ['Hadir',        'bg-brand-softer text-fg-brand-strong'],
-    'selesai'      => ['Selesai',      'bg-gray-200 text-heading'],
-    'tidak_hadir'  => ['Tidak hadir',  'bg-gray-200 text-heading'],
+    'selesai'      => ['Selesai',      'bg-emerald-50 text-emerald-700 border border-emerald-200'],
+    'tidak_hadir'  => ['Tidak hadir',  'bg-red-100 text-red-800'],
 ];
 ?>
 <!DOCTYPE html>
@@ -104,11 +107,10 @@ $statusBadge = [
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= e($page_title) ?> | <?= e($app_name) ?></title>
     <link rel="stylesheet" href="./../assets/css/style.css">
-    <!-- Fontawesome Icon CDN -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.1.0/css/all.css" integrity="sha512-ajhUYg8JAATDFejqbeN7KbF2zyPbbqz04dgOLyGcYEk/MJD3V+HJhJLKvJ2VVlqrr4PwHeGTTWxbI+8teA7snw==" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </head>
 
-<body>
+<body class="bg-page text-gray-800 antialiased">
     <div class="grid md:grid-cols-[16rem_minmax(0,1fr)] min-h-screen">
 
         <!-- Sidebar -->
@@ -121,125 +123,163 @@ $statusBadge = [
             <?php require_once __DIR__ . "/components/navbar.php" ?>
 
             <!-- Content -->
-            <main class="flex-1 min-w-0 bg-page p-6">
+            <main class="flex-1 min-w-0 bg-page p-6 md:p-8">
 
+                <?php if ($flashSuccess): ?>
+                    <div class="mb-4 p-4 text-sm text-emerald-800 bg-emerald-100 border border-emerald-300 rounded-base" role="alert">
+                        <?= e($flashSuccess) ?>
+                    </div>
+                <?php endif; ?>
+                <?php if ($flashError): ?>
+                    <div class="mb-4 p-4 text-sm text-red-800 bg-red-100 border border-red-300 rounded-base" role="alert">
+                        <?= e($flashError) ?>
+                    </div>
+                <?php endif; ?>
                 <?php if ($errorDb): ?>
-                    <div class="mb-3 p-4 text-sm text-red-800 bg-red-100 border border-red-300 rounded-base" role="alert">
-                        Data dashboard gagal dimuat. Angka di bawah belum tentu benar. Periksa log server.
+                    <div class="mb-4 p-4 text-sm text-red-800 bg-red-100 border border-red-300 rounded-base" role="alert">
+                        Data beranda belum dapat dimuat saat ini. Silakan muat ulang halaman beberapa saat lagi.
                     </div>
                 <?php endif; ?>
 
-                <!-- Counter -->
-                <div class="counter grid grid-cols-2 md:grid-cols-4 gap-3.5">
-                    <div class="bg-neutral-primary-soft flex flex-col p-4 md:p-6 border whitespace-nowrap text-center md:text-left border-default rounded-base shadow-xs">
-                        <p class="text-gray-500 font-medium">Reservasi Hari ini</p>
-                        <h4 class="text-4xl font-bold"><?= e($totalReservasiHariIni) ?></h4>
+                <!-- Counter Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <!-- Reservasi Hari Ini -->
+                    <div class="bg-white border border-gray-200 rounded-base p-5 shadow-sm">
+                        <div class="flex justify-between items-start mb-1">
+                            <p class="text-sm font-semibold text-gray-600">Reservasi hari ini</p>
+                            <i class="far fa-calendar-check text-gray-400"></i>
+                        </div>
+                        <h3 class="text-3xl font-bold text-gray-900 mb-1"><?= e($totalReservasiHariIni) ?></h3>
+                        <p class="text-xs text-gray-500">Pasien terjadwal hari ini</p>
                     </div>
+
                     <!-- Kuota Tersedia -->
-                    <div class="bg-neutral-primary-soft block p-4 md:p-6 border whitespace-nowrap text-center md:text-left border-default rounded-base shadow-xs">
-                        <p class="text-gray-500 font-medium">Kuota Tersedia</p>
-                        <h4 class="text-4xl font-bold"><?= e($kuotaTersedia) ?><span class="text-2xl text-gray-400">/<?= e($kuotaTotal) ?></span></h4>
+                    <div class="bg-white border border-gray-200 rounded-base p-5 shadow-sm">
+                        <div class="flex justify-between items-start mb-1">
+                            <p class="text-sm font-semibold text-gray-600">Kuota tersedia</p>
+                            <i class="fas fa-user-friends text-primary-500"></i>
+                        </div>
+                        <h3 class="text-3xl font-bold text-gray-900 mb-1">
+                            <?= e($kuotaTersedia) ?><span class="text-xl text-gray-400 font-normal">/<?= e($kuotaTotal) ?></span>
+                        </h3>
+                        <p class="text-xs text-gray-500">Sisa kuota poli reservasi</p>
                     </div>
+
                     <!-- Konfirmasi H-1 -->
-                    <div class="bg-yellow-100 block p-4 md:p-6 border whitespace-normal text-center md:text-left border-yellow-400 rounded-base shadow-xs text-yellow-900">
-                        <p class="font-medium">Konfirmasi H-1 Menunggu</p>
-                        <h4 class="text-4xl font-bold"><?= e($totalKonfirmasiH1) ?></h4>
+                    <div class="bg-yellow-50/80 border border-yellow-300 rounded-base p-5 shadow-sm">
+                        <div class="flex justify-between items-start mb-1">
+                            <p class="text-sm font-semibold text-yellow-900">Konfirmasi H-1 menunggu</p>
+                            <i class="far fa-clock text-yellow-700"></i>
+                        </div>
+                        <h3 class="text-3xl font-bold text-yellow-800 mb-1"><?= e($totalKonfirmasiH1) ?></h3>
+                        <p class="text-xs text-yellow-800">Perlu dihubungi untuk esok hari</p>
                     </div>
+
                     <!-- Resep Menunggu -->
-                    <div class="bg-blue-200 block p-4 md:p-6 border whitespace-nowrap text-center md:text-left border-blue-400 rounded-base shadow-xs text-blue-900">
-                        <p class="font-medium">Resep Menunggu</p>
-                        <h4 class="text-4xl font-bold"><?= e($totalResepMenunggu) ?></h4>
+                    <div class="bg-primary-50/60 border border-primary-200 rounded-base p-5 shadow-sm">
+                        <div class="flex justify-between items-start mb-1">
+                            <p class="text-sm font-semibold text-primary-900">Resep menunggu</p>
+                            <i class="fas fa-prescription-bottle-alt text-primary-600"></i>
+                        </div>
+                        <h3 class="text-3xl font-bold text-primary-700 mb-1"><?= e($totalResepMenunggu) ?></h3>
+                        <p class="text-xs text-primary-800">Menunggu penyiapan obat</p>
                     </div>
                 </div>
-                <!-- End of Counter -->
 
-                <!-- Tindakan -->
-                <div class="my-3 bg-neutral-primary-soft block p-6 border border-primary-100 rounded-base shadow-xs">
-                    <h4 class="text-lg font-bold">Perlu Tindakan</h4>
-                    <div class="relative overflow-x-auto">
-                        <table class="w-full text-sm text-left rtl:text-right text-body">
-                            <tbody class="text-primary-600">
-                                <tr class="bg-neutral-primary border-b border-primary-400-05">
-                                    <th scope="row" class="py-4 font-medium text-primary-600 whitespace-nowrap">
-                                        <?= e($totalKonfirmasiH1) ?> Pasien konseling/reservasi belum dikonfirmasi
-                                    </th>
-                                    <td class="px-6 text-end">
-                                        <a href="./konfirmasi.php">
-                                            <i class="fas fa-chevron-right"></i>
-                                        </a>
-                                    </td>
+                <!-- Perlu Tindakan -->
+                <div class="mb-6 bg-white border border-gray-200 rounded-base p-6 shadow-sm">
+                    <h3 class="text-lg font-bold text-gray-900 mb-3">Perlu tindakan segera</h3>
+                    <div class="divide-y divide-gray-100 text-sm">
+                        <a href="./konfirmasi.php" class="py-3.5 flex items-center justify-between hover:bg-gray-50 px-2 rounded transition-colors">
+                            <div class="flex items-center gap-3">
+                                <span class="w-8 h-8 rounded-base bg-yellow-100 text-yellow-800 flex items-center justify-center shrink-0">
+                                    <i class="far fa-bell text-xs"></i>
+                                </span>
+                                <span class="font-medium text-gray-800">
+                                    <?= e($totalKonfirmasiH1) ?> pasien reservasi esok hari belum dikonfirmasi kehadirannya
+                                </span>
+                            </div>
+                            <i class="fas fa-chevron-right text-gray-400 text-xs"></i>
+                        </a>
+                        <a href="./resep.php" class="py-3.5 flex items-center justify-between hover:bg-gray-50 px-2 rounded transition-colors">
+                            <div class="flex items-center gap-3">
+                                <span class="w-8 h-8 rounded-base bg-primary-50 text-primary-700 flex items-center justify-center shrink-0">
+                                    <i class="fas fa-pills text-xs"></i>
+                                </span>
+                                <span class="font-medium text-gray-800">
+                                    <?= e($totalResepMenunggu) ?> resep obat dari dokter menunggu disiapkan
+                                </span>
+                            </div>
+                            <i class="fas fa-chevron-right text-gray-400 text-xs"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Daftar Reservasi Hari Ini -->
+                <div class="mb-6 bg-white border border-gray-200 rounded-base shadow-sm">
+                    <div class="p-6 border-b border-gray-100 flex items-center justify-between">
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-900">Reservasi hari ini</h3>
+                            <p class="text-xs text-gray-500 mt-0.5">5 jadwal kunjungan terdekat hari ini</p>
+                        </div>
+                        <a href="./reservasi.php" class="text-primary hover:text-primary-700 text-sm font-medium flex items-center gap-1">
+                            Lihat semua <i class="fas fa-arrow-right text-xs"></i>
+                        </a>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left text-gray-600">
+                            <thead class="text-xs text-gray-500 bg-gray-50/60 border-b border-gray-200 uppercase">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 font-semibold">Pasien</th>
+                                    <th scope="col" class="px-6 py-3 font-semibold">Poli</th>
+                                    <th scope="col" class="px-6 py-3 font-semibold">Jam Praktik</th>
+                                    <th scope="col" class="px-6 py-3 font-semibold">Status</th>
                                 </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                <?php if (empty($listReservasi)): ?>
+                                    <tr>
+                                        <td colspan="4" class="px-6 py-8 text-center text-gray-500">Belum ada data reservasi untuk hari ini.</td>
+                                    </tr>
+                                <?php else: ?>
+                                    <?php foreach ($listReservasi as $row): ?>
+                                        <?php
+                                        [$label, $badgeClass] = $statusBadge[$row['status']]
+                                            ?? [ucfirst((string) $row['status']), 'bg-gray-200 text-heading'];
+                                        ?>
+                                        <tr class="hover:bg-gray-50/60">
+                                            <th scope="row" class="px-6 py-4 font-bold text-gray-900 whitespace-nowrap">
+                                                <?= e($row['nama_pasien']) ?>
+                                                <div class="text-xs font-normal text-gray-400 mt-0.5"><?= e($row['no_reservasi']) ?></div>
+                                            </th>
+                                            <td class="px-6 py-4"><?= e($row['nama_poli']) ?></td>
+                                            <td class="px-6 py-4 font-medium text-gray-900">
+                                                <?= e(str_replace(':', '.', substr($row['jam_mulai'], 0, 5)) . ' – ' . str_replace(':', '.', substr($row['jam_selesai'], 0, 5))) ?> WIB
+                                            </td>
+                                            <td class="px-6 py-4">
+                                                <span class="inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded-base <?= e($badgeClass) ?>">
+                                                    <?= e($label) ?>
+                                                </span>
+                                                <?php if ((int) $row['reschedule_count'] > 0): ?>
+                                                    <span class="ml-1 inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-amber-50 text-amber-700">
+                                                        Jadwal Ulang
+                                                    </span>
+                                                <?php endif; ?>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
                             </tbody>
                         </table>
                     </div>
                 </div>
 
-                <!-- Daftar Reservasi -->
-                <div class="my-3 bg-neutral-primary-soft block p-6 border border-primary-100 rounded-base shadow-xs">
-                    <div class="title-card flex items-center justify-between mb-4">
-                        <h4 class="text-lg font-bold">Reservasi Hari ini</h4>
-                        <a href="./reservasi.php" class="action-link text-primary-400 hover:text-primary-700">
-                            <span class="font-medium text-sm">Lihat Semua</span>
-                            <i class="fas fa-chevron-right"></i>
-                        </a>
-                    </div>
-                    <div class="reservation-table" id="reservation-table">
-                        <div class="relative overflow-x-auto">
-                            <table class="w-full text-sm text-left rtl:text-right text-body">
-                                <thead class="text-sm text-primary-600 border-b border-primary-400-05">
-                                    <tr>
-                                        <th scope="col" class="py-3 font-semibold">Pasien</th>
-                                        <th scope="col" class="px-6 py-3 font-semibold">Poli</th>
-                                        <th scope="col" class="px-6 py-3 font-semibold">Jam Praktik</th>
-                                        <th scope="col" class="px-6 py-3 font-semibold">Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php if (empty($listReservasi)): ?>
-                                        <tr class="bg-neutral-primary border-b border-primary-400-05">
-                                            <td colspan="4" class="py-4 text-center text-gray-500">Belum ada data reservasi untuk hari ini.</td>
-                                        </tr>
-                                    <?php else: ?>
-                                        <?php foreach ($listReservasi as $row): ?>
-                                            <?php
-                                            [$label, $badgeClass] = $statusBadge[$row['status']]
-                                                ?? [ucfirst((string) $row['status']), 'bg-gray-200 text-heading'];
-                                            ?>
-                                            <tr class="bg-neutral-primary border-b border-primary-400-05">
-                                                <th scope="row" class="py-4 font-medium text-heading whitespace-nowrap">
-                                                    <?= e($row['nama_pasien']) ?>
-                                                </th>
-                                                <td class="px-6 py-4">
-                                                    <?= e($row['nama_poli']) ?>
-                                                </td>
-                                                <td class="px-6 py-4">
-                                                    <?= e(substr($row['jam_mulai'], 0, 5) . ' - ' . substr($row['jam_selesai'], 0, 5)) ?>
-                                                </td>
-                                                <td class="px-6 py-4">
-                                                    <span class="inline-flex items-center px-2 py-1 text-xs font-medium rounded <?= e($badgeClass) ?>">
-                                                        <?= e($label) ?>
-                                                    </span>
-                                                    <?php if ((int) $row['reschedule_count'] > 0): ?>
-                                                        <span class="ml-1 inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-brand-softer text-fg-brand-strong">
-                                                            Reschedule
-                                                        </span>
-                                                    <?php endif; ?>
-                                                </td>
-                                            </tr>
-                                        <?php endforeach; ?>
-                                    <?php endif; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Kuota -->
-                <div class="my-3 bg-neutral-primary-soft block p-6 border border-primary-100 rounded-base shadow-xs">
-                    <h4 class="text-lg font-bold mb-4">Kuota Hari ini</h4>
-                    <div class="chart-bar">
+                <!-- Kuota Hari Ini -->
+                <div class="bg-white border border-gray-200 rounded-base p-6 shadow-sm">
+                    <h3 class="text-lg font-bold text-gray-900 mb-4">Keterisian kuota hari ini</h3>
+                    <div class="space-y-4">
                         <?php if (empty($kuotaPerPoli)): ?>
-                            <p class="text-sm text-gray-500">Tidak ada jadwal reservasi hari ini.</p>
+                            <p class="text-sm text-gray-500">Tidak ada jadwal reservasi yang dibuka hari ini.</p>
                         <?php else: ?>
                             <?php foreach ($kuotaPerPoli as $k): ?>
                                 <?php
@@ -247,19 +287,20 @@ $statusBadge = [
                                 $terpakai = (int) $k['terpakai'];
                                 $persen   = $kuota > 0 ? min(($terpakai / $kuota) * 100, 100) : 0;
                                 ?>
-                                <div class="mb-3">
-                                    <div class="flex justify-between mb-1">
-                                        <span class="text-base font-medium text-gray-700"><?= e($k['nama']) ?></span>
-                                        <span class="text-sm font-medium text-gray-700"><?= e($terpakai) ?>/<?= e($kuota) ?></span>
+                                <div>
+                                    <div class="flex justify-between mb-1.5">
+                                        <span class="text-sm font-semibold text-gray-800"><?= e($k['nama']) ?></span>
+                                        <span class="text-xs font-semibold text-gray-600"><?= e($terpakai) ?> dari <?= e($kuota) ?> kuota terisi</span>
                                     </div>
-                                    <div class="w-full bg-gray-200 rounded-full h-2.5">
-                                        <div class="bg-warning h-2.5 rounded-full" style="width: <?= e(round($persen)) ?>%"></div>
+                                    <div class="w-full bg-gray-200 rounded-full h-2">
+                                        <div class="bg-primary-500 h-2 rounded-full transition-all" style="width: <?= e(round($persen)) ?>%"></div>
                                     </div>
                                 </div>
                             <?php endforeach; ?>
                         <?php endif; ?>
                     </div>
                 </div>
+
             </main>
 
         </div>
