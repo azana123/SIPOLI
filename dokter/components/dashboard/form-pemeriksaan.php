@@ -7,20 +7,19 @@ $redirectBackPeriksa = basename($_SERVER['PHP_SELF'] ?? 'dashboard.php');
 // PROSES POST: SIMPAN DRAF ATAU SELESAIKAN PEMERIKSAAN & RESEP OBAT
 // =====================================================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action_pemeriksaan'] ?? '', ['draft', 'selesai'], true)) {
-    $aksiPeriksa     = $_POST['action_pemeriksaan'];
-    $antreanIdPost   = (int) ($_POST['antrean_id'] ?? 0);
-    $tensi           = trim($_POST['tensi'] ?? '');
-    $suhuRaw         = str_replace(',', '.', trim($_POST['suhu'] ?? ''));
-    $bbRaw           = str_replace(',', '.', trim($_POST['bb'] ?? ''));
-    $hasilAnamnesis  = trim($_POST['hasil_pemeriksaan'] ?? '');
-    $diagnosis       = trim($_POST['diagnosis'] ?? '');
-    $saranTindakan   = trim($_POST['saran_medis'] ?? '');
+    $aksiPeriksa    = $_POST['action_pemeriksaan'];
+    $antreanIdPost  = (int) ($_POST['antrean_id'] ?? 0);
+    $tensi          = trim($_POST['tensi'] ?? '');
+    $suhuRaw        = str_replace(',', '.', trim($_POST['suhu'] ?? ''));
+    $bbRaw          = str_replace(',', '.', trim($_POST['bb'] ?? ''));
+    $hasilAnamnesis = trim($_POST['hasil_pemeriksaan'] ?? '');
+    $diagnosis      = trim($_POST['diagnosis'] ?? '');
+    $saranTindakan  = trim($_POST['saran_medis'] ?? '');
 
     $suhuVal = ($suhuRaw !== '' && is_numeric($suhuRaw)) ? (float) $suhuRaw : null;
     $bbVal   = ($bbRaw !== '' && is_numeric($bbRaw)) ? (float) $bbRaw : null;
 
     if ($aksiPeriksa === 'draft') {
-        // Simpan sementara di session agar dokter dapat melanjutkan nanti
         $_SESSION['draft_pemeriksaan'][$antreanIdPost] = [
             'tensi'             => $tensi,
             'suhu'              => $suhuRaw,
@@ -31,7 +30,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action_pemeriksaan
         ];
         $_SESSION['flash_success'] = "Draf pemeriksaan berhasil disimpan sementara. Status pasien saat ini: Diperiksa.";
     } else {
-        // Aksi Selesaikan Pemeriksaan -> Insert ke tabel pemeriksaan, resep_obat, dan permintaan_obat
         try {
             $pdo->beginTransaction();
 
@@ -53,14 +51,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action_pemeriksaan
             if (!$antRow) {
                 throw new Exception("Data antrean pasien tidak ditemukan.");
             }
-            if ($antRow['status'] === 'selesai') {
-                throw new Exception("Pemeriksaan untuk antrean ini sudah diselesaikan sebelumnya.");
-            }
 
-            // Pastikan status antrean 'diperiksa' dan dokter_id tercatat sebelum insert pemeriksaan
             $stmtSetDok = $pdo->prepare("
                 UPDATE antrean
-                   SET status      = 'diperiksa',
+                   SET status      = CASE WHEN status = 'menunggu' THEN 'diperiksa' ELSE status END,
                        dokter_id   = COALESCE(dokter_id, :dok_id),
                        waktu_mulai = COALESCE(waktu_mulai, NOW())
                  WHERE id = :id
@@ -72,7 +66,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action_pemeriksaan
 
             $keluhanAwal = $antRow['keluhan_rsv'] ?: $hasilAnamnesis;
 
-            // 1. Insert ke tabel pemeriksaan (trigger trg_selesaikan_antrean akan otomatis mengubah antrean & reservasi menjadi 'selesai')
             $stmtInsPem = $pdo->prepare("
                 INSERT INTO pemeriksaan (
                     antrean_id, pasien_id, dokter_id, poli_id, tanggal,
@@ -81,6 +74,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action_pemeriksaan
                     :antrean_id, :pasien_id, :dokter_id, :poli_id, :tanggal,
                     :keluhan, :tensi, :suhu, :bb, :diagnosa, :catatan, :tindak_lanjut
                 )
+                ON CONFLICT (antrean_id) DO UPDATE
+                    SET tekanan_darah = EXCLUDED.tekanan_darah,
+                        suhu          = EXCLUDED.suhu,
+                        berat_badan   = EXCLUDED.berat_badan,
+                        diagnosa      = EXCLUDED.diagnosa,
+                        catatan       = EXCLUDED.catatan,
+                        tindak_lanjut = EXCLUDED.tindak_lanjut
                 RETURNING id
             ");
             $stmtInsPem->bindValue(':antrean_id', $antreanIdPost, PDO::PARAM_INT);
@@ -96,27 +96,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action_pemeriksaan
             $stmtInsPem->bindValue(':catatan', $hasilAnamnesis, PDO::PARAM_STR);
             $stmtInsPem->bindValue(':tindak_lanjut', $saranTindakan !== '' ? $saranTindakan : null, $saranTindakan !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
             $stmtInsPem->execute();
-            $pemeriksaanBaruRow = $stmtInsPem->fetch();
-            $pemeriksaanBaruId  = (int) $pemeriksaanBaruRow['id'];
 
-            // 2. Proses Resep Obat (jika ada obat yang dipilih)
+            $pemeriksaanBaruRow = $stmtInsPem->fetch();
+            $pemeriksaanBaruId  = (int) ($pemeriksaanBaruRow['id'] ?? 0);
+
+            if ($pemeriksaanBaruId <= 0) {
+                $stmtCekPem = $pdo->prepare("SELECT id FROM pemeriksaan WHERE antrean_id = :aid LIMIT 1");
+                $stmtCekPem->execute([':aid' => $antreanIdPost]);
+                $cekPemRow = $stmtCekPem->fetch();
+                $pemeriksaanBaruId = (int) ($cekPemRow['id'] ?? 0);
+            }
+
+            if ($pemeriksaanBaruId <= 0) {
+                throw new Exception("Gagal memperoleh ID rekam medis pemeriksaan.");
+            }
+
             $obatIds  = $_POST['obat_id'] ?? [];
             $jumlahs  = $_POST['jumlah'] ?? [];
             $dosiss   = $_POST['dosis'] ?? [];
             $aturans  = $_POST['aturan'] ?? [];
             $catatans = $_POST['catatan'] ?? [];
 
-            $adaResep = false;
-            $stmtInsResep = $pdo->prepare("
-                INSERT INTO resep_obat (pemeriksaan_id, obat_id, jumlah, aturan_pakai)
-                VALUES (:pem_id, :obat_id, :jumlah, :aturan)
-            ");
-
+            $resepValid = [];
             if (is_array($obatIds)) {
                 foreach ($obatIds as $idx => $obIdRaw) {
                     $obId = (int) $obIdRaw;
                     $jml  = (int) ($jumlahs[$idx] ?? 0);
-                    if ($obId <= 0 || $jml <= 0) {
+
+                    if ($obId <= 0 or $jml <= 0) {
                         continue;
                     }
 
@@ -124,25 +131,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action_pemeriksaan
                     $aturanTxt  = trim($aturans[$idx] ?? '');
                     $catatanTxt = trim($catatans[$idx] ?? '');
 
-                    // Gabungkan dosis, aturan pakai, dan catatan item ke kolom aturan_pakai (maks 100 karakter)
                     $gabungAturan = trim($dosisTxt . ($aturanTxt !== '' ? ' - ' . $aturanTxt : '') . ($catatanTxt !== '' ? ' (' . $catatanTxt . ')' : ''));
                     $gabungAturan = mb_substr($gabungAturan, 0, 100);
 
-                    $stmtInsResep->execute([
-                        ':pem_id'  => $pemeriksaanBaruId,
-                        ':obat_id' => $obId,
-                        ':jumlah'  => $jml,
-                        ':aturan'  => $gabungAturan !== '' ? $gabungAturan : null,
-                    ]);
+                    if (isset($resepValid[$obId])) {
+                        $resepValid[$obId]['jumlah'] += $jml;
+                    } else {
+                        $resepValid[$obId] = [
+                            'obat_id' => $obId,
+                            'jumlah'  => $jml,
+                            'aturan'  => $gabungAturan !== '' ? $gabungAturan : null,
+                        ];
+                    }
+                }
+            }
+
+            $adaResep = false;
+            if (!empty($resepValid)) {
+                $stmtInsResep = $pdo->prepare("
+                    INSERT INTO resep_obat (pemeriksaan_id, obat_id, jumlah, aturan_pakai)
+                    VALUES (:pem_id, :obat_id, :jumlah, :aturan)
+                    ON CONFLICT (pemeriksaan_id, obat_id) DO NOTHING
+                ");
+
+                foreach ($resepValid as $itemRsp) {
+                    $stmtInsResep->bindValue(':pem_id', $pemeriksaanBaruId, PDO::PARAM_INT);
+                    $stmtInsResep->bindValue(':obat_id', (int) $itemRsp['obat_id'], PDO::PARAM_INT);
+                    $stmtInsResep->bindValue(':jumlah', (int) $itemRsp['jumlah'], PDO::PARAM_INT);
+                    $stmtInsResep->bindValue(':aturan', $itemRsp['aturan'], $itemRsp['aturan'] !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
+                    $stmtInsResep->execute();
                     $adaResep = true;
                 }
             }
 
-            // 3. Jika ada resep obat, buat permintaan_obat untuk Admin Apotek (trigger trg_notif_permintaan_obat otomatis mengirim inbox ke Admin)
             if ($adaResep) {
                 $stmtPermObat = $pdo->prepare("
                     INSERT INTO permintaan_obat (pemeriksaan_id, status, catatan)
                     VALUES (:pem_id, 'menunggu', :cat)
+                    ON CONFLICT (pemeriksaan_id) DO NOTHING
                 ");
                 $stmtPermObat->execute([
                     ':pem_id' => $pemeriksaanBaruId,
@@ -187,7 +213,6 @@ $katalogObat   = [];
 
 if (isset($pdo) && $periksaAntreanId !== null && $dokterIdFormPeriksa > 0) {
     try {
-        // Jika status antrean masih 'menunggu', ubah menjadi 'diperiksa' saat dokter membuka form pemeriksaan
         $stmtMulai = $pdo->prepare("
             UPDATE antrean
                SET status      = 'diperiksa',
@@ -200,7 +225,6 @@ if (isset($pdo) && $periksaAntreanId !== null && $dokterIdFormPeriksa > 0) {
             ':id'     => $periksaAntreanId,
         ]);
 
-        // Sinkronkan juga status reservasi menjadi 'hadir' jika ada
         $stmtRsvHadir = $pdo->prepare("
             UPDATE reservasi
                SET status = 'hadir'
@@ -425,7 +449,7 @@ $draftData     = $isPeriksaOpen ? ($_SESSION['draft_pemeriksaan'][(int) $pasienP
 
                         <div class="p-4 bg-page rounded">
                             <h4 class="text-sm font-bold text-primary mb-0.5">Pembaruan status otomatis</h4>
-                            <p class="text-sm text-gray-600">Menekan tombol <b>Selesaikan</b> akan menyimpan rekam medis, meneruskan resep ke apotek, dan menandai kunjungan pasien selesai.</p>
+                            <p class="text-sm text-gray-600">Menekan tombol <b>Selesaikan Pemeriksaan</b> akan menyimpan rekam medis, meneruskan resep ke apotek, dan menandai kunjungan pasien selesai.</p>
                         </div>
 
                     </div>
@@ -481,6 +505,27 @@ function tambahBarisObatDokter() {
     clone.querySelectorAll('input').forEach(inp => { inp.value = ''; });
     clone.querySelectorAll('select').forEach(sel => { sel.selectedIndex = 0; });
 
+    const headerFlex = clone.querySelector('.flex.items-center.justify-between');
+    if (headerFlex && !clone.querySelector('.btn-hapus-obat')) {
+        const btnHapus = document.createElement('button');
+        btnHapus.type = 'button';
+        btnHapus.className = 'btn-hapus-obat text-xs font-semibold text-red-600 hover:underline cursor-pointer';
+        btnHapus.textContent = 'Hapus baris';
+        btnHapus.onclick = function() {
+            clone.remove();
+            urutkanNomorObat();
+        };
+        headerFlex.appendChild(btnHapus);
+    }
+
     container.appendChild(clone);
+}
+
+function urutkanNomorObat() {
+    const container = document.getElementById('container-resep-obat');
+    if (!container) return;
+    container.querySelectorAll('.card-obat').forEach((card, idx) => {
+        card.querySelector('.judul-item-obat').textContent = 'Obat ' + (idx + 1);
+    });
 }
 </script>
