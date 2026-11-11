@@ -39,35 +39,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'dafta
         $jadwalAktif = $stmtJadwal->fetch();
 
         if (!$jadwalAktif) {
-            $stmtDokPoli = $pdo->prepare("
-                SELECT d.id AS dokter_id, p.nama AS nama_poli
-                FROM poli p
-                LEFT JOIN dokter d ON d.poli_id = p.id AND d.is_active = TRUE
-                WHERE p.id = :poli_id
-                ORDER BY d.id ASC
-                LIMIT 1
-            ");
-            $stmtDokPoli->execute([':poli_id' => $poliId]);
-            $dokPoli = $stmtDokPoli->fetch();
-
-            $dokIdAuto = !empty($dokPoli['dokter_id']) ? (int) $dokPoli['dokter_id'] : null;
+            $stmtPoliInfo = $pdo->prepare("SELECT nama FROM poli WHERE id = :id");
+            $stmtPoliInfo->execute([':id' => $poliId]);
+            $poliInfo = $stmtPoliInfo->fetch();
 
             $stmtBuatJadwal = $pdo->prepare("
                 INSERT INTO jadwal (poli_id, dokter_id, tanggal, jam_mulai, jam_selesai, kuota, status, dipublikasi)
-                VALUES (:poli_id, :dokter_id, fn_today(), '08:00', '16:00', NULL, 'buka', TRUE)
+                VALUES (:poli_id, NULL, fn_today(), '08:00', '16:00', NULL, 'buka', TRUE)
                 ON CONFLICT (poli_id, tanggal, jam_mulai) DO UPDATE
                     SET status = 'buka'
                 RETURNING id AS jadwal_id, dokter_id
             ");
             $stmtBuatJadwal->bindValue(':poli_id', $poliId, PDO::PARAM_INT);
-            $stmtBuatJadwal->bindValue(':dokter_id', $dokIdAuto, $dokIdAuto === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
             $stmtBuatJadwal->execute();
             $jadwalBaru = $stmtBuatJadwal->fetch();
 
             $jadwalAktif = [
                 'jadwal_id' => $jadwalBaru['jadwal_id'],
                 'dokter_id' => $jadwalBaru['dokter_id'],
-                'nama_poli' => $dokPoli['nama_poli'] ?? 'Poli Umum',
+                'nama_poli' => $poliInfo['nama'] ?? 'Poli Umum',
             ];
         }
 
@@ -103,7 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'dafta
         $noAntreanBaru = (int) ($antRowBaru['no_antrean'] ?? 0);
 
         $pdo->commit();
-        $_SESSION['flash_success'] = "Pasien walk-in {$pasienRow['nama']} ({$nimNip}) berhasil didaftarkan ke {$jadwalAktif['nama_poli']} dengan Nomor Antrean #{$noAntreanBaru}.";
+        $_SESSION['flash_success'] = "Pasien {$pasienRow['nama']} ({$nimNip}) berhasil didaftarkan ke {$jadwalAktif['nama_poli']} dengan Nomor Antrean #{$noAntreanBaru}.";
 
     } catch (Exception $e) {
         if ($pdo->inTransaction()) {
@@ -115,7 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'dafta
         } elseif (preg_match('/ERROR:\s*(.+?)(\n|CONTEXT:|$)/s', $rawMsg, $matches)) {
             $_SESSION['flash_error'] = trim($matches[1]);
         } else {
-            $_SESSION['flash_error'] = "Gagal mendaftarkan pasien walk-in: " . $rawMsg;
+            $_SESSION['flash_error'] = "Gagal mendaftarkan pasien: " . $rawMsg;
         }
         error_log('[walkin-offline] ' . $rawMsg);
     }
@@ -133,37 +123,40 @@ if (isset($pdo)) {
     }
 }
 ?>
-<!-- Modal Tambah Pasien Offline (Walk-in) -->
+<!-- Modal Tambah Pasien Kunjungan Langsung -->
 <div id="modal-tambah-pasien" tabindex="-1" aria-hidden="true" data-modal-backdrop="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
     <div class="relative p-4 w-full max-w-md max-h-full">
         <!-- Modal content -->
-        <div class="relative bg-white rounded-lg shadow">
+        <div class="relative bg-white rounded shadow-xl border border-gray-100">
             <!-- Modal header -->
-            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t border-gray-200">
-                <h3 class="text-lg font-semibold text-gray-900">
-                    Tambah Pasien Offline (Walk-in)
-                </h3>
-                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center" data-modal-toggle="modal-tambah-pasien">
-                    <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+            <div class="flex items-center justify-between p-5 border-b border-gray-100">
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900">
+                        Tambah Pasien Kunjungan Langsung
+                    </h3>
+                    <p class="text-xs text-gray-500 mt-0.5">Daftarkan pasien yang datang langsung ke poliklinik</p>
+                </div>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-100 hover:text-gray-900 rounded text-sm w-8 h-8 ms-auto inline-flex justify-center items-center" data-modal-toggle="modal-tambah-pasien">
+                    <svg class="w-3.5 h-3.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
                         <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
                     </svg>
                     <span class="sr-only">Tutup modal</span>
                 </button>
             </div>
-            <!-- Modal body: arahkan action langsung ke components/form-pasien-offline.php -->
-            <form class="p-4 md:p-5" action="components/form-pasien-offline.php" method="POST">
+            <!-- Modal body -->
+            <form class="p-5" action="components/form-pasien-offline.php" method="POST">
                 <input type="hidden" name="action" value="daftar_pasien_offline">
 
                 <div class="grid gap-4 mb-4 grid-cols-2">
                     <div class="col-span-2">
-                        <label for="walkin_nim_nip" class="block mb-2 text-sm font-medium text-gray-900">NIM / NIP Civitas Akademika *</label>
-                        <input type="text" name="nim_nip" id="walkin_nim_nip" pattern="[0-9]{8,20}" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5" placeholder="Masukkan NIM atau NIP terdaftar" required>
-                        <p class="mt-1 text-xs text-gray-500">Nama, tanggal lahir, dan status civitas diambil otomatis dari database civitas.</p>
+                        <label for="walkin_nim_nip" class="block mb-2 text-sm font-semibold text-gray-800">NIM / NIP Civitas Akademika *</label>
+                        <input type="text" name="nim_nip" id="walkin_nim_nip" pattern="[0-9]{8,20}" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-base focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5" placeholder="Masukkan NIM atau NIP terdaftar" required>
+                        <p class="mt-1.5 text-xs text-gray-500">Nama lengkap, tanggal lahir, dan status civitas diambil otomatis dari data civitas akademika.</p>
                     </div>
 
                     <div class="col-span-2 sm:col-span-1">
-                        <label for="walkin_poli_id" class="block mb-2 text-sm font-medium text-gray-900">Poli Tujuan (Walk-in) *</label>
-                        <select id="walkin_poli_id" name="poli_id" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5" required>
+                        <label for="walkin_poli_id" class="block mb-2 text-sm font-semibold text-gray-800">Poli Tujuan *</label>
+                        <select id="walkin_poli_id" name="poli_id" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-base focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5" required>
                             <?php if (!empty($poliWalkinList)): ?>
                                 <?php foreach ($poliWalkinList as $pw): ?>
                                     <option value="<?= (int) $pw['id'] ?>"><?= htmlspecialchars($pw['nama'], ENT_QUOTES, 'UTF-8') ?></option>
@@ -175,15 +168,17 @@ if (isset($pdo)) {
                     </div>
 
                     <div class="col-span-2 sm:col-span-1">
-                        <label for="walkin_no_hp" class="block mb-2 text-sm font-medium text-gray-900">No. HP (Opsional)</label>
-                        <input type="text" name="no_hp" id="walkin_no_hp" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5" placeholder="08xxxxxxxxxx">
+                        <label for="walkin_no_hp" class="block mb-2 text-sm font-semibold text-gray-800">Nomor HP (Opsional)</label>
+                        <input type="text" name="no_hp" id="walkin_no_hp" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-base focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5" placeholder="08xxxxxxxxxx">
                     </div>
                 </div>
 
-                <div class="flex justify-end pt-2">
-                    <button type="submit" class="text-white inline-flex items-center bg-primary hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center cursor-pointer">
-                        <svg class="me-1 -ms-1 w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd"></path></svg>
-                        Buat Antrean Walk-in
+                <div class="flex justify-end gap-2 pt-3 border-t border-gray-100">
+                    <button type="button" data-modal-toggle="modal-tambah-pasien" class="px-4 py-2 text-xs font-bold text-gray-600 bg-white border border-gray-300 rounded-base hover:bg-gray-50 cursor-pointer">
+                        Batal
+                    </button>
+                    <button type="submit" class="text-white inline-flex items-center bg-primary hover:bg-primary-700 font-semibold rounded-base text-xs px-4 py-2 text-center cursor-pointer transition-colors">
+                        <i class="fas fa-plus mr-1.5"></i> Buat Antrean Kunjungan
                     </button>
                 </div>
             </form>

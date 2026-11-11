@@ -49,14 +49,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'catat
         if ($catatanAdmin !== '') {
             $stmtUpd = $pdo->prepare("
                 UPDATE reservasi
-                   SET keluhan = COALESCE(keluhan, '') || ' [Catatan Konfirmasi: ' || :cat || ']'
+                   SET keluhan = concat(COALESCE(keluhan, ''), ' [Catatan Konfirmasi: ', :cat::text, ']')
                  WHERE id = :id
             ");
             $stmtUpd->execute([':cat' => $catatanAdmin, ':id' => $reservasiId]);
         }
 
         $pdo->commit();
-        $_SESSION['flash_success'] = "Respons konfirmasi pasien berhasil dicatat.";
+        $_SESSION['flash_success'] = "Respons konfirmasi kehadiran pasien berhasil dicatat.";
     } catch (Exception $e) {
         if ($pdo->inTransaction()) {
             $pdo->rollBack();
@@ -114,11 +114,11 @@ try {
     $params = [':tgl' => $filterTglKunjungan];
 
     if ($search !== '') {
-        $where[] = "(p.nama ILIKE :q OR p.nim_nip ILIKE :q OR r.no_reservasi ILIKE :q)";
+        $where[]      = "(p.nama ILIKE :q OR p.nim_nip ILIKE :q OR r.no_reservasi ILIKE :q)";
         $params[':q'] = '%' . $search . '%';
     }
     if (in_array($filterStatus, ['menunggu', 'dikonfirmasi', 'dibatalkan'], true)) {
-        $where[] = "r.status = :status";
+        $where[]           = "r.status = :status";
         $params[':status'] = $filterStatus;
     } else {
         $where[] = "r.status <> 'dibatalkan'";
@@ -180,14 +180,14 @@ try {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </head>
 
-<body>
+<body class="bg-page text-gray-800 antialiased">
     <div class="grid md:grid-cols-[16rem_minmax(0,1fr)] min-h-screen">
         <?php require_once __DIR__ . "/components/sidebar.php" ?>
 
         <div class="flex min-w-0 flex-col w-full">
             <?php require_once __DIR__ . "/components/navbar.php" ?>
 
-            <main class="flex-1 min-w-0 bg-page p-6">
+            <main class="flex-1 min-w-0 bg-page p-6 md:p-8">
                 <?php if ($flashSuccess): ?>
                     <div class="mb-4 p-4 text-sm text-emerald-800 bg-emerald-100 border border-emerald-300 rounded-base" role="alert"><?= e($flashSuccess) ?></div>
                 <?php endif; ?>
@@ -195,135 +195,147 @@ try {
                     <div class="mb-4 p-4 text-sm text-red-800 bg-red-100 border border-red-300 rounded-base" role="alert"><?= e($flashError) ?></div>
                 <?php endif; ?>
                 <?php if ($errorDb): ?>
-                    <div class="mb-4 p-4 text-sm text-red-800 bg-red-100 border border-red-300 rounded-base" role="alert">Data konfirmasi gagal dimuat. Periksa log server.</div>
+                    <div class="mb-4 p-4 text-sm text-red-800 bg-red-100 border border-red-300 rounded-base" role="alert">Data konfirmasi belum dapat dimuat saat ini. Silakan muat ulang halaman.</div>
                 <?php endif; ?>
 
-                <div class="mb-6">
-                    <h1 class="text-2xl font-bold text-gray-900">Konfirmasi H-1</h1>
-                    <p class="text-gray-500 mt-1">Hari ini: <?= e(date('d F Y', strtotime($todayDb))) ?></p>
-                </div>
-
                 <!-- Banner Informasi Tanggal -->
-                <div class="bg-white border border-gray-200 rounded-base p-4 flex flex-col md:flex-row items-center md:justify-between shadow-xs mb-6 gap-4">
+                <div class="bg-white border border-gray-200 rounded-base p-5 flex flex-col md:flex-row items-center md:justify-between shadow-sm mb-6 gap-4">
                     <div class="flex items-center gap-4 w-full md:w-auto">
-                        <div class="text-primary-600 text-xl px-2"><i class="far fa-calendar-alt"></i></div>
+                        <div class="w-10 h-10 bg-primary-50 border border-primary-100 text-primary-600 rounded-base flex items-center justify-center shrink-0">
+                            <i class="far fa-calendar-check text-lg"></i>
+                        </div>
                         <div>
                             <p class="text-xs text-gray-500 mb-0.5">Hari konfirmasi</p>
                             <p class="font-bold text-gray-900 text-sm"><?= e(date('d M Y', strtotime($todayDb))) ?></p>
                         </div>
-                        <div class="text-gray-400 px-2 md:px-4"><i class="fas fa-arrow-right"></i></div>
+                        <div class="text-gray-400 px-2 md:px-4"><i class="fas fa-arrow-right text-xs"></i></div>
                         <div>
-                            <p class="text-xs text-gray-500 mb-0.5">Tanggal kunjungan</p>
+                            <p class="text-xs text-gray-500 mb-0.5">Tanggal kunjungan konseling</p>
                             <p class="font-bold text-gray-900 text-sm"><?= e(date('d M Y', strtotime($filterTglKunjungan))) ?></p>
                         </div>
                     </div>
                     <div class="w-full md:w-auto flex justify-start md:justify-end">
-                        <span class="bg-primary-50 text-primary-700 text-xs font-bold px-3 py-1.5 rounded-base">Poli Konseling &middot; <?= e($statTotalKonseling) ?> pasien</span>
+                        <span class="bg-primary-50 text-primary-700 border border-primary-100 text-xs font-semibold px-3 py-1.5 rounded-base">
+                            Poli Konseling &middot; <?= e($statTotalKonseling) ?> pasien
+                        </span>
                     </div>
                 </div>
 
                 <!-- Ringkasan Cards -->
-                <div class="mb-6">
-                    <p class="text-xs text-gray-500 mb-3 font-medium">Ringkasan Konfirmasi Kunjungan Konseling</p>
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div class="bg-white p-5 border border-gray-200 rounded-base shadow-xs flex flex-col">
-                            <p class="text-sm text-gray-700 font-semibold">Total konseling tanggal ini</p>
-                            <h4 class="text-4xl font-bold my-3 text-gray-900 flex-1"><?= e($statTotalKonseling) ?></h4>
-                            <p class="text-xs text-gray-500">Pasien terdaftar aktif</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-white p-5 border border-gray-200 rounded-base shadow-sm">
+                        <div class="flex justify-between items-start mb-1">
+                            <p class="text-sm font-semibold text-gray-600">Total konseling</p>
+                            <i class="fas fa-user-friends text-gray-400"></i>
                         </div>
-                        <div class="bg-yellow-100 p-5 border border-yellow-400 rounded-base shadow-xs flex flex-col">
-                            <p class="text-sm text-yellow-900 font-semibold">Menunggu respons</p>
-                            <h4 class="text-4xl font-bold my-3 text-yellow-900 flex-1"><?= e($statMenunggu) ?></h4>
-                            <p class="text-xs text-yellow-900">Belum mengonfirmasi kehadiran</p>
+                        <h3 class="text-3xl font-bold text-gray-900 mb-1"><?= e($statTotalKonseling) ?></h3>
+                        <p class="text-xs text-gray-500">Pasien terdaftar aktif</p>
+                    </div>
+                    <div class="bg-yellow-50/80 p-5 border border-yellow-300 rounded-base shadow-sm">
+                        <div class="flex justify-between items-start mb-1">
+                            <p class="text-sm font-semibold text-yellow-900">Menunggu respons</p>
+                            <i class="far fa-clock text-yellow-700"></i>
                         </div>
-                        <div class="bg-white p-5 border border-gray-200 rounded-base shadow-xs flex flex-col">
-                            <p class="text-sm text-gray-700 font-semibold">Konfirmasi hadir</p>
-                            <h4 class="text-4xl font-bold my-3 text-gray-900 flex-1"><?= e($statHadir) ?></h4>
-                            <p class="text-xs text-gray-500">Siap hadir sesuai jadwal</p>
+                        <h3 class="text-3xl font-bold text-yellow-800 mb-1"><?= e($statMenunggu) ?></h3>
+                        <p class="text-xs text-yellow-800">Belum mengonfirmasi kehadiran</p>
+                    </div>
+                    <div class="bg-emerald-50/70 p-5 border border-emerald-200 rounded-base shadow-sm">
+                        <div class="flex justify-between items-start mb-1">
+                            <p class="text-sm font-semibold text-emerald-900">Konfirmasi hadir</p>
+                            <i class="far fa-check-circle text-emerald-700"></i>
                         </div>
-                        <div class="bg-white p-5 border border-gray-200 rounded-base shadow-xs flex flex-col">
-                            <p class="text-sm text-gray-700 font-semibold">Batal / Tidak hadir</p>
-                            <h4 class="text-4xl font-bold my-3 text-gray-900 flex-1"><?= e($statBatal) ?></h4>
-                            <p class="text-xs text-gray-500">Berhalangan hadir</p>
+                        <h3 class="text-3xl font-bold text-emerald-800 mb-1"><?= e($statHadir) ?></h3>
+                        <p class="text-xs text-emerald-800">Siap hadir sesuai jadwal</p>
+                    </div>
+                    <div class="bg-white p-5 border border-gray-200 rounded-base shadow-sm">
+                        <div class="flex justify-between items-start mb-1">
+                            <p class="text-sm font-semibold text-gray-600">Batal / Tidak hadir</p>
+                            <i class="far fa-times-circle text-gray-400"></i>
                         </div>
+                        <h3 class="text-3xl font-bold text-gray-900 mb-1"><?= e($statBatal) ?></h3>
+                        <p class="text-xs text-gray-500">Berhalangan hadir</p>
                     </div>
                 </div>
 
                 <!-- Main Data Table Section -->
-                <div class="bg-white p-6 border border-gray-200 rounded-base shadow-xs mb-6">
+                <div class="bg-white p-6 border border-gray-200 rounded-base shadow-sm mb-6">
                     <div class="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-2">
-                        <h4 class="text-lg font-bold text-gray-900">Daftar konfirmasi konseling</h4>
-                        <span class="text-xs text-gray-500">Hubungi via WhatsApp, lalu catat respons pasien</span>
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-900">Daftar konfirmasi konseling</h3>
+                            <p class="text-xs text-gray-500 mt-0.5">Hubungi pasien melalui WhatsApp, lalu catat konfirmasi kehadirannya</p>
+                        </div>
                     </div>
 
                     <!-- Filter GET -->
-                    <form method="GET" action="konfirmasi.php" class="grid grid-cols-1 md:grid-cols-12 gap-4 mb-6 items-end">
+                    <form method="GET" action="konfirmasi.php" class="grid grid-cols-1 md:grid-cols-12 gap-3 mb-6 items-end">
                         <div class="flex flex-col md:col-span-5">
-                            <label class="text-xs text-gray-600 mb-1.5">Pencarian pasien</label>
-                            <input type="text" name="q" value="<?= e($search) ?>" class="block w-full px-3 py-2 text-sm text-gray-900 border border-primary-400-05 rounded-base bg-white" placeholder="Cari nama, NIM/NIP, atau nomor reservasi">
+                            <label class="text-xs font-medium text-gray-500 mb-1">Pencarian pasien</label>
+                            <input type="text" name="q" value="<?= e($search) ?>" class="block w-full px-3 py-2.5 text-sm text-gray-900 border border-gray-300 rounded-base bg-white" placeholder="Cari nama, NIM/NIP, atau nomor reservasi">
                         </div>
                         <div class="flex flex-col md:col-span-3">
-                            <label class="text-sm text-gray-600 mb-1.5">Tanggal kunjungan</label>
-                            <input type="date" name="tanggal_kunjungan" value="<?= e($filterTglKunjungan) ?>" onchange="this.form.submit()" class="block w-full border border-primary-400-05 text-heading text-sm rounded-base bg-white px-3 py-2">
+                            <label class="text-xs font-medium text-gray-500 mb-1">Tanggal kunjungan</label>
+                            <input type="date" name="tanggal_kunjungan" value="<?= e($filterTglKunjungan) ?>" onchange="this.form.submit()" class="block w-full border border-gray-300 text-gray-900 text-sm rounded-base bg-white px-3 py-2.5">
                         </div>
                         <div class="flex flex-col md:col-span-2">
-                            <label class="text-xs text-gray-600 mb-1.5">Status Konfirmasi</label>
-                            <select name="status" onchange="this.form.submit()" class="border border-primary-400-05 text-heading text-sm rounded-base flex-1 bg-white p-2">
+                            <label class="text-xs font-medium text-gray-500 mb-1">Status Konfirmasi</label>
+                            <select name="status" onchange="this.form.submit()" class="border border-gray-300 text-gray-900 text-sm rounded-base bg-white p-2.5">
                                 <option value="">Semua status aktif</option>
                                 <option value="menunggu" <?= $filterStatus === 'menunggu' ? 'selected' : '' ?>>Menunggu Respons</option>
-                                <option value="dikonfirmasi" <?= $filterStatus === 'dikonfirmasi' ? 'selected' : '' ?>>Dikonfirmasi</option>
+                                <option value="dikonfirmasi" <?= $filterStatus === 'dikonfirmasi' ? 'selected' : '' ?>>Terkonfirmasi Hadir</option>
                                 <option value="dibatalkan" <?= $filterStatus === 'dibatalkan' ? 'selected' : '' ?>>Dibatalkan</option>
                             </select>
                         </div>
                         <div class="flex flex-col md:col-span-2 items-end">
-                            <a href="konfirmasi.php" class="text-xs text-primary-600 font-medium hover:underline py-2">Reset filter</a>
+                            <a href="konfirmasi.php" class="text-xs text-primary-600 font-semibold hover:underline py-2.5">Reset filter</a>
                         </div>
                     </form>
 
                     <!-- Table -->
                     <div class="overflow-x-auto">
                         <table class="w-full text-sm text-left text-gray-600">
-                            <thead class="text-xs text-gray-500 border-b border-gray-200">
+                            <thead class="text-xs text-gray-500 uppercase bg-gray-50/60 border-b border-gray-200">
                                 <tr>
-                                    <th scope="col" class="py-3 font-semibold">Pasien / Kontak</th>
-                                    <th scope="col" class="py-3 font-semibold">Jadwal / Psikolog</th>
-                                    <th scope="col" class="py-3 font-semibold">Konfirmasi</th>
-                                    <th scope="col" class="py-3 font-semibold">Waktu Diminta</th>
-                                    <th scope="col" class="py-3 font-semibold text-right">Aksi</th>
+                                    <th scope="col" class="px-4 py-3.5 font-semibold">Pasien / Kontak</th>
+                                    <th scope="col" class="px-4 py-3.5 font-semibold">Jadwal / Psikolog</th>
+                                    <th scope="col" class="px-4 py-3.5 font-semibold">Status Konfirmasi</th>
+                                    <th scope="col" class="px-4 py-3.5 font-semibold">Waktu Pengingat</th>
+                                    <th scope="col" class="px-4 py-3.5 font-semibold text-right">Tindakan</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody class="divide-y divide-gray-100">
                                 <?php if (empty($listKonfirmasi)): ?>
                                     <tr>
-                                        <td colspan="5" class="py-8 text-center text-gray-500">Tidak ada data konfirmasi konseling untuk tanggal ini.</td>
+                                        <td colspan="5" class="px-4 py-8 text-center text-gray-500">Tidak ada jadwal konfirmasi konseling pada tanggal ini.</td>
                                     </tr>
                                 <?php else: ?>
                                     <?php foreach ($listKonfirmasi as $row): ?>
-                                        <tr class="border-b border-gray-100 hover:bg-gray-50">
-                                            <td class="py-4 pe-3 align-top">
+                                        <tr class="hover:bg-gray-50/60 transition-colors">
+                                            <td class="px-4 py-4 align-top">
                                                 <div class="font-bold text-gray-900 text-sm mb-0.5"><?= e($row['nama_pasien']) ?></div>
                                                 <div class="text-xs text-gray-500 mb-0.5">NIM/NIP &middot; <?= e($row['nim_nip']) ?></div>
-                                                <div class="text-xs text-gray-500"><?= e($row['no_hp'] ?? 'No HP belum diisi') ?></div>
+                                                <div class="text-xs text-gray-500"><?= e($row['no_hp'] ?? 'Nomor HP belum diisi') ?></div>
                                             </td>
-                                            <td class="py-4 pe-3 align-top">
-                                                <div class="font-medium text-gray-900 text-xs mb-1"><?= e(date('d M Y', strtotime($row['tanggal_kunjungan']))) ?> &middot; <?= e(substr($row['jam_mulai'], 0, 5)) ?>–<?= e(substr($row['jam_selesai'], 0, 5)) ?> WIB</div>
+                                            <td class="px-4 py-4 align-top">
+                                                <div class="font-semibold text-gray-900 text-xs mb-1">
+                                                    <?= e(date('d M Y', strtotime($row['tanggal_kunjungan']))) ?> &middot; <?= e(str_replace(':', '.', substr($row['jam_mulai'], 0, 5))) ?>–<?= e(str_replace(':', '.', substr($row['jam_selesai'], 0, 5))) ?> WIB
+                                                </div>
                                                 <div class="text-xs text-gray-500"><?= e($row['nama_dokter'] ?? 'Psikolog bertugas') ?></div>
                                             </td>
-                                            <td class="py-4 pe-3 align-top">
+                                            <td class="px-4 py-4 align-top">
                                                 <?php if ($row['status'] === 'menunggu'): ?>
-                                                    <span class="inline-flex items-center px-2 py-1 mb-1 text-yellow-900 text-xs font-medium rounded bg-yellow-100">Menunggu Respons</span>
+                                                    <span class="inline-flex items-center px-2.5 py-1 mb-1 text-yellow-900 text-xs font-semibold rounded-base bg-yellow-100">Menunggu Respons</span>
                                                 <?php elseif ($row['status'] === 'dikonfirmasi'): ?>
-                                                    <span class="inline-flex items-center px-2 py-1 mb-1 text-fg-success-strong text-xs font-medium rounded bg-success-soft">Konfirmasi Hadir</span>
+                                                    <span class="inline-flex items-center px-2.5 py-1 mb-1 text-emerald-700 text-xs font-semibold rounded-base bg-emerald-50 border border-emerald-200">Terkonfirmasi Hadir</span>
                                                 <?php else: ?>
-                                                    <span class="inline-flex items-center px-2 py-1 mb-1 text-red-700 text-xs font-medium rounded bg-red-100">Dibatalkan</span>
+                                                    <span class="inline-flex items-center px-2.5 py-1 mb-1 text-red-700 text-xs font-semibold rounded-base bg-red-100">Dibatalkan</span>
                                                 <?php endif; ?>
                                                 <div class="text-xs text-gray-400">Tiket: <?= e($row['no_reservasi']) ?></div>
                                             </td>
-                                            <td class="py-4 pe-3 align-top text-xs text-gray-500">
-                                                <?= !empty($row['konfirmasi_diminta_at']) ? e(date('d M Y, H:i', strtotime($row['konfirmasi_diminta_at']))) : 'Belum dikirim' ?>
+                                            <td class="px-4 py-4 align-top text-xs text-gray-500">
+                                                <?= !empty($row['konfirmasi_diminta_at']) ? e(date('d M Y, H.i', strtotime($row['konfirmasi_diminta_at']))) . ' WIB' : 'Pengingat belum dikirim' ?>
                                             </td>
-                                            <td class="py-4 align-top text-right">
-                                                <a href="konfirmasi.php?<?= http_build_query(['tanggal_kunjungan' => $filterTglKunjungan, 'catat_id' => (int) $row['reservasi_id']]) ?>" class="inline-flex items-center px-3 py-1.5 text-primary-700 bg-primary-50 hover:bg-primary-100 text-xs font-semibold rounded-base transition-colors">
+                                            <td class="px-4 py-4 align-top text-right">
+                                                <a href="konfirmasi.php?<?= http_build_query(['tanggal_kunjungan' => $filterTglKunjungan, 'catat_id' => (int) $row['reservasi_id']]) ?>" class="inline-flex items-center px-3.5 py-1.5 text-primary-700 bg-primary-50 border border-primary-100 hover:bg-primary-100 text-xs font-semibold rounded-base transition-colors">
                                                     Catat Respons
                                                 </a>
                                             </td>
@@ -340,7 +352,7 @@ try {
 
     <?php require_once __DIR__ . '/components/catat-respon.php'; ?>
 
-    <script src="./../../assets/js/app.js"></script>
+    <script src="./../assets/js/app.js"></script>
     <script src="./../node_modules/flowbite/dist/flowbite.min.js"></script>
 </body>
 

@@ -143,7 +143,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ");
             $stmtTutup->execute([':id' => $id]);
 
-            $_SESSION['flash_success'] = "Jadwal berhasil ditutup. Seluruh reservasi aktif pada jadwal ini otomatis dibatalkan dan pasien telah diberi notifikasi.";
+            $_SESSION['flash_success'] = "Jadwal berhasil ditutup. Seluruh reservasi aktif pada jadwal ini otomatis dibatalkan dan pasien telah diberi pemberitahuan.";
         }
     } catch (PDOException $e) {
         $rawMsg = $e->getMessage();
@@ -157,7 +157,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (preg_match('/ERROR:\s*(.+?)(\n|CONTEXT:|$)/s', $rawMsg, $matches)) {
                 $_SESSION['flash_error'] = trim($matches[1]);
             } else {
-                $_SESSION['flash_error'] = "Terjadi kesalahan saat memproses jadwal.";
+                $_SESSION['flash_error'] = "Terjadi kendala saat memproses jadwal.";
             }
         }
         error_log('[jadwal-admin-crud] ' . $rawMsg);
@@ -246,12 +246,12 @@ try {
     $params = [':tanggal' => $filterTanggal];
 
     if ($filterPoli !== '' && ctype_digit($filterPoli)) {
-        $where[] = "j.poli_id = :poli_id";
+        $where[]            = "j.poli_id = :poli_id";
         $params[':poli_id'] = (int) $filterPoli;
     }
 
     if (in_array($filterStatus, ['buka', 'penuh', 'tutup'], true)) {
-        $where[] = "j.status = :status";
+        $where[]           = "j.status = :status";
         $params[':status'] = $filterStatus;
     } elseif ($filterStatus === '') {
         $where[] = "j.status <> 'tutup'";
@@ -316,7 +316,7 @@ try {
                         ps.nama AS nama_pasien,
                         ps.nim_nip,
                         r.no_reservasi AS kode_tiket,
-                        'Online (Reservasi)' AS sumber,
+                        'Reservasi Online' AS sumber,
                         r.status
                     FROM reservasi r
                     JOIN pasien ps ON ps.id = r.pasien_id
@@ -330,8 +330,8 @@ try {
                     SELECT 
                         ps.nama AS nama_pasien,
                         ps.nim_nip,
-                        ('ANT-' || lpad(a.no_antrean::text, 3, '0')) AS kode_tiket,
-                        CASE WHEN a.reservasi_id IS NOT NULL THEN 'Online' ELSE 'Offline (Walk-in)' END AS sumber,
+                        concat('ANT-', lpad(a.no_antrean::text, 3, '0')) AS kode_tiket,
+                        CASE WHEN a.reservasi_id IS NOT NULL THEN 'Reservasi Online' ELSE 'Kunjungan Langsung' END AS sumber,
                         a.status
                     FROM antrean a
                     JOIN pasien ps ON ps.id = a.pasien_id
@@ -340,7 +340,7 @@ try {
                 ");
                 $stmtPasien->execute([
                     ':poli_id' => $detailJadwal['poli_id'],
-                    ':tanggal' => $detailJadwal['tanggal']
+                    ':tanggal' => $detailJadwal['tanggal'],
                 ]);
                 $detailPasienList = $stmtPasien->fetchAll();
             }
@@ -381,10 +381,10 @@ foreach ($jadwalRows as $r) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= e($page_title) ?> | <?= e($app_name) ?></title>
     <link rel="stylesheet" href="./../assets/css/style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.1.0/css/all.css" integrity="sha512-ajhUYg8JAATDFejqbeN7KbF2zyPbbqz04dgOLyGcYEk/MJD3V+HJhJLKvJ2VVlqrr4PwHeGTTWxbI+8teA7snw==" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </head>
 
-<body>
+<body class="bg-page text-gray-800 antialiased">
     <div class="grid md:grid-cols-[16rem_minmax(0,1fr)] min-h-screen">
 
         <!-- Sidebar -->
@@ -397,7 +397,7 @@ foreach ($jadwalRows as $r) {
             <?php require_once __DIR__ . "/components/navbar.php" ?>
 
             <!-- Content -->
-            <main class="flex-1 min-w-0 bg-page p-6">
+            <main class="flex-1 min-w-0 bg-page p-6 md:p-8">
 
                 <?php if ($flashSuccess): ?>
                     <div class="mb-4 p-4 text-sm text-emerald-800 bg-emerald-100 border border-emerald-300 rounded-base" role="alert">
@@ -411,43 +411,52 @@ foreach ($jadwalRows as $r) {
                 <?php endif; ?>
                 <?php if ($errorDb): ?>
                     <div class="mb-4 p-4 text-sm text-red-800 bg-red-100 border border-red-300 rounded-base" role="alert">
-                        Data jadwal gagal dimuat. Periksa log server atau koneksi database.
+                        Data jadwal belum dapat dimuat saat ini. Silakan muat ulang halaman.
                     </div>
                 <?php endif; ?>
 
                 <!-- Page Header & Action -->
-                <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4 border-b border-gray-200 pb-4">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                     <div>
-                        <h1 class="text-2xl font-bold text-gray-900 mb-1">Jadwal & Kuota</h1>
-                        <p class="text-gray-600 font-medium"><?= e(formatTanggalIndo($filterTanggal, true)) ?></p>
+                        <p class="text-sm text-gray-600 font-medium">Ringkasan jadwal praktik &amp; kuota layanan &middot; <?= e(formatTanggalIndo($filterTanggal, true)) ?></p>
                     </div>
-                    <button type="button" data-modal-target="modal-tambah-jadwal" data-modal-toggle="modal-tambah-jadwal" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-primary-500 rounded-base hover:bg-primary-600 focus:ring-4 focus:ring-primary-300">
+                    <button type="button" data-modal-target="modal-tambah-jadwal" data-modal-toggle="modal-tambah-jadwal" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-primary rounded-base hover:bg-primary-700 focus:ring-4 focus:ring-primary-300 cursor-pointer transition-colors">
                         <i class="fas fa-plus mr-2"></i> Tambah Jadwal
                     </button>
                 </div>
 
-                <p class="text-sm text-gray-500 mb-3">Ringkasan jadwal aktif &middot; seluruh poli</p>
-
                 <!-- Stats Counter -->
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                    <div class="bg-white flex flex-col p-5 border border-gray-200 rounded-base shadow-sm">
-                        <p class="text-sm text-gray-600 font-semibold mb-2">Jadwal aktif</p>
-                        <h4 class="text-4xl font-bold text-gray-900 mb-2"><?= e($statTotalJadwal) ?></h4>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-white border border-gray-200 rounded-base p-5 shadow-sm">
+                        <div class="flex justify-between items-start mb-1">
+                            <p class="text-sm font-semibold text-gray-600">Jadwal aktif</p>
+                            <i class="far fa-calendar-alt text-gray-400"></i>
+                        </div>
+                        <h3 class="text-3xl font-bold text-gray-900 mb-1"><?= e($statTotalJadwal) ?></h3>
                         <p class="text-xs text-gray-500"><?= e($statDipublikasi) ?> jadwal dipublikasikan</p>
                     </div>
-                    <div class="bg-white flex flex-col p-5 border border-gray-200 rounded-base shadow-sm">
-                        <p class="text-sm text-gray-600 font-semibold mb-2">Kuota terisi</p>
-                        <h4 class="text-4xl font-bold text-gray-900 mb-2"><?= e($statKuotaTerisi) ?><span class="text-2xl text-gray-400">/<?= e($statTotalKuota) ?></span></h4>
+                    <div class="bg-primary-50/50 border border-primary-200 rounded-base p-5 shadow-sm">
+                        <div class="flex justify-between items-start mb-1">
+                            <p class="text-sm font-semibold text-gray-700">Kuota terisi</p>
+                            <i class="fas fa-user-friends text-primary-500"></i>
+                        </div>
+                        <h3 class="text-3xl font-bold text-primary mb-1"><?= e($statKuotaTerisi) ?><span class="text-xl text-gray-400 font-normal">/<?= e($statTotalKuota) ?></span></h3>
                         <p class="text-xs text-gray-500">Total gabungan poli reservasi</p>
                     </div>
-                    <div class="bg-white flex flex-col p-5 border border-gray-200 rounded-base shadow-sm">
-                        <p class="text-sm text-gray-600 font-semibold mb-2">Kuota tersedia</p>
-                        <h4 class="text-4xl font-bold text-gray-900 mb-2"><?= e($statKuotaSisa) ?></h4>
-                        <p class="text-xs text-gray-500">Masih dapat direservasi</p>
+                    <div class="bg-emerald-50/60 border border-emerald-200 rounded-base p-5 shadow-sm">
+                        <div class="flex justify-between items-start mb-1">
+                            <p class="text-sm font-semibold text-emerald-900">Kuota tersedia</p>
+                            <i class="far fa-check-circle text-emerald-700"></i>
+                        </div>
+                        <h3 class="text-3xl font-bold text-emerald-800 mb-1"><?= e($statKuotaSisa) ?></h3>
+                        <p class="text-xs text-emerald-800">Masih dapat direservasi</p>
                     </div>
-                    <div class="<?= $statJadwalPenuh > 0 ? 'bg-yellow-100 border-yellow-400' : 'bg-white border-gray-200' ?> flex flex-col p-5 border rounded-base shadow-sm">
-                        <p class="text-sm <?= $statJadwalPenuh > 0 ? 'text-yellow-800' : 'text-gray-600' ?> font-semibold mb-2">Jadwal penuh</p>
-                        <h4 class="text-4xl font-bold <?= $statJadwalPenuh > 0 ? 'text-yellow-800' : 'text-gray-900' ?> mb-2"><?= e($statJadwalPenuh) ?></h4>
+                    <div class="<?= $statJadwalPenuh > 0 ? 'bg-yellow-50/80 border-yellow-300' : 'bg-white border-gray-200' ?> border rounded-base p-5 shadow-sm">
+                        <div class="flex justify-between items-start mb-1">
+                            <p class="text-sm <?= $statJadwalPenuh > 0 ? 'text-yellow-900' : 'text-gray-600' ?> font-semibold">Jadwal penuh</p>
+                            <i class="fas fa-exclamation-circle <?= $statJadwalPenuh > 0 ? 'text-yellow-700' : 'text-gray-400' ?>"></i>
+                        </div>
+                        <h3 class="text-3xl font-bold <?= $statJadwalPenuh > 0 ? 'text-yellow-800' : 'text-gray-900' ?> mb-1"><?= e($statJadwalPenuh) ?></h3>
                         <p class="text-xs <?= $statJadwalPenuh > 0 ? 'text-yellow-800' : 'text-gray-500' ?>"><?= e($infoJadwalPenuhLabel) ?></p>
                     </div>
                 </div>
@@ -456,22 +465,25 @@ foreach ($jadwalRows as $r) {
                 <div class="bg-white border border-gray-200 rounded-base shadow-sm p-6 mb-6">
 
                     <!-- Card Header -->
-                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-2 gap-4">
-                        <h4 class="text-xl font-bold text-gray-900">Daftar jadwal</h4>
-                        <span class="text-sm text-gray-500"><?= count($jadwalRows) ?> jadwal &middot; <?= $poliUnikTabel ?> poli</span>
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-2">
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-900">Daftar jadwal praktik</h3>
+                            <p class="text-xs text-gray-500 mt-0.5">Pengaturan sesi pelayanan dokter dan psikolog</p>
+                        </div>
+                        <span class="text-xs font-semibold text-primary-700 bg-primary-50 px-3 py-1 rounded-base">
+                            <?= count($jadwalRows) ?> jadwal &middot; <?= $poliUnikTabel ?> poli
+                        </span>
                     </div>
 
                     <!-- Filters (Method GET) -->
-                    <form method="GET" action="jadwal.php" class="flex flex-col md:flex-row gap-4 my-6 items-end">
-                        <div class="flex-1 w-full md:w-auto">
-                            <label for="filter-tanggal" class="block mb-2 text-xs font-medium text-gray-500">Tanggal</label>
-                            <div class="relative">
-                                <input type="date" id="filter-tanggal" name="tanggal" value="<?= e($filterTanggal) ?>" onchange="this.form.submit()" class="block w-full p-2.5 text-sm text-gray-900 border border-primary-400-05 rounded-base focus:ring-primary-500 focus:border-primary-500" />
-                            </div>
+                    <form method="GET" action="jadwal.php" class="grid grid-cols-1 md:grid-cols-4 gap-3 my-4 items-end">
+                        <div>
+                            <label for="filter-tanggal" class="block mb-1 text-xs font-medium text-gray-500">Tanggal</label>
+                            <input type="date" id="filter-tanggal" name="tanggal" value="<?= e($filterTanggal) ?>" onchange="this.form.submit()" class="block w-full p-2.5 text-sm text-gray-900 border border-gray-300 rounded-base focus:ring-primary-500 focus:border-primary-500 bg-white" />
                         </div>
-                        <div class="flex-1 w-full md:w-auto">
-                            <label for="filter-poli" class="block mb-2 text-xs font-medium text-gray-500">Poli</label>
-                            <select id="filter-poli" name="poli_id" onchange="this.form.submit()" class="block w-full p-2.5 border border-primary text-gray-900 text-sm rounded-base focus:ring-primary-500 focus:border-primary-500 bg-white">
+                        <div>
+                            <label for="filter-poli" class="block mb-1 text-xs font-medium text-gray-500">Poli</label>
+                            <select id="filter-poli" name="poli_id" onchange="this.form.submit()" class="block w-full p-2.5 border border-gray-300 text-gray-900 text-sm rounded-base focus:ring-primary-500 focus:border-primary-500 bg-white">
                                 <option value="">Semua poli</option>
                                 <?php foreach ($listPoli as $p): ?>
                                     <option value="<?= (int) $p['id'] ?>" <?= $filterPoli === (string) $p['id'] ? 'selected' : '' ?>>
@@ -480,42 +492,42 @@ foreach ($jadwalRows as $r) {
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <div class="flex-1 w-full md:w-auto">
-                            <label for="filter-status" class="block mb-2 text-xs font-medium text-gray-500">Status</label>
-                            <select id="filter-status" name="status" onchange="this.form.submit()" class="block w-full p-2.5 border border-primary text-gray-900 text-sm rounded-base focus:ring-primary-500 focus:border-primary-500 bg-white">
+                        <div>
+                            <label for="filter-status" class="block mb-1 text-xs font-medium text-gray-500">Status</label>
+                            <select id="filter-status" name="status" onchange="this.form.submit()" class="block w-full p-2.5 border border-gray-300 text-gray-900 text-sm rounded-base focus:ring-primary-500 focus:border-primary-500 bg-white">
                                 <option value="" <?= $filterStatus === '' ? 'selected' : '' ?>>Semua jadwal aktif</option>
                                 <option value="buka" <?= $filterStatus === 'buka' ? 'selected' : '' ?>>Tersedia (Buka)</option>
                                 <option value="penuh" <?= $filterStatus === 'penuh' ? 'selected' : '' ?>>Penuh</option>
                                 <option value="tutup" <?= $filterStatus === 'tutup' ? 'selected' : '' ?>>Ditutup</option>
-                                <option value="semua" <?= $filterStatus === 'semua' ? 'selected' : '' ?>>Tampilkan Semua (Termasuk Tutup)</option>
+                                <option value="semua" <?= $filterStatus === 'semua' ? 'selected' : '' ?>>Semua (Termasuk Tutup)</option>
                             </select>
                         </div>
-                        <div class="flex items-center gap-4 w-full md:w-auto">
-                            <a href="jadwal.php?tanggal=<?= urlencode($todayDb) ?>" class="px-4 py-2.5 text-sm font-medium text-primary-700 bg-primary-50 rounded border border-primary-100 hover:bg-primary-100 focus:ring-4 focus:ring-primary-100">
+                        <div class="flex items-center gap-3">
+                            <a href="jadwal.php?tanggal=<?= urlencode($todayDb) ?>" class="px-3.5 py-2.5 text-xs font-semibold text-primary-700 bg-primary-50 rounded-base border border-primary-100 hover:bg-primary-100">
                                 Hari ini
                             </a>
-                            <a href="jadwal.php" class="text-sm font-medium text-primary-600 hover:underline">
+                            <a href="jadwal.php" class="text-xs font-semibold text-primary-600 hover:underline py-2">
                                 Reset filter
                             </a>
                         </div>
                     </form>
 
                     <!-- Table -->
-                    <div class="relative overflow-x-auto border-t border-gray-100 pt-4">
+                    <div class="relative overflow-x-auto border-t border-gray-100 pt-2">
                         <table class="w-full text-sm text-left text-gray-600">
-                            <thead class="text-xs text-gray-500 bg-white border-b border-gray-200">
+                            <thead class="text-xs text-gray-500 uppercase bg-gray-50/60 border-b border-gray-200">
                                 <tr>
-                                    <th scope="col" class="px-4 py-3 font-medium">Dokter / Psikolog</th>
-                                    <th scope="col" class="px-4 py-3 font-medium">Poli</th>
-                                    <th scope="col" class="px-4 py-3 font-medium">Tanggal & waktu</th>
-                                    <th scope="col" class="px-4 py-3 font-medium">Kuota</th>
-                                    <th scope="col" class="px-4 py-3 font-medium">Status</th>
-                                    <th scope="col" class="px-4 py-3 font-medium text-right">Aksi</th>
+                                    <th scope="col" class="px-4 py-3.5 font-semibold">Dokter / Psikolog</th>
+                                    <th scope="col" class="px-4 py-3.5 font-semibold">Poli</th>
+                                    <th scope="col" class="px-4 py-3.5 font-semibold">Tanggal &amp; Waktu</th>
+                                    <th scope="col" class="px-4 py-3.5 font-semibold">Kuota</th>
+                                    <th scope="col" class="px-4 py-3.5 font-semibold">Status</th>
+                                    <th scope="col" class="px-4 py-3.5 font-semibold text-right">Tindakan</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody class="divide-y divide-gray-100">
                                 <?php if (empty($jadwalRows)): ?>
-                                    <tr class="bg-white border-b border-gray-100">
+                                    <tr>
                                         <td colspan="6" class="px-4 py-8 text-center text-gray-500">
                                             Belum ada jadwal praktik pada tanggal dan filter yang dipilih.
                                         </td>
@@ -538,20 +550,20 @@ foreach ($jadwalRows as $r) {
                                             'status'  => $filterStatus,
                                         ]);
                                         ?>
-                                        <tr class="<?= $isTutup ? 'bg-gray-50 opacity-60' : 'bg-white' ?> border-b border-gray-100 hover:bg-gray-50">
+                                        <tr class="<?= $isTutup ? 'bg-gray-50 opacity-60' : 'bg-white hover:bg-gray-50/60' ?> transition-colors">
                                             <td class="px-4 py-4">
                                                 <?php if (!empty($row['nama_dokter'])): ?>
                                                     <div class="font-bold text-gray-900"><?= e($row['nama_dokter']) ?></div>
                                                     <div class="text-xs text-gray-500 capitalize"><?= e($row['profesi']) ?></div>
                                                 <?php else: ?>
-                                                    <div class="font-medium text-amber-700 italic">Belum ditetapkan</div>
-                                                    <div class="text-xs text-gray-400">Menunggu penugasan</div>
+                                                    <div class="font-medium text-amber-700">Seluruh Tenaga Layanan</div>
+                                                    <div class="text-xs text-gray-400">Sesuai giliran jaga</div>
                                                 <?php endif; ?>
                                             </td>
-                                            <td class="px-4 py-4 font-medium text-gray-900"><?= e($row['nama_poli']) ?></td>
+                                            <td class="px-4 py-4 font-semibold text-gray-900"><?= e($row['nama_poli']) ?></td>
                                             <td class="px-4 py-4">
                                                 <div class="font-medium text-gray-900"><?= e(formatTanggalSingkat($row['tanggal'])) ?></div>
-                                                <div class="text-xs text-gray-500"><?= e(str_replace(':', '.', $jamMulaiFmt)) ?>-<?= e(str_replace(':', '.', $jamSelesaiFmt)) ?> WIB</div>
+                                                <div class="text-xs text-gray-500"><?= e(str_replace(':', '.', $jamMulaiFmt)) ?>–<?= e(str_replace(':', '.', $jamSelesaiFmt)) ?> WIB</div>
                                             </td>
                                             <td class="px-4 py-4">
                                                 <?php if ($kuotaMax !== null): ?>
@@ -562,29 +574,29 @@ foreach ($jadwalRows as $r) {
                                                         <div class="<?= $row['status'] === 'penuh' ? 'bg-red-500' : 'bg-primary-500' ?> h-1.5 rounded-full" style="width: <?= $persen ?>%"></div>
                                                     </div>
                                                     <div class="text-xs text-gray-500">
-                                                        <?= $isTutup ? 'Jadwal ditutup' : ($sisaKuota > 0 ? $sisaKuota . ' kuota tersedia' : 'Batas harian tercapai') ?>
+                                                        <?= $isTutup ? 'Jadwal ditutup' : ($sisaKuota > 0 ? $sisaKuota . ' kuota tersedia' : 'Kuota penuh') ?>
                                                     </div>
                                                 <?php else: ?>
                                                     <div class="font-bold text-gray-900 text-sm mb-1">Tanpa batas</div>
-                                                    <div class="text-xs text-gray-500">Walk-in &middot; <?= $terisiAntrean ?> antrean</div>
+                                                    <div class="text-xs text-gray-500">Kunjungan langsung &middot; <?= $terisiAntrean ?> pasien</div>
                                                 <?php endif; ?>
                                             </td>
                                             <td class="px-4 py-4">
                                                 <?php if ($row['status'] === 'buka'): ?>
-                                                    <span class="inline-flex items-center px-2 py-1 mb-1 text-fg-success-strong text-xs font-medium rounded bg-success-soft">Tersedia</span>
+                                                    <span class="inline-flex items-center px-2.5 py-1 mb-1 text-emerald-700 text-xs font-semibold rounded-base bg-emerald-50 border border-emerald-200">Tersedia</span>
                                                 <?php elseif ($row['status'] === 'penuh'): ?>
-                                                    <span class="inline-flex items-center px-2 py-1 mb-1 text-red-800 text-xs font-medium rounded bg-red-100">Penuh</span>
+                                                    <span class="inline-flex items-center px-2.5 py-1 mb-1 text-red-800 text-xs font-semibold rounded-base bg-red-100">Penuh</span>
                                                 <?php else: ?>
-                                                    <span class="inline-flex items-center px-2 py-1 mb-1 text-gray-700 text-xs font-medium rounded bg-gray-200">Tutup</span>
+                                                    <span class="inline-flex items-center px-2.5 py-1 mb-1 text-gray-700 text-xs font-semibold rounded-base bg-gray-200">Tutup</span>
                                                 <?php endif; ?>
                                                 <div class="text-xs text-gray-500">
-                                                    <?= $row['dipublikasi'] ? 'Dipublikasikan' : 'Tidak dipublikasi' ?>
+                                                    <?= $row['dipublikasi'] ? 'Dipublikasikan' : 'Belum dipublikasikan' ?>
                                                 </div>
                                             </td>
                                             <td class="px-4 py-4 font-medium text-primary-600 whitespace-nowrap text-right">
                                                 <div class="flex justify-end items-center gap-3">
-                                                    <a href="jadwal.php?<?= $baseQuery ?>&detail_id=<?= (int) $row['id'] ?>" class="hover:underline cursor-pointer">Lihat</a>
-                                                    <a href="jadwal.php?<?= $baseQuery ?>&edit_id=<?= (int) $row['id'] ?>" class="w-8 h-8 rounded bg-primary-50 text-primary-600 hover:bg-primary-100 flex justify-center items-center" title="Edit Jadwal">
+                                                    <a href="jadwal.php?<?= $baseQuery ?>&detail_id=<?= (int) $row['id'] ?>" class="text-xs font-semibold hover:underline cursor-pointer">Lihat</a>
+                                                    <a href="jadwal.php?<?= $baseQuery ?>&edit_id=<?= (int) $row['id'] ?>" class="w-8 h-8 rounded-base bg-primary-50 text-primary-600 hover:bg-primary hover:text-white flex justify-center items-center transition-colors" title="Ubah Jadwal">
                                                         <i class="fas fa-pen text-xs"></i>
                                                     </a>
                                                 </div>
@@ -597,24 +609,28 @@ foreach ($jadwalRows as $r) {
                     </div>
 
                     <!-- Table Footer -->
-                    <div class="flex flex-col md:flex-row justify-between items-center text-sm text-gray-500 mt-4 gap-4">
+                    <div class="flex flex-col md:flex-row justify-between items-center text-xs text-gray-500 mt-4 pt-4 border-t border-gray-100 gap-4">
                         <span>Menampilkan <?= count($jadwalRows) ?> jadwal</span>
-                        <span class="font-medium text-primary-700">Total kuota reservasi aktif: <?= $tabelTerisiSum ?> terisi / <?= $tabelKuotaSum ?> pasien</span>
+                        <span class="font-semibold text-primary-700">Total kuota reservasi aktif: <?= $tabelTerisiSum ?> terisi dari <?= $tabelKuotaSum ?> pasien</span>
                     </div>
 
                 </div>
 
                 <!-- Info Cards -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="bg-white rounded-base p-4 border border-gray-200 flex items-start gap-3 shadow-sm">
-                        <i class="fas fa-info-circle text-primary-500 mt-1"></i>
+                    <div class="bg-white rounded-base p-5 border border-gray-200 flex items-start gap-3.5 shadow-sm">
+                        <div class="w-9 h-9 rounded-base bg-primary-50 text-primary-600 flex items-center justify-center shrink-0">
+                            <i class="fas fa-info-circle"></i>
+                        </div>
                         <div>
                             <h5 class="text-sm font-bold text-gray-900 mb-1">Aturan kuota poli</h5>
-                            <p class="text-xs text-gray-500 leading-relaxed">Poli Gigi dan Konseling menggunakan sistem reservasi dengan batas kuota harian. Poli Umum melayani walk-in tanpa batas kuota.</p>
+                            <p class="text-xs text-gray-500 leading-relaxed">Poli Gigi dan Konseling menggunakan sistem reservasi dengan batas kuota harian. Poli Umum melayani kunjungan langsung tanpa batas kuota.</p>
                         </div>
                     </div>
-                    <div class="bg-white rounded-base p-4 border border-gray-200 flex items-start gap-3 shadow-sm">
-                        <i class="far fa-calendar-alt text-primary-500 mt-1"></i>
+                    <div class="bg-white rounded-base p-5 border border-gray-200 flex items-start gap-3.5 shadow-sm">
+                        <div class="w-9 h-9 rounded-base bg-primary-50 text-primary-600 flex items-center justify-center shrink-0">
+                            <i class="far fa-calendar-times"></i>
+                        </div>
                         <div>
                             <h5 class="text-sm font-bold text-gray-900 mb-1">Penutupan jadwal</h5>
                             <p class="text-xs text-gray-500 leading-relaxed">Menutup jadwal akan menariknya dari daftar jadwal publik, membatalkan reservasi aktif secara otomatis, dan mengirimkan pemberitahuan kepada pasien.</p>

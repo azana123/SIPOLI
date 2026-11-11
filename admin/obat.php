@@ -37,20 +37,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if ($action === 'create_obat') {
-            $kodeObat    = strtoupper(trim($_POST['kode_obat'] ?? ''));
-            $namaObat    = trim($_POST['nama_obat'] ?? '');
-            $bentuk      = strtolower(trim($_POST['bentuk'] ?? ''));
-            $satuan      = strtolower(trim($_POST['satuan'] ?? ''));
-            $stokAwal    = max(0, (int) ($_POST['stok_awal'] ?? 0));
-            $stokMin     = max(0, (int) ($_POST['stok_minimum'] ?? 10));
-            $tglExp      = !empty($_POST['tanggal_kadaluarsa']) ? trim($_POST['tanggal_kadaluarsa']) : null;
-            $dosisUmum   = trim($_POST['dosis_umum'] ?? '');
-            $ketInput    = trim($_POST['keterangan'] ?? '');
-            $isActive    = (($_POST['status'] ?? 'aktif') === 'aktif');
+            $kodeObat  = strtoupper(trim($_POST['kode_obat'] ?? ''));
+            $namaObat  = trim($_POST['nama_obat'] ?? '');
+            $bentuk    = strtolower(trim($_POST['bentuk'] ?? ''));
+            $satuan    = strtolower(trim($_POST['satuan'] ?? ''));
+            $stokAwal  = max(0, (int) ($_POST['stok_awal'] ?? 0));
+            $stokMin   = max(0, (int) ($_POST['stok_minimum'] ?? 10));
+            $tglExp    = !empty($_POST['tanggal_kadaluarsa']) ? trim($_POST['tanggal_kadaluarsa']) : null;
+            $dosisUmum = trim($_POST['dosis_umum'] ?? '');
+            $ketInput  = trim($_POST['keterangan'] ?? '');
+            $isActive  = (($_POST['status'] ?? 'aktif') === 'aktif');
 
             $keterangan = $ketInput;
             if ($dosisUmum !== '') {
-                $keterangan = 'Dosis umum: ' . $dosisUmum . ($ketInput !== '' ? ' | ' . $ketInput : '');
+                $keterangan = 'Dosis umum: ' . $dosisUmum . ($ketInput !== '' ? ' - ' . $ketInput : '');
             }
 
             $stmtIns = $pdo->prepare("
@@ -144,25 +144,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $search       = trim($_GET['q'] ?? '');
 $filterBentuk = trim($_GET['bentuk'] ?? '');
-
 $filterStok   = trim($_GET['stok'] ?? '');
 $filterStatus = trim($_GET['status'] ?? '');
 $detailId     = isset($_GET['detail_id']) && ctype_digit((string) $_GET['detail_id']) ? (int) $_GET['detail_id'] : null;
 $stokId       = isset($_GET['stok_id']) && ctype_digit((string) $_GET['stok_id']) ? (int) $_GET['stok_id'] : null;
 
-$statTotal          = 0;
-$statAktif          = 0;
-$statPerhatian      = 0;
-$statMenipis        = 0;
-$statHabis          = 0;
-$statNonaktif       = 0;
-$lastUpdated        = '-';
-$listBentuk         = [];
-$obatRows           = [];
-$detailObat         = null;
-$stokObat           = null;
-$riwayatStok        = [];
-$errorDb            = false;
+$statTotal     = 0;
+$statAktif     = 0;
+$statPerhatian = 0;
+$statMenipis   = 0;
+$statHabis     = 0;
+$statNonaktif  = 0;
+$lastUpdated   = '-';
+$listBentuk    = [];
+$obatRows      = [];
+$detailObat    = null;
+$stokObat      = null;
+$riwayatStok   = [];
+$errorDb       = false;
 
 try {
     $st = $pdo->query("
@@ -184,7 +183,7 @@ try {
     $statMenipis   = (int) ($st['menipis'] ?? 0);
     $statPerhatian = (int) ($st['perlu_perhatian'] ?? 0);
     if (!empty($st['last_upd'])) {
-        $lastUpdated = date('d M Y, H.i', strtotime($st['last_upd']));
+        $lastUpdated = date('d M Y, H.i', strtotime($st['last_upd'])) . ' WIB';
     }
 
     $listBentuk = $pdo->query("
@@ -198,11 +197,11 @@ try {
     $params = [];
 
     if ($search !== '') {
-        $where[] = "(o.nama_obat ILIKE :q OR o.kode_obat ILIKE :q OR COALESCE(o.keterangan, '') ILIKE :q)";
+        $where[]      = "(o.nama_obat ILIKE :q OR o.kode_obat ILIKE :q OR COALESCE(o.keterangan, '') ILIKE :q)";
         $params[':q'] = '%' . $search . '%';
     }
     if ($filterBentuk !== '') {
-        $where[] = "lower(o.bentuk) = :bentuk";
+        $where[]           = "lower(o.bentuk) = :bentuk";
         $params[':bentuk'] = strtolower($filterBentuk);
     }
     if ($filterStok === 'tersedia') {
@@ -274,10 +273,10 @@ try {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= e($page_title) ?> | <?= e($app_name) ?></title>
     <link rel="stylesheet" href="./../assets/css/style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.1.0/css/all.css" integrity="sha512-ajhUYg8JAATDFejqbeN7KbF2zyPbbqz04dgOLyGcYEk/MJD3V+HJhJLKvJ2VVlqrr4PwHeGTTWxbI+8teA7snw==" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </head>
 
-<body>
+<body class="bg-page text-gray-800 antialiased">
     <div class="grid md:grid-cols-[16rem_minmax(0,1fr)] min-h-screen">
 
         <!-- Sidebar -->
@@ -290,7 +289,7 @@ try {
             <?php require_once __DIR__ . "/components/navbar.php" ?>
 
             <!-- Content -->
-            <main class="flex-1 min-w-0 bg-page p-6">
+            <main class="flex-1 min-w-0 bg-page p-6 md:p-8">
 
                 <?php if ($flashSuccess): ?>
                     <div class="mb-4 p-4 text-sm text-emerald-800 bg-emerald-100 border border-emerald-300 rounded-base" role="alert">
@@ -304,39 +303,51 @@ try {
                 <?php endif; ?>
                 <?php if ($errorDb): ?>
                     <div class="mb-4 p-4 text-sm text-red-800 bg-red-100 border border-red-300 rounded-base" role="alert">
-                        Data obat gagal dimuat. Periksa log server.
+                        Data katalog obat belum dapat dimuat saat ini. Silakan muat ulang halaman.
                     </div>
                 <?php endif; ?>
 
                 <!-- Page Header & Action -->
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-                    <p class="text-gray-600 font-medium">Kelola data obat dan ketersediaan stok poliklinik.</p>
-                    <button type="button" data-modal-target="modal-tambah-obat" data-modal-toggle="modal-tambah-obat" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-primary-500 rounded-base hover:bg-primary-600 focus:ring-4 focus:ring-primary-300">
+                    <p class="text-sm text-gray-600 font-medium">Kelola katalog obat dan ketersediaan stok poliklinik.</p>
+                    <button type="button" data-modal-target="modal-tambah-obat" data-modal-toggle="modal-tambah-obat" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-primary rounded-base hover:bg-primary-700 focus:ring-4 focus:ring-primary-300 cursor-pointer transition-colors">
                         <i class="fas fa-plus mr-2"></i> Tambah Obat
                     </button>
                 </div>
 
                 <!-- Stats Counter -->
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                    <div class="bg-white flex flex-col p-4 border border-gray-200 rounded-base shadow-sm">
-                        <p class="text-sm text-gray-600 font-semibold mb-2">Total jenis obat</p>
-                        <h4 class="text-3xl font-bold text-gray-900 mb-2"><?= e($statTotal) ?></h4>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-white border border-gray-200 rounded-base p-5 shadow-sm">
+                        <div class="flex justify-between items-start mb-1">
+                            <p class="text-sm font-semibold text-gray-600">Total jenis obat</p>
+                            <i class="fas fa-capsules text-gray-400"></i>
+                        </div>
+                        <h3 class="text-3xl font-bold text-gray-900 mb-1"><?= e($statTotal) ?></h3>
                         <p class="text-xs text-gray-500">Seluruh data obat terdaftar</p>
                     </div>
-                    <div class="bg-white flex flex-col p-4 border border-gray-200 rounded-base shadow-sm">
-                        <p class="text-sm text-gray-600 font-semibold mb-2">Obat aktif</p>
-                        <h4 class="text-3xl font-bold text-gray-900 mb-2"><?= e($statAktif) ?></h4>
-                        <p class="text-xs text-gray-500">Dapat digunakan pada resep</p>
+                    <div class="bg-emerald-50/70 border border-emerald-200 rounded-base p-5 shadow-sm">
+                        <div class="flex justify-between items-start mb-1">
+                            <p class="text-sm font-semibold text-emerald-900">Obat aktif</p>
+                            <i class="far fa-check-circle text-emerald-700"></i>
+                        </div>
+                        <h3 class="text-3xl font-bold text-emerald-800 mb-1"><?= e($statAktif) ?></h3>
+                        <p class="text-xs text-emerald-800">Dapat digunakan pada resep</p>
                     </div>
-                    <div class="bg-orange-50 flex flex-col p-4 border border-orange-200 rounded-base shadow-sm">
-                        <p class="text-sm text-orange-800 font-semibold mb-2">Perlu perhatian</p>
-                        <h4 class="text-3xl font-bold text-orange-800 mb-2"><?= e($statPerhatian) ?></h4>
-                        <p class="text-xs text-gray-500"><?= e($statMenipis) ?> stok menipis &bull; <?= e($statHabis) ?> stok habis</p>
+                    <div class="bg-orange-50 border border-orange-200 rounded-base p-5 shadow-sm">
+                        <div class="flex justify-between items-start mb-1">
+                            <p class="text-sm font-semibold text-orange-800">Perlu perhatian</p>
+                            <i class="fas fa-exclamation-triangle text-orange-600"></i>
+                        </div>
+                        <h3 class="text-3xl font-bold text-orange-800 mb-1"><?= e($statPerhatian) ?></h3>
+                        <p class="text-xs text-orange-800"><?= e($statMenipis) ?> stok menipis &bull; <?= e($statHabis) ?> stok habis</p>
                     </div>
-                    <div class="bg-white flex flex-col p-4 border border-gray-200 rounded-base shadow-sm">
-                        <p class="text-sm text-gray-600 font-semibold mb-2">Obat nonaktif</p>
-                        <h4 class="text-3xl font-bold text-gray-900 mb-2"><?= e($statNonaktif) ?></h4>
-                        <p class="text-xs text-gray-500">Tidak tersedia untuk resep baru</p>
+                    <div class="bg-white border border-gray-200 rounded-base p-5 shadow-sm">
+                        <div class="flex justify-between items-start mb-1">
+                            <p class="text-sm font-semibold text-gray-600">Obat nonaktif</p>
+                            <i class="fas fa-ban text-gray-400"></i>
+                        </div>
+                        <h3 class="text-3xl font-bold text-gray-900 mb-1"><?= e($statNonaktif) ?></h3>
+                        <p class="text-xs text-gray-500">Tidak ditampilkan pada resep baru</p>
                     </div>
                 </div>
 
@@ -344,23 +355,26 @@ try {
                 <div class="bg-white border border-gray-200 rounded-base shadow-sm p-6">
 
                     <!-- Card Header -->
-                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
-                        <h4 class="text-xl font-bold text-gray-900">Daftar obat</h4>
-                        <span class="text-xs text-gray-500">Terakhir diperbarui: <?= e($lastUpdated) ?></span>
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-2">
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-900">Daftar inventaris obat</h3>
+                            <p class="text-xs text-gray-500 mt-0.5">Terakhir diperbarui: <?= e($lastUpdated) ?></p>
+                        </div>
+                        <span class="text-xs font-semibold text-primary-700 bg-primary-50 px-3 py-1 rounded-base">
+                            <?= count($obatRows) ?> dari <?= e($statTotal) ?> obat
+                        </span>
                     </div>
 
                     <!-- Filters (Method GET) -->
-                    <form method="GET" action="obat.php" class="grid grid-cols-1 md:grid-cols-6 gap-4 my-6 items-center">
+                    <form method="GET" action="obat.php" class="grid grid-cols-1 md:grid-cols-6 gap-3 my-4 items-center">
                         <div class="relative md:col-span-2">
-                            <input type="search" name="q" value="<?= e($search) ?>" class="block w-full p-2.5 ps-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-primary-500 focus:border-primary-500" placeholder="Cari nama atau kode obat..." />
-                            <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
-                                <svg class="w-4 h-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
-                                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z" />
-                                </svg>
+                            <input type="search" name="q" value="<?= e($search) ?>" class="block w-full p-2.5 ps-10 text-sm text-gray-900 border border-gray-300 rounded-base bg-gray-50/50 focus:ring-primary-500 focus:border-primary-500" placeholder="Cari nama atau kode obat..." />
+                            <div class="absolute inset-y-0 start-0 flex items-center ps-3.5 pointer-events-none text-gray-400">
+                                <i class="fas fa-search text-xs"></i>
                             </div>
                         </div>
 
-                        <select name="bentuk" onchange="this.form.submit()" class="border border-primary-400-05 text-heading text-sm rounded-base p-2.5 bg-white">
+                        <select name="bentuk" onchange="this.form.submit()" class="border border-gray-300 text-gray-900 text-sm rounded-base p-2.5 bg-white">
                             <option value="">Semua Bentuk</option>
                             <?php foreach ($listBentuk as $b): ?>
                                 <?php $namaBentuk = (string) ($b['bentuk'] ?? ''); ?>
@@ -370,42 +384,42 @@ try {
                             <?php endforeach; ?>
                         </select>
 
-                        <select name="stok" onchange="this.form.submit()" class="border border-primary-400-05 text-heading text-sm rounded-base p-2.5 bg-white">
+                        <select name="stok" onchange="this.form.submit()" class="border border-gray-300 text-gray-900 text-sm rounded-base p-2.5 bg-white">
                             <option value="">Semua Ketersediaan</option>
                             <option value="tersedia" <?= $filterStok === 'tersedia' ? 'selected' : '' ?>>Tersedia Aman</option>
-                            <option value="menipis" <?= $filterStok === 'menipis' ? 'selected' : '' ?>>Stok Menipis (&le; Minimum)</option>
+                            <option value="menipis" <?= $filterStok === 'menipis' ? 'selected' : '' ?>>Stok Menipis</option>
                             <option value="habis" <?= $filterStok === 'habis' ? 'selected' : '' ?>>Stok Habis (0)</option>
-                            <option value="kadaluarsa" <?= $filterStok === 'kadaluarsa' ? 'selected' : '' ?>>Mendekati / Kadaluarsa</option>
+                            <option value="kadaluarsa" <?= $filterStok === 'kadaluarsa' ? 'selected' : '' ?>>Mendekati Kedaluwarsa</option>
                         </select>
 
-                        <select name="status" onchange="this.form.submit()" class="border border-primary-400-05 text-heading text-sm rounded-base p-2.5 bg-white">
+                        <select name="status" onchange="this.form.submit()" class="border border-gray-300 text-gray-900 text-sm rounded-base p-2.5 bg-white">
                             <option value="">Semua Status</option>
                             <option value="aktif" <?= $filterStatus === 'aktif' ? 'selected' : '' ?>>Aktif</option>
                             <option value="nonaktif" <?= $filterStatus === 'nonaktif' ? 'selected' : '' ?>>Nonaktif</option>
                         </select>
 
                         <div class="flex items-center gap-3">
-                            <a href="obat.php" class="text-xs font-medium text-primary-600 hover:underline">Reset</a>
+                            <a href="obat.php" class="text-xs font-semibold text-primary-600 hover:underline">Reset filter</a>
                         </div>
                     </form>
 
                     <!-- Table -->
-                    <div class="relative overflow-x-auto mb-4">
+                    <div class="relative overflow-x-auto">
                         <table class="w-full text-sm text-left text-gray-600">
-                            <thead class="text-xs text-gray-700 bg-gray-50 border-b border-gray-200">
+                            <thead class="text-xs text-gray-500 uppercase bg-gray-50/60 border-b border-gray-200">
                                 <tr>
-                                    <th scope="col" class="px-4 py-3 font-semibold">Kode</th>
-                                    <th scope="col" class="px-4 py-3 font-semibold">Nama obat</th>
-                                    <th scope="col" class="px-4 py-3 font-semibold">Bentuk</th>
-                                    <th scope="col" class="px-4 py-3 font-semibold">Satuan</th>
-                                    <th scope="col" class="px-4 py-3 font-semibold">Stok & ketersediaan</th>
-                                    <th scope="col" class="px-4 py-3 font-semibold">Status</th>
-                                    <th scope="col" class="px-4 py-3 font-semibold">Tindakan</th>
+                                    <th scope="col" class="px-4 py-3.5 font-semibold">Kode</th>
+                                    <th scope="col" class="px-4 py-3.5 font-semibold">Nama Obat</th>
+                                    <th scope="col" class="px-4 py-3.5 font-semibold">Bentuk</th>
+                                    <th scope="col" class="px-4 py-3.5 font-semibold">Satuan</th>
+                                    <th scope="col" class="px-4 py-3.5 font-semibold">Stok &amp; Ketersediaan</th>
+                                    <th scope="col" class="px-4 py-3.5 font-semibold">Status</th>
+                                    <th scope="col" class="px-4 py-3.5 font-semibold text-right">Tindakan</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody class="divide-y divide-gray-100">
                                 <?php if (empty($obatRows)): ?>
-                                    <tr class="bg-white border-b border-gray-100">
+                                    <tr>
                                         <td colspan="7" class="px-4 py-8 text-center text-gray-500">
                                             Tidak ada data obat yang sesuai filter.
                                         </td>
@@ -422,14 +436,14 @@ try {
                                             'status' => $filterStatus,
                                         ]);
                                         ?>
-                                        <tr class="<?= $row['is_active'] ? 'bg-white' : 'bg-gray-50 opacity-75' ?> border-b border-gray-100 hover:bg-gray-50">
-                                            <td class="px-4 py-4 text-gray-500 font-medium"><?= e($row['kode_obat']) ?></td>
+                                        <tr class="<?= $row['is_active'] ? 'bg-white hover:bg-gray-50/60' : 'bg-gray-50 opacity-75' ?> transition-colors">
+                                            <td class="px-4 py-4 text-gray-500 font-semibold"><?= e($row['kode_obat']) ?></td>
                                             <td class="px-4 py-4">
                                                 <div class="font-bold text-gray-900"><?= e($row['nama_obat']) ?></div>
                                                 <div class="text-xs text-gray-500">
-                                                    Min: <?= $stokMin ?> <?= e($row['satuan']) ?>
+                                                    Batas min: <?= $stokMin ?> <?= e($row['satuan']) ?>
                                                     <?php if (!empty($row['tanggal_kadaluarsa'])): ?>
-                                                        &middot; Exp: <?= e(date('d M Y', strtotime($row['tanggal_kadaluarsa']))) ?>
+                                                        &middot; Berlaku s.d. <?= e(date('d M Y', strtotime($row['tanggal_kadaluarsa']))) ?>
                                                     <?php endif; ?>
                                                 </div>
                                             </td>
@@ -439,38 +453,37 @@ try {
                                                 <div class="flex flex-wrap items-center gap-2">
                                                     <span><?= $stokVal ?></span>
                                                     <?php if ($row['is_expired']): ?>
-                                                        <span class="inline-flex items-center px-2 py-0.5 text-fg-danger-strong text-xs font-medium rounded bg-danger-soft">Kadaluarsa</span>
+                                                        <span class="inline-flex items-center px-2 py-0.5 text-red-800 text-xs font-semibold rounded-base bg-red-100">Kedaluwarsa</span>
                                                     <?php elseif ($stokVal === 0): ?>
-                                                        <span class="inline-flex items-center px-2 py-0.5 text-fg-danger-strong text-xs font-medium rounded bg-danger-soft">Habis</span>
+                                                        <span class="inline-flex items-center px-2 py-0.5 text-red-800 text-xs font-semibold rounded-base bg-red-100">Habis</span>
                                                     <?php elseif ($stokVal <= $stokMin): ?>
-                                                        <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-orange-100 text-orange-800">Menipis</span>
+                                                        <span class="inline-flex items-center px-2 py-0.5 text-xs font-semibold rounded-base bg-orange-100 text-orange-800">Menipis</span>
                                                     <?php else: ?>
-                                                        <span class="inline-flex items-center px-2 py-0.5 text-fg-success-strong text-xs font-medium rounded bg-success-soft">Tersedia</span>
+                                                        <span class="inline-flex items-center px-2 py-0.5 text-emerald-700 text-xs font-semibold rounded-base bg-emerald-50 border border-emerald-200">Tersedia</span>
                                                     <?php endif; ?>
 
                                                     <?php if (!$row['is_expired'] && $row['is_near_expired']): ?>
-                                                        <span class="inline-flex items-center px-2 py-0.5 text-[11px] font-medium rounded bg-amber-50 text-amber-700">Hampir Exp</span>
+                                                        <span class="inline-flex items-center px-2 py-0.5 text-[11px] font-medium rounded bg-amber-50 text-amber-700">Hampir Kedaluwarsa</span>
                                                     <?php endif; ?>
                                                 </div>
                                             </td>
                                             <td class="px-4 py-4">
                                                 <?php if ($row['is_active']): ?>
-                                                    <span class="inline-flex items-center px-2 py-1 text-fg-success-strong text-xs font-medium rounded bg-success-soft">Aktif</span>
+                                                    <span class="inline-flex items-center px-2.5 py-1 text-emerald-700 text-xs font-semibold rounded-base bg-emerald-50 border border-emerald-200">Aktif</span>
                                                 <?php else: ?>
-                                                    <span class="inline-flex items-center px-2 py-1 text-heading text-xs font-medium rounded bg-gray-200">Nonaktif</span>
+                                                    <span class="inline-flex items-center px-2.5 py-1 text-gray-700 text-xs font-semibold rounded-base bg-gray-200">Nonaktif</span>
                                                 <?php endif; ?>
                                             </td>
-                                            <td class="px-4 py-4 font-medium text-primary-600 whitespace-nowrap">
-                                                <div class="flex items-center gap-3">
-                                                    <a href="obat.php?<?= $baseQ ?>&detail_id=<?= (int) $row['id'] ?>" class="hover:underline">Detail</a>
-                                                    <a href="obat.php?<?= $baseQ ?>&stok_id=<?= (int) $row['id'] ?>" class="hover:underline">Atur stok</a>
+                                            <td class="px-4 py-4 font-medium text-primary-600 whitespace-nowrap text-right">
+                                                <div class="flex justify-end items-center gap-3">
+                                                    <a href="obat.php?<?= $baseQ ?>&detail_id=<?= (int) $row['id'] ?>" class="text-xs font-semibold hover:underline">Lihat</a>
+                                                    <a href="obat.php?<?= $baseQ ?>&stok_id=<?= (int) $row['id'] ?>" class="text-xs font-semibold hover:underline">Atur Stok</a>
 
-                                                    <!-- Soft Delete / Restore Obat -->
-                                                    <form method="POST" action="obat.php" class="inline" onsubmit="return confirm('<?= $row['is_active'] ? 'Nonaktifkan obat ini agar tidak bisa diresepkan?' : 'Aktifkan kembali obat ini?' ?>')">
+                                                    <form method="POST" action="obat.php" class="inline" onsubmit="return confirm('<?= $row['is_active'] ? 'Nonaktifkan obat ini agar tidak ditampilkan pada pilihan resep baru?' : 'Aktifkan kembali obat ini?' ?>')">
                                                         <input type="hidden" name="action" value="toggle_active_obat">
                                                         <input type="hidden" name="obat_id" value="<?= (int) $row['id'] ?>">
                                                         <input type="hidden" name="new_state" value="<?= $row['is_active'] ? '0' : '1' ?>">
-                                                        <button type="submit" class="text-xs px-2 py-1 rounded font-semibold cursor-pointer <?= $row['is_active'] ? 'text-red-700 bg-red-50 hover:bg-red-100' : 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100' ?>">
+                                                        <button type="submit" class="text-xs px-2.5 py-1 rounded-base font-semibold cursor-pointer transition-colors <?= $row['is_active'] ? 'text-red-700 bg-red-50 hover:bg-red-600 hover:text-white' : 'text-emerald-700 bg-emerald-50 hover:bg-emerald-600 hover:text-white' ?>">
                                                             <?= $row['is_active'] ? 'Nonaktifkan' : 'Aktifkan' ?>
                                                         </button>
                                                     </form>
@@ -482,14 +495,6 @@ try {
                             </tbody>
                         </table>
                     </div>
-
-                    <div class="flex flex-col md:flex-row justify-between items-center text-sm text-gray-500 mb-6 gap-4">
-                        <span>Menampilkan <?= count($obatRows) ?> dari <?= $statTotal ?> obat</span>
-                    </div>
-
-                    <!-- <div class="bg-primary-50 rounded-base p-4 text-sm text-gray-600 border border-primary-100">
-                        Perubahan stok tercatat otomatis di tabel <b>log_stok_obat</b> dan akan mengirim peringatan ke Inbox admin bila stok menyentuh batas minimum.
-                    </div> -->
 
                 </div>
             </main>
