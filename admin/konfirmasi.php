@@ -34,16 +34,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'catat
     try {
         $pdo->beginTransaction();
 
+        if (!empty($_SESSION['user_id'])) {
+            $stmtCfg = $pdo->prepare("SELECT set_config('app.user_id', :uid, true)");
+            $stmtCfg->execute([':uid' => (string) $_SESSION['user_id']]);
+        }
+
         $hadirBool = ($hasilKonfirm === 'hadir');
-        
+
         $stmtFn = $pdo->prepare("SELECT fn_konfirmasi_reservasi(:id, :hadir)");
         $stmtFn->bindValue(':id', $reservasiId, PDO::PARAM_INT);
         $stmtFn->bindValue(':hadir', $hadirBool, PDO::PARAM_BOOL);
         $stmtFn->execute();
-        $hasilFungsi = $stmtFn->fetchColumn();
 
         if ($catatanAdmin !== '') {
-            $stmtUpd = $pdo->prepare("UPDATE reservasi SET keluhan = COALESCE(keluhan, '') || ' [Catatan Konfirmasi: ' || :cat || ']' WHERE id = :id");
+            $stmtUpd = $pdo->prepare("
+                UPDATE reservasi
+                   SET keluhan = COALESCE(keluhan, '') || ' [Catatan Konfirmasi: ' || :cat || ']'
+                 WHERE id = :id
+            ");
             $stmtUpd->execute([':cat' => $catatanAdmin, ':id' => $reservasiId]);
         }
 
@@ -53,7 +61,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'catat
         if ($pdo->inTransaction()) {
             $pdo->rollBack();
         }
-        $_SESSION['flash_error'] = "Gagal mencatat respons: " . $e->getMessage();
+        $rawMsg = $e->getMessage();
+        if (preg_match('/ERROR:\s*(.+?)(\n|CONTEXT:|$)/s', $rawMsg, $matches)) {
+            $_SESSION['flash_error'] = trim($matches[1]);
+        } else {
+            $_SESSION['flash_error'] = "Gagal mencatat respons: " . $rawMsg;
+        }
+        error_log('[konfirmasi-admin-post] ' . $rawMsg);
     }
 
     header("Location: konfirmasi.php");
@@ -61,9 +75,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'catat
 }
 
 $filterTglKunjungan = trim($_GET['tanggal_kunjungan'] ?? $besokDb);
-$search             = trim($_GET['q'] ?? '');
-$filterStatus       = trim($_GET['status'] ?? '');
-$catatId            = isset($_GET['catat_id']) && ctype_digit((string) $_GET['catat_id']) ? (int) $_GET['catat_id'] : null;
+if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $filterTglKunjungan)) {
+    $filterTglKunjungan = $besokDb;
+}
+$search       = trim($_GET['q'] ?? '');
+$filterStatus = trim($_GET['status'] ?? '');
+$catatId      = isset($_GET['catat_id']) && ctype_digit((string) $_GET['catat_id']) ? (int) $_GET['catat_id'] : null;
 
 $statTotalKonseling = 0;
 $statMenunggu       = 0;
@@ -76,33 +93,35 @@ $errorDb            = false;
 try {
     $stmtSt = $pdo->prepare("
         SELECT 
-            COUNT(*) AS total,
+            COUNT(*) FILTER (WHERE r.status <> 'dibatalkan') AS total,
             COUNT(*) FILTER (WHERE r.status = 'menunggu') AS menunggu,
             COUNT(*) FILTER (WHERE r.status = 'dikonfirmasi') AS hadir,
             COUNT(*) FILTER (WHERE r.status IN ('dibatalkan', 'tidak_hadir')) AS batal
         FROM reservasi r
         JOIN jadwal j ON j.id = r.jadwal_id
-        JOIN poli po ON po.id = j.poli_id
-        WHERE j.tanggal = :besok AND po.nama ILIKE '%konseling%' AND r.status <> 'dibatalkan'
+        JOIN poli po  ON po.id = j.poli_id
+        WHERE j.tanggal = :besok AND po.nama ILIKE '%konseling%'
     ");
     $stmtSt->execute([':besok' => $filterTglKunjungan]);
-    $stData = $stmtSt->fetch(PDO::FETCH_ASSOC);
+    $stData = $stmtSt->fetch();
 
     $statTotalKonseling = (int) ($stData['total'] ?? 0);
     $statMenunggu       = (int) ($stData['menunggu'] ?? 0);
     $statHadir          = (int) ($stData['hadir'] ?? 0);
     $statBatal          = (int) ($stData['batal'] ?? 0);
 
-    $where  = ["j.tanggal = :tgl", "po.nama ILIKE '%konseling%'", "r.status <> 'dibatalkan'"];
+    $where  = ["j.tanggal = :tgl", "po.nama ILIKE '%konseling%'"];
     $params = [':tgl' => $filterTglKunjungan];
 
     if ($search !== '') {
         $where[] = "(p.nama ILIKE :q OR p.nim_nip ILIKE :q OR r.no_reservasi ILIKE :q)";
         $params[':q'] = '%' . $search . '%';
     }
-    if ($filterStatus !== '') {
+    if (in_array($filterStatus, ['menunggu', 'dikonfirmasi', 'dibatalkan'], true)) {
         $where[] = "r.status = :status";
         $params[':status'] = $filterStatus;
+    } else {
+        $where[] = "r.status <> 'dibatalkan'";
     }
 
     $sqlList = "
@@ -129,7 +148,7 @@ try {
     ";
     $stmtList = $pdo->prepare($sqlList);
     $stmtList->execute($params);
-    $listKonfirmasi = $stmtList->fetchAll(PDO::FETCH_ASSOC);
+    $listKonfirmasi = $stmtList->fetchAll();
 
     if ($catatId !== null) {
         $stmtM = $pdo->prepare("
@@ -142,7 +161,7 @@ try {
             WHERE r.id = :id
         ");
         $stmtM->execute([':id' => $catatId]);
-        $modalReservasi = $stmtM->fetch(PDO::FETCH_ASSOC);
+        $modalReservasi = $stmtM->fetch();
     }
 
 } catch (PDOException $e) {
@@ -175,6 +194,9 @@ try {
                 <?php if ($flashError): ?>
                     <div class="mb-4 p-4 text-sm text-red-800 bg-red-100 border border-red-300 rounded-base" role="alert"><?= e($flashError) ?></div>
                 <?php endif; ?>
+                <?php if ($errorDb): ?>
+                    <div class="mb-4 p-4 text-sm text-red-800 bg-red-100 border border-red-300 rounded-base" role="alert">Data konfirmasi gagal dimuat. Periksa log server.</div>
+                <?php endif; ?>
 
                 <div class="mb-6">
                     <h1 class="text-2xl font-bold text-gray-900">Konfirmasi H-1</h1>
@@ -196,7 +218,7 @@ try {
                         </div>
                     </div>
                     <div class="w-full md:w-auto flex justify-start md:justify-end">
-                        <span class="bg-primary-50 text-primary-700 text-xs font-bold px-3 py-1.5 rounded-base">Poli Konseling</span>
+                        <span class="bg-primary-50 text-primary-700 text-xs font-bold px-3 py-1.5 rounded-base">Poli Konseling &middot; <?= e($statTotalKonseling) ?> pasien</span>
                     </div>
                 </div>
 
@@ -207,22 +229,22 @@ try {
                         <div class="bg-white p-5 border border-gray-200 rounded-base shadow-xs flex flex-col">
                             <p class="text-sm text-gray-700 font-semibold">Total konseling tanggal ini</p>
                             <h4 class="text-4xl font-bold my-3 text-gray-900 flex-1"><?= e($statTotalKonseling) ?></h4>
-                            <p class="text-xs text-gray-500">Pasien terdaftar</p>
+                            <p class="text-xs text-gray-500">Pasien terdaftar aktif</p>
                         </div>
                         <div class="bg-yellow-100 p-5 border border-yellow-400 rounded-base shadow-xs flex flex-col">
                             <p class="text-sm text-yellow-900 font-semibold">Menunggu respons</p>
                             <h4 class="text-4xl font-bold my-3 text-yellow-900 flex-1"><?= e($statMenunggu) ?></h4>
-                            <p class="text-xs text-yellow-900">Belum dikonfirmasi</p>
+                            <p class="text-xs text-yellow-900">Belum mengonfirmasi kehadiran</p>
                         </div>
                         <div class="bg-white p-5 border border-gray-200 rounded-base shadow-xs flex flex-col">
                             <p class="text-sm text-gray-700 font-semibold">Konfirmasi hadir</p>
                             <h4 class="text-4xl font-bold my-3 text-gray-900 flex-1"><?= e($statHadir) ?></h4>
-                            <p class="text-xs text-gray-500">Siap hadir</p>
+                            <p class="text-xs text-gray-500">Siap hadir sesuai jadwal</p>
                         </div>
                         <div class="bg-white p-5 border border-gray-200 rounded-base shadow-xs flex flex-col">
                             <p class="text-sm text-gray-700 font-semibold">Batal / Tidak hadir</p>
                             <h4 class="text-4xl font-bold my-3 text-gray-900 flex-1"><?= e($statBatal) ?></h4>
-                            <p class="text-xs text-gray-500">Perlu perhatian</p>
+                            <p class="text-xs text-gray-500">Berhalangan hadir</p>
                         </div>
                     </div>
                 </div>
@@ -238,7 +260,7 @@ try {
                     <form method="GET" action="konfirmasi.php" class="grid grid-cols-1 md:grid-cols-12 gap-4 mb-6 items-end">
                         <div class="flex flex-col md:col-span-5">
                             <label class="text-xs text-gray-600 mb-1.5">Pencarian pasien</label>
-                            <input type="text" name="q" value="<?= e($search) ?>" class="block w-full px-3 py-2 text-sm text-gray-900 border border-primary-400-05 rounded-base bg-white" placeholder="Cari nama atau NIM/NIP">
+                            <input type="text" name="q" value="<?= e($search) ?>" class="block w-full px-3 py-2 text-sm text-gray-900 border border-primary-400-05 rounded-base bg-white" placeholder="Cari nama, NIM/NIP, atau nomor reservasi">
                         </div>
                         <div class="flex flex-col md:col-span-3">
                             <label class="text-sm text-gray-600 mb-1.5">Tanggal kunjungan</label>
@@ -247,9 +269,10 @@ try {
                         <div class="flex flex-col md:col-span-2">
                             <label class="text-xs text-gray-600 mb-1.5">Status Konfirmasi</label>
                             <select name="status" onchange="this.form.submit()" class="border border-primary-400-05 text-heading text-sm rounded-base flex-1 bg-white p-2">
-                                <option value="">Semua status</option>
-                                <option value="menunggu" <?= $filterStatus === 'menunggu' ? 'selected' : '' ?>>Menunggu</option>
+                                <option value="">Semua status aktif</option>
+                                <option value="menunggu" <?= $filterStatus === 'menunggu' ? 'selected' : '' ?>>Menunggu Respons</option>
                                 <option value="dikonfirmasi" <?= $filterStatus === 'dikonfirmasi' ? 'selected' : '' ?>>Dikonfirmasi</option>
+                                <option value="dibatalkan" <?= $filterStatus === 'dibatalkan' ? 'selected' : '' ?>>Dibatalkan</option>
                             </select>
                         </div>
                         <div class="flex flex-col md:col-span-2 items-end">
@@ -279,11 +302,11 @@ try {
                                         <tr class="border-b border-gray-100 hover:bg-gray-50">
                                             <td class="py-4 pe-3 align-top">
                                                 <div class="font-bold text-gray-900 text-sm mb-0.5"><?= e($row['nama_pasien']) ?></div>
-                                                <div class="text-xs text-gray-500 mb-0.5">NIM/NIP · <?= e($row['nim_nip']) ?></div>
-                                                <div class="text-xs text-gray-500"><?= e($row['no_hp'] ?? 'No HP tidak ada') ?></div>
+                                                <div class="text-xs text-gray-500 mb-0.5">NIM/NIP &middot; <?= e($row['nim_nip']) ?></div>
+                                                <div class="text-xs text-gray-500"><?= e($row['no_hp'] ?? 'No HP belum diisi') ?></div>
                                             </td>
                                             <td class="py-4 pe-3 align-top">
-                                                <div class="font-medium text-gray-900 text-xs mb-1"><?= e(date('d M Y', strtotime($row['tanggal_kunjungan']))) ?> · <?= e(substr($row['jam_mulai'], 0, 5)) ?>–<?= e(substr($row['jam_selesai'], 0, 5)) ?> WIB</div>
+                                                <div class="font-medium text-gray-900 text-xs mb-1"><?= e(date('d M Y', strtotime($row['tanggal_kunjungan']))) ?> &middot; <?= e(substr($row['jam_mulai'], 0, 5)) ?>–<?= e(substr($row['jam_selesai'], 0, 5)) ?> WIB</div>
                                                 <div class="text-xs text-gray-500"><?= e($row['nama_dokter'] ?? 'Psikolog bertugas') ?></div>
                                             </td>
                                             <td class="py-4 pe-3 align-top">

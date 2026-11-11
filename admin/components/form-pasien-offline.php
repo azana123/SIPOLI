@@ -30,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'dafta
             ':nim_nip' => $nimNip,
             ':no_hp'   => $noHp,
         ]);
-        $pasienRow = $stmtPasien->fetch(PDO::FETCH_ASSOC);
+        $pasienRow = $stmtPasien->fetch();
 
         $stmtAntrean = $pdo->prepare("
             INSERT INTO antrean (no_antrean, pasien_id, poli_id, admin_id)
@@ -62,21 +62,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'dafta
         error_log('[walkin-offline] ' . $rawMsg);
     }
 
-    header("Location : reservasi.php");
+    if (!headers_sent()) {
+        header("Location: reservasi.php");
+        exit;
+    }
+    echo '<script>window.location.href = "reservasi.php";</script>';
     exit;
 }
 
 $poliWalkinList = [];
 if (isset($pdo)) {
     try {
-        $poliWalkinList = $pdo->query("SELECT id, nama FROM poli WHERE butuh_reservasi = FALSE ORDER BY id ASC")->fetchAll(PDO::FETCH_ASSOC);
+        $poliWalkinList = $pdo->query("SELECT id, nama FROM poli WHERE butuh_reservasi = FALSE ORDER BY id ASC")->fetchAll();
     } catch (PDOException $e) {
         $poliWalkinList = [];
     }
 }
 ?>
 <!-- Modal Tambah Pasien Offline (Walk-in) -->
-<div id="modal-tambah-pasien" tabindex="-1" aria-hidden="true" data-modal-backdrop="true" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+<div id="modal-tambah-pasien" tabindex="-1" aria-hidden="true" data-modal-backdrop="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
     <div class="relative p-4 w-full max-w-md max-h-full">
         <!-- Modal content -->
         <div class="relative bg-white rounded-lg shadow">
