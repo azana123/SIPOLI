@@ -1,4 +1,5 @@
 initShowPassword();
+initShowKonfirmasiPassword();
 initDataMasterCard();
 
 function initShowPassword() {
@@ -8,6 +9,23 @@ function initShowPassword() {
   }
   const icon = eye.querySelector("i");
   const password = document.getElementById("form-password");
+
+  eye.addEventListener("click", () => {
+    const isText = password.type === "text";
+
+    password.type = isText ? "password" : "text";
+    icon.classList.toggle("fa-eye", isText);
+    icon.classList.toggle("fa-eye-slash", !isText);
+  });
+}
+
+function initShowKonfirmasiPassword() {
+  const eye = document.getElementById("eye-konfirmasi");
+  if (!eye) {
+    return;
+  }
+  const icon = eye.querySelector("i");
+  const password = document.getElementById("form-konfirmasi-password");
 
   eye.addEventListener("click", () => {
     const isText = password.type === "text";

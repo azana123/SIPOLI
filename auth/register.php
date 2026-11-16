@@ -84,8 +84,8 @@ unset($_SESSION['old']);
                 <div class="mb-5">
                     <label for="confirm_password" class="block mb-2.5 text-sm font-medium text-heading">Konfirmasi Password</label>
                     <div class="relative">
-                        <input type="password" name="confirm_password" id="form-password" minlength="8" maxlength="72" autocomplete="new-password" class="bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-primary focus:border-primary block w-full px-3 py-2.5 shadow-xs placeholder:text-body" placeholder="••••••••" required />
-                        <div id="eye" class="absolute inset-y-0 inset-e-0 flex items-center text-primary pe-3.5 cursor-pointer transition-colors hover:text-primary-700">
+                        <input type="password" name="confirm_password" id="form-konfirmasi-password" minlength="8" maxlength="72" autocomplete="new-password" class="bg-neutral-secondary-medium border border-default-medium text-heading text-sm rounded-base focus:ring-primary focus:border-primary block w-full px-3 py-2.5 shadow-xs placeholder:text-body" placeholder="••••••••" required />
+                        <div id="eye-konfirmasi" class="absolute inset-y-0 inset-e-0 flex items-center text-primary pe-3.5 cursor-pointer transition-colors hover:text-primary-700">
                             <i class="fa fa-eye" aria-hidden="true"></i>
                         </div>
                     </div>
