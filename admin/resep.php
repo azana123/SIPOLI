@@ -3,6 +3,7 @@ require_once __DIR__ . "/../config/config.php";
 require_once __DIR__ . '/../middleware/check-role.php';
 check_role('admin');
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../services/_load.php';
 
 $page_title = "Resep";
 $app_name   = "SIPOLI";
@@ -24,7 +25,7 @@ function formatTanggalIndoResep(string $dateStr): string
 }
 
 try {
-    $todayDb = $pdo->query("SELECT fn_today()::text")->fetchColumn() ?: date('Y-m-d');
+    $todayDb = QueryAdminResep::todayDb() ?: date('Y-m-d');
 } catch (PDOException $e) {
     $todayDb = date('Y-m-d');
 }
@@ -32,81 +33,6 @@ try {
 $flashSuccess = $_SESSION['flash_success'] ?? null;
 $flashError   = $_SESSION['flash_error'] ?? null;
 unset($_SESSION['flash_success'], $_SESSION['flash_error']);
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'update_status_resep') {
-    $permintaanId = (int) ($_POST['permintaan_id'] ?? 0);
-    $statusBaru   = $_POST['status_baru'] ?? '';
-    $catatanAdmin = trim($_POST['catatan'] ?? '');
-    $redirectTgl  = $_POST['redirect_tanggal'] ?? $todayDb;
-    $adminId      = isset($_SESSION['profil_id']) ? (int) $_SESSION['profil_id'] : null;
-
-    if (!in_array($statusBaru, ['disiapkan', 'diserahkan', 'dibatalkan'], true)) {
-        $_SESSION['flash_error'] = "Status pemrosesan resep tidak valid.";
-        header("Location: resep.php?tanggal=" . urlencode($redirectTgl) . "&id=" . $permintaanId);
-        exit;
-    }
-
-    try {
-        $pdo->beginTransaction();
-
-        if (!empty($_SESSION['user_id'])) {
-            $stmtCfg = $pdo->prepare("SELECT set_config('app.user_id', :uid, true)");
-            $stmtCfg->execute([':uid' => (string) $_SESSION['user_id']]);
-        }
-
-        $stmtCek = $pdo->prepare("SELECT id, pemeriksaan_id, status FROM permintaan_obat WHERE id = :id FOR UPDATE");
-        $stmtCek->execute([':id' => $permintaanId]);
-        $req = $stmtCek->fetch();
-
-        if (!$req) {
-            throw new Exception("Data permintaan resep tidak ditemukan.");
-        }
-        if (in_array($req['status'], ['diserahkan', 'dibatalkan'], true)) {
-            throw new Exception("Resep yang sudah selesai atau dibatalkan tidak dapat diubah lagi.");
-        }
-
-        $stmtUpd = $pdo->prepare("
-            UPDATE permintaan_obat
-               SET status           = :status::text,
-                   diproses_oleh    = COALESCE(:admin_id, diproses_oleh),
-                   waktu_diserahkan = CASE WHEN :status = 'diserahkan' THEN NOW() ELSE waktu_diserahkan END,
-                   catatan          = COALESCE(NULLIF(:catatan, ''), catatan)
-             WHERE id = :id
-        ");
-        $stmtUpd->bindValue(':status', $statusBaru, PDO::PARAM_STR);
-        $stmtUpd->bindValue(':admin_id', $adminId, $adminId === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
-        $stmtUpd->bindValue(':catatan', $catatanAdmin, PDO::PARAM_STR);
-        $stmtUpd->bindValue(':id', $permintaanId, PDO::PARAM_INT);
-        $stmtUpd->execute();
-
-        $stmtInbox = $pdo->prepare("
-            UPDATE inbox
-               SET dibaca_at       = COALESCE(dibaca_at, NOW()),
-                   aksi_selesai_at = CASE WHEN :status IN ('diserahkan', 'dibatalkan') THEN NOW() ELSE aksi_selesai_at END
-             WHERE tipe = 'permintaan_obat' AND ref_tipe = 'permintaan_obat' AND ref_id = :id
-        ");
-        $stmtInbox->execute([':status' => $statusBaru, ':id' => $permintaanId]);
-
-        $pdo->commit();
-
-        $labelSukses = match ($statusBaru) {
-            'disiapkan'  => 'Resep mulai disiapkan oleh petugas.',
-            'diserahkan' => 'Obat telah diserahkan kepada pasien.',
-            'dibatalkan' => 'Permintaan obat telah dibatalkan.',
-        };
-        $_SESSION['flash_success'] = $labelSukses;
-
-    } catch (Exception $e) {
-        if ($pdo->inTransaction()) {
-            $pdo->rollBack();
-        }
-        $_SESSION['flash_error'] = $e->getMessage();
-        error_log('[resep-admin-post] ' . $e->getMessage());
-    }
-
-    header("Location: resep.php?tanggal=" . urlencode($redirectTgl) . "&id=" . $permintaanId);
-    exit;
-}
 
 $filterTanggal = trim($_GET['tanggal'] ?? $todayDb);
 if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $filterTanggal)) {
@@ -126,17 +52,7 @@ $detailItems  = [];
 $errorDb      = false;
 
 try {
-    $stmtStat = $pdo->prepare("
-        SELECT 
-            COUNT(*) FILTER (WHERE po.status <> 'dibatalkan') AS total_hari_ini,
-            COUNT(*) FILTER (WHERE po.status = 'menunggu')    AS total_menunggu,
-            COUNT(*) FILTER (WHERE po.status = 'disiapkan')   AS total_diproses,
-            COUNT(*) FILTER (WHERE po.status = 'diserahkan')  AS total_selesai
-        FROM permintaan_obat po
-        JOIN pemeriksaan pm ON pm.id = po.pemeriksaan_id
-        WHERE pm.tanggal = :tanggal
-    ");
-    $stmtStat->execute([':tanggal' => $filterTanggal]);
+    $stmtStat = QueryAdminResep::stat([':tanggal' => $filterTanggal]);
     $st = $stmtStat->fetch();
 
     $statHariIni  = (int) ($st['total_hari_ini'] ?? 0);
@@ -144,113 +60,20 @@ try {
     $statDiproses = (int) ($st['total_diproses'] ?? 0);
     $statSelesai  = (int) ($st['total_selesai'] ?? 0);
 
-    $where  = ["pm.tanggal = :tanggal"];
-    $params = [':tanggal' => $filterTanggal];
-
-    if ($search !== '') {
-        $where[]      = "(ps.nama ILIKE :q OR ps.nim_nip ILIKE :q OR d.nama ILIKE :q OR concat('RSP-', lpad(po.id::text, 3, '0')) ILIKE :q)";
-        $params[':q'] = '%' . $search . '%';
-    }
-
-    if (in_array($filterStatus, ['menunggu', 'disiapkan', 'diserahkan', 'dibatalkan'], true)) {
-        $where[]           = "po.status = :status";
-        $params[':status'] = $filterStatus;
-    } else {
-        $where[] = "po.status <> 'dibatalkan'";
-    }
-
-    $sqlList = "
-        SELECT 
-            po.id AS permintaan_id,
-            concat('RSP-', lpad(po.id::text, 3, '0')) AS kode_resep,
-            po.status,
-            po.created_at,
-            po.waktu_diserahkan,
-            pm.id AS pemeriksaan_id,
-            ps.nama AS nama_pasien,
-            ps.nim_nip,
-            d.nama AS nama_dokter,
-            (SELECT COUNT(*) FROM resep_obat ro WHERE ro.pemeriksaan_id = pm.id) AS jumlah_obat
-        FROM permintaan_obat po
-        JOIN pemeriksaan pm ON pm.id = po.pemeriksaan_id
-        JOIN pasien ps      ON ps.id = pm.pasien_id
-        JOIN dokter d       ON d.id  = pm.dokter_id
-        WHERE " . implode(" AND ", $where) . "
-        ORDER BY 
-            CASE po.status 
-                WHEN 'menunggu'   THEN 1 
-                WHEN 'disiapkan'  THEN 2 
-                WHEN 'diserahkan' THEN 3 
-                ELSE 4 
-            END ASC,
-            po.created_at DESC
-    ";
-    $stmtList = $pdo->prepare($sqlList);
-    $stmtList->execute($params);
-    $listAntrean = $stmtList->fetchAll();
+    $listAntrean = QueryDaftar::resepAdmin([
+        'tanggal' => $filterTanggal, 'q' => $search, 'status' => $filterStatus,
+    ]);
 
     if ($selectedId === null && !empty($listAntrean)) {
         $selectedId = (int) $listAntrean[0]['permintaan_id'];
     }
 
     if ($selectedId !== null) {
-        $stmtDet = $pdo->prepare("
-            SELECT 
-                po.id AS permintaan_id,
-                concat('RSP-', lpad(po.id::text, 3, '0')) AS kode_resep,
-                po.status,
-                po.catatan AS catatan_apotek,
-                po.created_at,
-                po.waktu_diserahkan,
-                adm.nama AS nama_admin,
-                pm.id AS pemeriksaan_id,
-                pm.tanggal,
-                pm.diagnosa,
-                pm.catatan AS catatan_dokter,
-                ps.id AS pasien_id,
-                ps.nama AS nama_pasien,
-                ps.nim_nip,
-                ps.riwayat_alergi,
-                d.nama AS nama_dokter,
-                pol.nama AS nama_poli
-            FROM permintaan_obat po
-            JOIN pemeriksaan pm ON pm.id  = po.pemeriksaan_id
-            JOIN pasien ps      ON ps.id  = pm.pasien_id
-            JOIN dokter d       ON d.id   = pm.dokter_id
-            JOIN poli pol       ON pol.id = pm.poli_id
-            LEFT JOIN admin adm ON adm.id = po.diproses_oleh
-            WHERE po.id = :id
-        ");
-        $stmtDet->execute([':id' => $selectedId]);
+        $stmtDet = QueryAdminResep::det([':id' => $selectedId]);
         $detailResep = $stmtDet->fetch();
 
         if ($detailResep) {
-            $stmtItems = $pdo->prepare("
-                SELECT 
-                    ro.id AS resep_obat_id,
-                    ro.jumlah,
-                    ro.aturan_pakai,
-                    o.id AS obat_id,
-                    o.kode_obat,
-                    o.nama_obat,
-                    o.bentuk,
-                    o.satuan,
-                    o.stok AS stok_saat_ini,
-                    lso.stok_sebelum,
-                    lso.stok_sesudah
-                FROM resep_obat ro
-                JOIN obat o ON o.id = ro.obat_id
-                LEFT JOIN LATERAL (
-                    SELECT stok_sebelum, stok_sesudah
-                    FROM log_stok_obat l
-                    WHERE l.resep_obat_id = ro.id
-                    ORDER BY l.id DESC
-                    LIMIT 1
-                ) lso ON TRUE
-                WHERE ro.pemeriksaan_id = :pem_id
-                ORDER BY ro.id ASC
-            ");
-            $stmtItems->execute([':pem_id' => $detailResep['pemeriksaan_id']]);
+            $stmtItems = QueryAdminResep::items([':pem_id' => $detailResep['pemeriksaan_id']]);
             $detailItems = $stmtItems->fetchAll();
         }
     }
@@ -516,7 +339,7 @@ $hasDetail = !empty($detailResep);
                                 </div>
 
                                 <?php if (in_array($detailResep['status'], ['menunggu', 'disiapkan'], true)): ?>
-                                    <form method="POST" action="resep.php" class="space-y-3 mb-4">
+                                    <form method="POST" action="resep.php" data-api-endpoint="/api/admin/resep.php" data-api-redirect="/admin/resep.php?tanggal=<?= urlencode($filterTanggal) ?>&id=<?= (int) $detailResep['permintaan_id'] ?>" class="space-y-3 mb-4">
                                         <input type="hidden" name="action" value="update_status_resep">
                                         <input type="hidden" name="permintaan_id" value="<?= (int) $detailResep['permintaan_id'] ?>">
                                         <input type="hidden" name="redirect_tanggal" value="<?= e($filterTanggal) ?>">

@@ -6,7 +6,7 @@
                 <a href="reservasi.php?tanggal=<?= urlencode($filterTanggal) ?>" class="text-gray-400 hover:bg-gray-100 rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center">✕</a>
             </div>
 
-            <form method="POST" action="reservasi.php" class="mt-4 space-y-4">
+            <form method="POST" action="reservasi.php" data-api-endpoint="/api/admin/reservasi.php" data-api-redirect="/admin/reservasi.php?tanggal=<?= urlencode($filterTanggal) ?>" class="mt-4 space-y-4">
                 <input type="hidden" name="action" value="reschedule">
                 <input type="hidden" name="reservasi_id" value="<?= (int) $rescheduleData['id'] ?>">
                 <input type="hidden" name="redirect_tanggal" value="<?= e($filterTanggal) ?>">

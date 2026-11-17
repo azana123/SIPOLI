@@ -33,7 +33,7 @@ $eaSuper    = !empty($editAdmin['is_super']);
                 <?php endif; ?>
             </div>
 
-            <form id="form-admin" action="datamaster.php" method="POST" class="p-5 space-y-4">
+            <form id="form-admin" action="datamaster.php" method="POST" data-api-endpoint="/api/admin/datamaster.php" data-api-redirect="/admin/datamaster.php?tab=admin" class="p-5 space-y-4">
                 <input type="hidden" name="action" value="save_admin">
                 <input type="hidden" name="tab" value="admin">
                 <input type="hidden" name="admin_id" value="<?= $eaId ?>">

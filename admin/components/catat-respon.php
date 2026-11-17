@@ -12,7 +12,7 @@ $isCatatOpen = !empty($modalReservasi);
             </div>
 
             <?php if ($modalReservasi): ?>
-                <form action="konfirmasi.php" method="POST">
+                <form action="konfirmasi.php" method="POST" data-api-endpoint="/api/admin/konfirmasi.php" data-api-redirect="/admin/konfirmasi.php">
                     <input type="hidden" name="action" value="catat_respons">
                     <input type="hidden" name="reservasi_id" value="<?= (int) $modalReservasi['reservasi_id'] ?>">
 

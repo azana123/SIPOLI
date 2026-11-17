@@ -16,7 +16,7 @@
                 </button>
             </div>
 
-            <form action="obat.php" method="POST" class="p-5">
+            <form action="obat.php" method="POST" data-api-endpoint="/api/admin/obat.php" data-api-redirect="/admin/obat.php" class="p-5">
                 <input type="hidden" name="action" value="create_obat">
 
                 <div class="grid gap-4 mb-4 grid-cols-1 md:grid-cols-2">

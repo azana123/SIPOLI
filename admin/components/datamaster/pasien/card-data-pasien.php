@@ -122,7 +122,7 @@
                                     </a>
 
                                     <!-- Nonaktifkan / Aktifkan -->
-                                    <form method="POST" action="datamaster.php" class="inline" onsubmit="return confirm('<?= $row['status_aktif'] ? 'Nonaktifkan data pasien ini?' : 'Aktifkan kembali data pasien ini?' ?>')">
+                                    <form method="POST" action="datamaster.php" data-api-endpoint="/api/admin/datamaster.php" data-api-redirect="/admin/datamaster.php?tab=pasien" class="inline" onsubmit="return confirm('<?= $row['status_aktif'] ? 'Nonaktifkan data pasien ini?' : 'Aktifkan kembali data pasien ini?' ?>')">
                                         <input type="hidden" name="action" value="toggle_active">
                                         <input type="hidden" name="tab" value="pasien">
                                         <input type="hidden" name="entity" value="pasien">

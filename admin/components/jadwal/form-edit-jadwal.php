@@ -32,7 +32,7 @@ $eDipublikasi = !empty($editJadwal['dipublikasi']);
 
             <?php if ($editJadwal): ?>
                 <!-- Modal Body (Form Update) -->
-                <form action="jadwal.php" method="POST" class="p-5 space-y-5">
+                <form action="jadwal.php" method="POST" data-api-endpoint="/api/admin/jadwal.php" data-api-redirect="/admin/jadwal.php?tanggal=<?= urlencode($filterTanggal) ?>" class="p-5 space-y-5">
                     <input type="hidden" name="action" value="update">
                     <input type="hidden" name="id" value="<?= $eId ?>">
                     <input type="hidden" name="redirect_tanggal" value="<?= e($filterTanggal) ?>">
@@ -154,7 +154,7 @@ $eDipublikasi = !empty($editJadwal['dipublikasi']);
                 </form>
 
                 <!-- Form Terpisah untuk Soft Delete (Tutup Jadwal) -->
-                <form id="form-soft-delete-jadwal" action="jadwal.php" method="POST" class="hidden">
+                <form id="form-soft-delete-jadwal" action="jadwal.php" method="POST" data-api-endpoint="/api/admin/jadwal.php" data-api-redirect="/admin/jadwal.php?tanggal=<?= urlencode($filterTanggal) ?>" class="hidden">
                     <input type="hidden" name="action" value="soft_delete">
                     <input type="hidden" name="id" value="<?= $eId ?>">
                     <input type="hidden" name="redirect_tanggal" value="<?= e($filterTanggal) ?>">

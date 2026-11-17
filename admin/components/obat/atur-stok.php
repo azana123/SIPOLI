@@ -25,7 +25,7 @@ $sStokSaatIni = (int) ($stokObat['stok'] ?? 0);
             </div>
 
             <?php if ($stokObat): ?>
-                <form action="obat.php" method="POST" class="p-5 space-y-5">
+                <form action="obat.php" method="POST" data-api-endpoint="/api/admin/obat.php" data-api-redirect="/admin/obat.php" class="p-5 space-y-5">
                     <input type="hidden" name="action" value="atur_stok">
                     <input type="hidden" name="obat_id" value="<?= $sObatId ?>">
 

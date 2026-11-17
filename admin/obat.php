@@ -3,6 +3,7 @@ require_once __DIR__ . "/../config/config.php";
 require_once __DIR__ . '/../middleware/check-role.php';
 check_role('admin');
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../services/_load.php';
 
 $page_title = "Obat & Stok";
 $app_name   = "SIPOLI";
@@ -15,7 +16,7 @@ if (!function_exists('e')) {
 }
 
 try {
-    $todayDb = $pdo->query("SELECT fn_today()::text")->fetchColumn() ?: date('Y-m-d');
+    $todayDb = QueryAdminObat::todayDb() ?: date('Y-m-d');
 } catch (PDOException $e) {
     $todayDb = date('Y-m-d');
 }
@@ -24,123 +25,6 @@ $flashSuccess = $_SESSION['flash_success'] ?? null;
 $flashError   = $_SESSION['flash_error'] ?? null;
 unset($_SESSION['flash_success'], $_SESSION['flash_error']);
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $action  = $_POST['action'] ?? '';
-    $adminId = isset($_SESSION['profil_id']) ? (int) $_SESSION['profil_id'] : null;
-
-    try {
-        $pdo->beginTransaction();
-
-        if (!empty($_SESSION['user_id'])) {
-            $stmtCfg = $pdo->prepare("SELECT set_config('app.user_id', :uid, true)");
-            $stmtCfg->execute([':uid' => (string) $_SESSION['user_id']]);
-        }
-
-        if ($action === 'create_obat') {
-            $kodeObat  = strtoupper(trim($_POST['kode_obat'] ?? ''));
-            $namaObat  = trim($_POST['nama_obat'] ?? '');
-            $bentuk    = strtolower(trim($_POST['bentuk'] ?? ''));
-            $satuan    = strtolower(trim($_POST['satuan'] ?? ''));
-            $stokAwal  = max(0, (int) ($_POST['stok_awal'] ?? 0));
-            $stokMin   = max(0, (int) ($_POST['stok_minimum'] ?? 10));
-            $tglExp    = !empty($_POST['tanggal_kadaluarsa']) ? trim($_POST['tanggal_kadaluarsa']) : null;
-            $dosisUmum = trim($_POST['dosis_umum'] ?? '');
-            $ketInput  = trim($_POST['keterangan'] ?? '');
-            $isActive  = (($_POST['status'] ?? 'aktif') === 'aktif');
-
-            $keterangan = $ketInput;
-            if ($dosisUmum !== '') {
-                $keterangan = 'Dosis umum: ' . $dosisUmum . ($ketInput !== '' ? ' - ' . $ketInput : '');
-            }
-
-            $stmtIns = $pdo->prepare("
-                INSERT INTO obat (kode_obat, nama_obat, bentuk, satuan, stok, stok_minimum, tanggal_kadaluarsa, keterangan, is_active)
-                VALUES (:kode, :nama, :bentuk, :satuan, 0, :stok_min, :exp, :ket, :aktif)
-                RETURNING id
-            ");
-            $stmtIns->bindValue(':kode', $kodeObat, PDO::PARAM_STR);
-            $stmtIns->bindValue(':nama', $namaObat, PDO::PARAM_STR);
-            $stmtIns->bindValue(':bentuk', $bentuk !== '' ? $bentuk : null, $bentuk !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
-            $stmtIns->bindValue(':satuan', $satuan, PDO::PARAM_STR);
-            $stmtIns->bindValue(':stok_min', $stokMin, PDO::PARAM_INT);
-            $stmtIns->bindValue(':exp', $tglExp, $tglExp !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
-            $stmtIns->bindValue(':ket', $keterangan !== '' ? $keterangan : null, $keterangan !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
-            $stmtIns->bindValue(':aktif', $isActive, PDO::PARAM_BOOL);
-            $stmtIns->execute();
-            $obatBaruId = (int) $stmtIns->fetchColumn();
-
-            if ($stokAwal > 0) {
-                $stmtStok = $pdo->prepare("SELECT fn_tambah_stok_obat(:obat_id, :jumlah, :admin_id, :ket)");
-                $stmtStok->bindValue(':obat_id', $obatBaruId, PDO::PARAM_INT);
-                $stmtStok->bindValue(':jumlah', $stokAwal, PDO::PARAM_INT);
-                $stmtStok->bindValue(':admin_id', $adminId, $adminId === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
-                $stmtStok->bindValue(':ket', 'Stok awal penambahan obat baru', PDO::PARAM_STR);
-                $stmtStok->execute();
-            }
-
-            $_SESSION['flash_success'] = "Data obat {$namaObat} ({$kodeObat}) berhasil ditambahkan.";
-
-        } elseif ($action === 'atur_stok') {
-            $obatId         = (int) ($_POST['obat_id'] ?? 0);
-            $jenisPerubahan = $_POST['jenis_perubahan'] ?? 'tambah';
-            $jumlah         = (int) ($_POST['jumlah'] ?? 0);
-            $catatan        = trim($_POST['catatan'] ?? 'Penyesuaian stok oleh admin');
-
-            if ($jumlah <= 0) {
-                throw new Exception("Jumlah perubahan stok harus lebih dari 0.");
-            }
-
-            if ($jenisPerubahan === 'tambah') {
-                $stmt = $pdo->prepare("SELECT fn_tambah_stok_obat(:obat_id, :jumlah, :admin_id, :ket)");
-                $stmt->bindValue(':obat_id', $obatId, PDO::PARAM_INT);
-                $stmt->bindValue(':jumlah', $jumlah, PDO::PARAM_INT);
-                $stmt->bindValue(':admin_id', $adminId, $adminId === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
-                $stmt->bindValue(':ket', $catatan, PDO::PARAM_STR);
-                $stmt->execute();
-            } else {
-                $stmt = $pdo->prepare("SELECT fn_ubah_stok(:obat_id, :delta, NULL, :admin_id, :ket)");
-                $stmt->bindValue(':obat_id', $obatId, PDO::PARAM_INT);
-                $stmt->bindValue(':delta', -$jumlah, PDO::PARAM_INT);
-                $stmt->bindValue(':admin_id', $adminId, $adminId === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
-                $stmt->bindValue(':ket', $catatan, PDO::PARAM_STR);
-                $stmt->execute();
-            }
-
-            $_SESSION['flash_success'] = "Stok obat berhasil diperbarui dan tercatat di riwayat.";
-
-        } elseif ($action === 'toggle_active_obat') {
-            $obatId   = (int) ($_POST['obat_id'] ?? 0);
-            $newState = ($_POST['new_state'] ?? '0') === '1';
-
-            $stmt = $pdo->prepare("UPDATE obat SET is_active = :st WHERE id = :id");
-            $stmt->bindValue(':st', $newState, PDO::PARAM_BOOL);
-            $stmt->bindValue(':id', $obatId, PDO::PARAM_INT);
-            $stmt->execute();
-
-            $_SESSION['flash_success'] = $newState
-                ? "Obat berhasil diaktifkan kembali."
-                : "Obat berhasil dinonaktifkan.";
-        }
-
-        $pdo->commit();
-    } catch (Exception $e) {
-        if ($pdo->inTransaction()) {
-            $pdo->rollBack();
-        }
-        $rawMsg = $e->getMessage();
-        if (str_contains($rawMsg, 'obat_kode_obat_key')) {
-            $_SESSION['flash_error'] = "Gagal menyimpan: Kode obat tersebut sudah digunakan.";
-        } elseif (preg_match('/ERROR:\s*(.+?)(\n|CONTEXT:|$)/s', $rawMsg, $matches)) {
-            $_SESSION['flash_error'] = trim($matches[1]);
-        } else {
-            $_SESSION['flash_error'] = $rawMsg;
-        }
-        error_log('[obat-admin-post] ' . $rawMsg);
-    }
-
-    header("Location: obat.php");
-    exit;
-}
 
 $search       = trim($_GET['q'] ?? '');
 $filterBentuk = trim($_GET['bentuk'] ?? '');
@@ -164,17 +48,7 @@ $riwayatStok   = [];
 $errorDb       = false;
 
 try {
-    $st = $pdo->query("
-        SELECT 
-            COUNT(*) AS total,
-            COUNT(*) FILTER (WHERE is_active = TRUE) AS aktif,
-            COUNT(*) FILTER (WHERE is_active = FALSE) AS nonaktif,
-            COUNT(*) FILTER (WHERE is_active = TRUE AND stok = 0) AS habis,
-            COUNT(*) FILTER (WHERE is_active = TRUE AND stok > 0 AND stok <= stok_minimum) AS menipis,
-            (SELECT COUNT(*) FROM v_obat_perlu_perhatian) AS perlu_perhatian,
-            MAX(updated_at) AS last_upd
-        FROM obat
-    ")->fetch();
+    $st = QueryAdminObat::st();
 
     $statTotal     = (int) ($st['total'] ?? 0);
     $statAktif     = (int) ($st['aktif'] ?? 0);
@@ -186,77 +60,25 @@ try {
         $lastUpdated = date('d M Y, H.i', strtotime($st['last_upd'])) . ' WIB';
     }
 
-    $listBentuk = $pdo->query("
-        SELECT DISTINCT lower(bentuk) AS bentuk
-        FROM obat
-        WHERE bentuk IS NOT NULL AND btrim(bentuk) <> ''
-        ORDER BY 1 ASC
-    ")->fetchAll();
+    $listBentuk = QueryAdminObat::listBentuk();
 
-    $where  = [];
-    $params = [];
-
-    if ($search !== '') {
-        $where[]      = "(o.nama_obat ILIKE :q OR o.kode_obat ILIKE :q OR COALESCE(o.keterangan, '') ILIKE :q)";
-        $params[':q'] = '%' . $search . '%';
-    }
-    if ($filterBentuk !== '') {
-        $where[]           = "lower(o.bentuk) = :bentuk";
-        $params[':bentuk'] = strtolower($filterBentuk);
-    }
-    if ($filterStok === 'tersedia') {
-        $where[] = "(o.stok > o.stok_minimum AND (o.tanggal_kadaluarsa IS NULL OR o.tanggal_kadaluarsa >= fn_today()))";
-    } elseif ($filterStok === 'menipis') {
-        $where[] = "(o.stok > 0 AND o.stok <= o.stok_minimum)";
-    } elseif ($filterStok === 'habis') {
-        $where[] = "o.stok = 0";
-    } elseif ($filterStok === 'kadaluarsa') {
-        $where[] = "(o.tanggal_kadaluarsa IS NOT NULL AND o.tanggal_kadaluarsa <= fn_today() + 30)";
-    }
-
-    if ($filterStatus === 'aktif') {
-        $where[] = "o.is_active = TRUE";
-    } elseif ($filterStatus === 'nonaktif') {
-        $where[] = "o.is_active = FALSE";
-    }
-
-    $sqlList = "
-        SELECT o.*,
-               (o.tanggal_kadaluarsa IS NOT NULL AND o.tanggal_kadaluarsa < fn_today()) AS is_expired,
-               (o.tanggal_kadaluarsa IS NOT NULL AND o.tanggal_kadaluarsa >= fn_today() AND o.tanggal_kadaluarsa <= fn_today() + 30) AS is_near_expired
-        FROM obat o
-    ";
-    if ($where) {
-        $sqlList .= " WHERE " . implode(" AND ", $where);
-    }
-    $sqlList .= " ORDER BY o.is_active DESC, o.kode_obat ASC";
-
-    $stmtList = $pdo->prepare($sqlList);
-    $stmtList->execute($params);
-    $obatRows = $stmtList->fetchAll();
+    $obatRows = QueryDaftar::obatAdmin([
+        'q' => $search, 'bentuk' => $filterBentuk,
+        'stok' => $filterStok, 'status' => $filterStatus,
+    ]);
 
     if ($detailId !== null) {
-        $stmtDet = $pdo->prepare("SELECT * FROM obat WHERE id = :id");
-        $stmtDet->execute([':id' => $detailId]);
+        $stmtDet = QueryAdminObat::det([':id' => $detailId]);
         $detailObat = $stmtDet->fetch();
 
         if ($detailObat) {
-            $stmtLog = $pdo->prepare("
-                SELECT l.*, a.nama AS nama_admin
-                FROM log_stok_obat l
-                LEFT JOIN admin a ON a.id = l.admin_id
-                WHERE l.obat_id = :id
-                ORDER BY l.created_at DESC
-                LIMIT 5
-            ");
-            $stmtLog->execute([':id' => $detailId]);
+            $stmtLog = QueryAdminObat::log([':id' => $detailId]);
             $riwayatStok = $stmtLog->fetchAll();
         }
     }
 
     if ($stokId !== null) {
-        $stmtStok = $pdo->prepare("SELECT * FROM obat WHERE id = :id");
-        $stmtStok->execute([':id' => $stokId]);
+        $stmtStok = QueryAdminObat::stok([':id' => $stokId]);
         $stokObat = $stmtStok->fetch();
     }
 
@@ -479,7 +301,7 @@ try {
                                                     <a href="obat.php?<?= $baseQ ?>&detail_id=<?= (int) $row['id'] ?>" class="text-xs font-semibold hover:underline">Lihat</a>
                                                     <a href="obat.php?<?= $baseQ ?>&stok_id=<?= (int) $row['id'] ?>" class="text-xs font-semibold hover:underline">Atur Stok</a>
 
-                                                    <form method="POST" action="obat.php" class="inline" onsubmit="return confirm('<?= $row['is_active'] ? 'Nonaktifkan obat ini agar tidak ditampilkan pada pilihan resep baru?' : 'Aktifkan kembali obat ini?' ?>')">
+                                                    <form method="POST" action="obat.php" data-api-endpoint="/api/admin/obat.php" data-api-redirect="/admin/obat.php" class="inline" onsubmit="return confirm('<?= $row['is_active'] ? 'Nonaktifkan obat ini agar tidak ditampilkan pada pilihan resep baru?' : 'Aktifkan kembali obat ini?' ?>')">
                                                         <input type="hidden" name="action" value="toggle_active_obat">
                                                         <input type="hidden" name="obat_id" value="<?= (int) $row['id'] ?>">
                                                         <input type="hidden" name="new_state" value="<?= $row['is_active'] ? '0' : '1' ?>">

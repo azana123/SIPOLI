@@ -2,97 +2,13 @@
 $dokterIdModalJadwal = (int) ($_SESSION['profil_id'] ?? 0);
 $namaDokterModal     = $dokterProfil['nama'] ?? ($_SESSION['username'] ?? 'Dokter');
 
-// Proses POST ketika dokter mengirim pengajuan perubahan jadwal ke Admin
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'ajukan_perubahan_jadwal') {
-    $jadwalTerdampakId = (int) ($_POST['jadwal_terdampak'] ?? 0);
-    $jenisPerubahan    = trim($_POST['jenis_perubahan'] ?? 'Perubahan jam praktik');
-    $usulanTanggal     = trim($_POST['usulan_tanggal'] ?? '');
-    $usulanMulai       = trim($_POST['usulan_mulai'] ?? '');
-    $usulanSelesai     = trim($_POST['usulan_selesai'] ?? '');
-    $alasan            = trim($_POST['alasan'] ?? '');
-    $redirectPage      = basename($_SERVER['PHP_SELF'] ?? 'dashboard.php');
-
-    if ($jadwalTerdampakId <= 0 || $alasan === '') {
-        $_SESSION['flash_error'] = "Jadwal yang terdampak dan alasan perubahan wajib diisi.";
-    } else {
-        try {
-            $pdo->beginTransaction();
-
-            $stmtJdw = $pdo->prepare("
-                SELECT j.id, j.tanggal, j.jam_mulai, j.jam_selesai, p.nama AS nama_poli
-                FROM jadwal j
-                JOIN poli p ON p.id = j.poli_id
-                WHERE j.id = :id AND j.dokter_id = :dok_id
-            ");
-            $stmtJdw->execute([
-                ':id'     => $jadwalTerdampakId,
-                ':dok_id' => $dokterIdModalJadwal,
-            ]);
-            $infoJdw = $stmtJdw->fetch();
-
-            if (!$infoJdw) {
-                throw new Exception("Data jadwal praktik tidak ditemukan.");
-            }
-
-            $tglAsliFmt = date('d M Y', strtotime($infoJdw['tanggal']));
-            $jamAsliFmt = substr($infoJdw['jam_mulai'], 0, 5) . '–' . substr($infoJdw['jam_selesai'], 0, 5) . ' WIB';
-
-            $judulNotif = "Pengajuan {$jenisPerubahan} - {$namaDokterModal}";
-            $pesanNotif = "{$namaDokterModal} mengajukan {$jenisPerubahan} untuk jadwal {$infoJdw['nama_poli']} pada {$tglAsliFmt} ({$jamAsliFmt}). ";
-
-            if ($usulanTanggal !== '' || ($usulanMulai !== '' && $usulanSelesai !== '')) {
-                $tglUsulFmt = $usulanTanggal !== '' ? date('d M Y', strtotime($usulanTanggal)) : $tglAsliFmt;
-                $jamUsulFmt = ($usulanMulai !== '' && $usulanSelesai !== '') ? "{$usulanMulai}–{$usulanSelesai} WIB" : 'jam tetap';
-                $pesanNotif .= "Usulan waktu pengganti: {$tglUsulFmt} ({$jamUsulFmt}). ";
-            }
-            $pesanNotif .= "Alasan: {$alasan}";
-
-            // Kirim notifikasi ke seluruh akun Admin aktif via fungsi fn_kirim_ke_admin
-            $stmtNotif = $pdo->prepare("
-                SELECT fn_kirim_ke_admin('info', :judul, :pesan, 'jadwal', :ref_id)
-            ");
-            $stmtNotif->execute([
-                ':judul'  => $judulNotif,
-                ':pesan'  => $pesanNotif,
-                ':ref_id' => $jadwalTerdampakId,
-            ]);
-
-            $pdo->commit();
-            $_SESSION['flash_success'] = "Informasi perubahan jadwal berhasil dikirim ke Admin untuk ditindaklanjuti.";
-        } catch (Exception $e) {
-            if ($pdo->inTransaction()) {
-                $pdo->rollBack();
-            }
-            $_SESSION['flash_error'] = "Gagal mengirim pengajuan: " . $e->getMessage();
-            error_log('[dokter-perubahan-jadwal] ' . $e->getMessage());
-        }
-    }
-
-    if (!headers_sent()) {
-        header("Location: " . $redirectPage);
-        exit;
-    }
-    echo '<script>window.location.href = ' . json_encode($redirectPage) . ';</script>';
-    exit;
-}
-
 // Ambil daftar jadwal aktif milik dokter ini (hari ini dan ke depan) untuk pilihan dropdown
 $opsiJadwalDokter = [];
 $todayModalStr    = date('Y-m-d');
 if (isset($pdo) && $dokterIdModalJadwal > 0) {
     try {
-        $todayModalStr = $pdo->query("SELECT fn_today()::text")->fetchColumn() ?: date('Y-m-d');
-        $stmtOpsi = $pdo->prepare("
-            SELECT j.id, j.tanggal, j.jam_mulai, j.jam_selesai, p.nama AS nama_poli
-            FROM jadwal j
-            JOIN poli p ON p.id = j.poli_id
-            WHERE j.dokter_id = :dok_id
-              AND j.tanggal >= fn_today()
-              AND j.status <> 'tutup'
-            ORDER BY j.tanggal ASC, j.jam_mulai ASC
-            LIMIT 14
-        ");
-        $stmtOpsi->execute([':dok_id' => $dokterIdModalJadwal]);
+        $todayModalStr = QueryDokterPerubahanJadwal::todayModalStr() ?: date('Y-m-d');
+        $stmtOpsi = QueryDokterPerubahanJadwal::opsi([':dok_id' => $dokterIdModalJadwal]);
         $opsiJadwalDokter = $stmtOpsi->fetchAll();
     } catch (PDOException $e) {
         $opsiJadwalDokter = [];
@@ -127,7 +43,7 @@ $bulanModalMap = [1 => 'Jan', 2 => 'Feb', 3 => 'Mar', 4 => 'Apr', 5 => 'Mei', 6 
             </div>
 
             <!-- Modal Body (Form & Scrollable Area) -->
-            <form action="" method="POST" class="overflow-y-auto">
+            <form action="" method="POST" data-api-endpoint="/api/dokter/jadwal.php" class="overflow-y-auto">
                 <input type="hidden" name="action" value="ajukan_perubahan_jadwal">
 
                 <div class="p-6 space-y-6">

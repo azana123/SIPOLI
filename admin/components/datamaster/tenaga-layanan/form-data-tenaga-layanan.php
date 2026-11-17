@@ -34,7 +34,7 @@ $edHp       = $editDokter['no_hp'] ?? '';
                 <?php endif; ?>
             </div>
 
-            <form id="form-dokter" action="datamaster.php" method="POST" class="p-5 space-y-4">
+            <form id="form-dokter" action="datamaster.php" method="POST" data-api-endpoint="/api/admin/datamaster.php" data-api-redirect="/admin/datamaster.php?tab=tenaga-layanan" class="p-5 space-y-4">
                 <input type="hidden" name="action" value="save_dokter">
                 <input type="hidden" name="tab" value="tenaga-layanan">
                 <input type="hidden" name="dokter_id" value="<?= $edId ?>">

@@ -1,5 +1,11 @@
 <?php
-$page_title = "Detail Reservasi";
+require_once __DIR__ . '/../../config/bootstrap.php';
+require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../middleware/check-role.php';
+check_role('pasien');
+
+$page_title   = "Detail Reservasi";
+$reservasiId  = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 ?>
 
 <!DOCTYPE html>
@@ -84,8 +90,8 @@ $page_title = "Detail Reservasi";
                 </p>
 
                 <div class="flex flex-col gap-3">
-                    <!-- Button: Hadir (Disabled State) -->
-                    <button type="button" class="w-full py-2.5 bg-primary text-white cursor-pointer hover:bg-primary-700 transition-colors duration-300 disabled:bg-gray-200 disabled:text-gray-400 text-sm font-semibold rounded-full disabled:cursor-not-allowed">
+                    <!-- Button: Hadir -->
+                    <button type="button" data-api-click data-api-endpoint="/api/pasien/reservasi.php" data-api-payload='{"action":"konfirmasi","reservasi_id":<?= $reservasiId ?>, "hadir":true}' class="w-full py-2.5 bg-primary text-white cursor-pointer hover:bg-primary-700 transition-colors duration-300 disabled:bg-gray-200 disabled:text-gray-400 text-sm font-semibold rounded-full disabled:cursor-not-allowed">
                         Saya hadir
                     </button>
                     <!-- Button: Tidak Hadir (Outline State) -->
@@ -105,6 +111,7 @@ $page_title = "Detail Reservasi";
         </main>
     </div>
 
+    <?php require_once __DIR__ . "/../components/api-script.php" ?>
     <?php require_once __DIR__ . "/../components/reservasi/konfirmasi-ketidakhadiran.php" ?>
     <?php require_once __DIR__ . "/../components/reservasi/pembatalan-reservasi.php" ?>
     <script src="./../../node_modules/flowbite/dist/flowbite.min.js"></script>

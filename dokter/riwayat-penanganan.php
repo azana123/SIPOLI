@@ -3,6 +3,7 @@ require_once __DIR__ . "/../config/config.php";
 require_once __DIR__ . '/../middleware/check-role.php';
 check_role('dokter');
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../services/_load.php';
 
 $page_title = "Riwayat Penanganan";
 $app_name   = "SIPOLI";
@@ -18,16 +19,9 @@ $dokterId     = (int) ($_SESSION['profil_id'] ?? 0);
 $dokterProfil = null;
 
 try {
-    $todayDb = $pdo->query("SELECT fn_today()::text")->fetchColumn() ?: date('Y-m-d');
+    $todayDb = QueryDokterRiwayat::todayDb() ?: date('Y-m-d');
     if ($dokterId > 0) {
-        $stmtDok = $pdo->prepare("
-            SELECT d.id, d.nama, d.profesi, d.no_str, d.no_hp, d.poli_id,
-                   p.nama AS nama_poli, p.butuh_reservasi
-            FROM dokter d
-            JOIN poli p ON p.id = d.poli_id
-            WHERE d.id = :id
-        ");
-        $stmtDok->execute([':id' => $dokterId]);
+        $stmtDok = QueryDokterRiwayat::dok([':id' => $dokterId]);
         $dokterProfil = $stmtDok->fetch();
     }
 } catch (PDOException $e) {
@@ -67,22 +61,7 @@ $bulanSingkat = [1 => 'Jan', 2 => 'Feb', 3 => 'Mar', 4 => 'Apr', 5 => 'Mei', 6 =
 
 try {
     // Cek apakah ada pemeriksaan yang sedang aktif ('diperiksa') hari ini
-    $stmtAktif = $pdo->prepare("
-        SELECT a.id AS antrean_id, a.no_antrean, ps.nama AS nama_pasien,
-               COALESCE(j.jam_mulai, (a.waktu_daftar AT TIME ZONE 'Asia/Jakarta')::time) AS jam_kunjungan,
-               COALESCE(r.keluhan, 'Pemeriksaan langsung') AS keluhan_awal
-        FROM antrean a
-        JOIN pasien ps ON ps.id = a.pasien_id
-        LEFT JOIN jadwal j    ON j.id = a.jadwal_id
-        LEFT JOIN reservasi r ON r.id = a.reservasi_id
-        WHERE a.tanggal = :today
-          AND a.poli_id = :poli_id
-          AND (a.dokter_id = :dok_id OR a.dokter_id IS NULL)
-          AND a.status = 'diperiksa'
-        ORDER BY a.no_antrean ASC
-        LIMIT 1
-    ");
-    $stmtAktif->execute([
+    $stmtAktif = QueryDokterRiwayat::aktif([
         ':today'   => $todayDb,
         ':poli_id' => $poliIdDokter,
         ':dok_id'  => $dokterId,
@@ -90,62 +69,15 @@ try {
     $pasienAktif = $stmtAktif->fetch();
 
     // Opsi filter poli & daftar pasien yang pernah diperiksa
-    $listPoli = $pdo->query("SELECT id, nama FROM poli ORDER BY id ASC")->fetchAll();
-    $stmtPsList = $pdo->prepare("
-        SELECT DISTINCT ps.id, ps.nama, ps.nim_nip
-        FROM pemeriksaan pm
-        JOIN pasien ps ON ps.id = pm.pasien_id
-        WHERE pm.dokter_id = :dok_id OR pm.poli_id = :poli_id
-        ORDER BY ps.nama ASC
-    ");
-    $stmtPsList->execute([':dok_id' => $dokterId, ':poli_id' => $poliIdDokter]);
+    $listPoli = QueryDokterRiwayat::listPoli();
+    $stmtPsList = QueryDokterRiwayat::psList([':dok_id' => $dokterId, ':poli_id' => $poliIdDokter]);
     $listPasienPernah = $stmtPsList->fetchAll();
 
     // Query daftar riwayat pemeriksaan
-    $where  = ["(pm.dokter_id = :dok_id OR pm.poli_id = :poli_default)"];
-    $params = [
-        ':dok_id'       => $dokterId,
-        ':poli_default' => $poliIdDokter,
-    ];
-
-    if ($search !== '') {
-        $where[]      = "(ps.nama ILIKE :q OR ps.nim_nip ILIKE :q OR COALESCE(pm.diagnosa, '') ILIKE :q)";
-        $params[':q'] = '%' . $search . '%';
-    }
-    if ($filterPoli !== '' && ctype_digit($filterPoli)) {
-        $where[]            = "pm.poli_id = :f_poli";
-        $params[':f_poli']  = (int) $filterPoli;
-    }
-    if ($filterPasien > 0) {
-        $where[]             = "pm.pasien_id = :f_pasien";
-        $params[':f_pasien'] = $filterPasien;
-    }
-
-    $sqlRiwayat = "
-        SELECT 
-            pm.id,
-            pm.antrean_id,
-            pm.pasien_id,
-            pm.tanggal,
-            pm.keluhan,
-            pm.diagnosa,
-            pm.created_at,
-            ps.nama AS nama_pasien,
-            ps.nim_nip,
-            ps.status_civitas,
-            pol.nama AS nama_poli,
-            d.nama AS nama_dokter
-        FROM pemeriksaan pm
-        JOIN pasien ps ON ps.id = pm.pasien_id
-        JOIN poli pol  ON pol.id = pm.poli_id
-        JOIN dokter d  ON d.id  = pm.dokter_id
-        WHERE " . implode(" AND ", $where) . "
-        ORDER BY pm.tanggal DESC, pm.created_at DESC
-        LIMIT 50
-    ";
-    $stmtRw = $pdo->prepare($sqlRiwayat);
-    $stmtRw->execute($params);
-    $riwayatRows = $stmtRw->fetchAll();
+    $riwayatRows = QueryDaftar::riwayatDokter([
+        'dok_id' => $dokterId, 'poli_default' => $poliIdDokter,
+        'q' => $search, 'poli_id' => $filterPoli, 'pasien_id' => $filterPasien,
+    ]);
 
     foreach ($riwayatRows as $rw) {
         if ($rw['tanggal'] === $todayDb) {
@@ -161,30 +93,7 @@ try {
 
     // Ambil detail lengkap untuk pemeriksaan yang dipilih di kolom kanan
     if ($selectedId !== null) {
-        $stmtDet = $pdo->prepare("
-            SELECT 
-                pm.*,
-                ps.nama AS nama_pasien,
-                ps.nim_nip,
-                ps.status_civitas,
-                pol.nama AS nama_poli,
-                d.nama AS nama_dokter,
-                a.reservasi_id,
-                po.id AS permintaan_obat_id,
-                po.status AS status_resep,
-                po.waktu_diserahkan,
-                po.created_at AS waktu_resep,
-                (SELECT COUNT(*) FROM resep_obat ro WHERE ro.pemeriksaan_id = pm.id) AS jumlah_jenis_obat,
-                (SELECT COUNT(*) FROM pemeriksaan p2 WHERE p2.pasien_id = pm.pasien_id) AS total_kunjungan_pasien
-            FROM pemeriksaan pm
-            JOIN pasien ps ON ps.id = pm.pasien_id
-            JOIN poli pol  ON pol.id = pm.poli_id
-            JOIN dokter d  ON d.id  = pm.dokter_id
-            JOIN antrean a ON a.id  = pm.antrean_id
-            LEFT JOIN permintaan_obat po ON po.pemeriksaan_id = pm.id
-            WHERE pm.id = :id
-        ");
-        $stmtDet->execute([':id' => $selectedId]);
+        $stmtDet = QueryDokterRiwayat::det([':id' => $selectedId]);
         $detailPenanganan = $stmtDet->fetch();
     }
 

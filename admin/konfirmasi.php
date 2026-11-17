@@ -3,6 +3,7 @@ require_once __DIR__ . "/../config/config.php";
 require_once __DIR__ . '/../middleware/check-role.php';
 check_role('admin');
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../services/_load.php';
 
 $page_title = "Konfirmasi H-1";
 $app_name   = "SIPOLI";
@@ -15,7 +16,7 @@ if (!function_exists('e')) {
 }
 
 try {
-    $todayDb = $pdo->query("SELECT fn_today()::text")->fetchColumn() ?: date('Y-m-d');
+    $todayDb = QueryAdminKonfirmasi::todayDb() ?: date('Y-m-d');
 } catch (PDOException $e) {
     $todayDb = date('Y-m-d');
 }
@@ -25,54 +26,6 @@ $besokDb = date('Y-m-d', strtotime($todayDb . ' +1 day'));
 $flashSuccess = $_SESSION['flash_success'] ?? null;
 $flashError   = $_SESSION['flash_error'] ?? null;
 unset($_SESSION['flash_success'], $_SESSION['flash_error']);
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'catat_respons') {
-    $reservasiId  = (int) ($_POST['reservasi_id'] ?? 0);
-    $hasilKonfirm = $_POST['hasil_konfirmasi'] ?? 'hadir';
-    $catatanAdmin = trim($_POST['catatan_respons'] ?? '');
-
-    try {
-        $pdo->beginTransaction();
-
-        if (!empty($_SESSION['user_id'])) {
-            $stmtCfg = $pdo->prepare("SELECT set_config('app.user_id', :uid, true)");
-            $stmtCfg->execute([':uid' => (string) $_SESSION['user_id']]);
-        }
-
-        $hadirBool = ($hasilKonfirm === 'hadir');
-
-        $stmtFn = $pdo->prepare("SELECT fn_konfirmasi_reservasi(:id, :hadir)");
-        $stmtFn->bindValue(':id', $reservasiId, PDO::PARAM_INT);
-        $stmtFn->bindValue(':hadir', $hadirBool, PDO::PARAM_BOOL);
-        $stmtFn->execute();
-
-        if ($catatanAdmin !== '') {
-            $stmtUpd = $pdo->prepare("
-                UPDATE reservasi
-                   SET keluhan = concat(COALESCE(keluhan, ''), ' [Catatan Konfirmasi: ', :cat::text, ']')
-                 WHERE id = :id
-            ");
-            $stmtUpd->execute([':cat' => $catatanAdmin, ':id' => $reservasiId]);
-        }
-
-        $pdo->commit();
-        $_SESSION['flash_success'] = "Respons konfirmasi kehadiran pasien berhasil dicatat.";
-    } catch (Exception $e) {
-        if ($pdo->inTransaction()) {
-            $pdo->rollBack();
-        }
-        $rawMsg = $e->getMessage();
-        if (preg_match('/ERROR:\s*(.+?)(\n|CONTEXT:|$)/s', $rawMsg, $matches)) {
-            $_SESSION['flash_error'] = trim($matches[1]);
-        } else {
-            $_SESSION['flash_error'] = "Gagal mencatat respons: " . $rawMsg;
-        }
-        error_log('[konfirmasi-admin-post] ' . $rawMsg);
-    }
-
-    header("Location: konfirmasi.php");
-    exit;
-}
 
 $filterTglKunjungan = trim($_GET['tanggal_kunjungan'] ?? $besokDb);
 if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $filterTglKunjungan)) {
@@ -91,18 +44,7 @@ $modalReservasi     = null;
 $errorDb            = false;
 
 try {
-    $stmtSt = $pdo->prepare("
-        SELECT 
-            COUNT(*) FILTER (WHERE r.status <> 'dibatalkan') AS total,
-            COUNT(*) FILTER (WHERE r.status = 'menunggu') AS menunggu,
-            COUNT(*) FILTER (WHERE r.status = 'dikonfirmasi') AS hadir,
-            COUNT(*) FILTER (WHERE r.status IN ('dibatalkan', 'tidak_hadir')) AS batal
-        FROM reservasi r
-        JOIN jadwal j ON j.id = r.jadwal_id
-        JOIN poli po  ON po.id = j.poli_id
-        WHERE j.tanggal = :besok AND po.nama ILIKE '%konseling%'
-    ");
-    $stmtSt->execute([':besok' => $filterTglKunjungan]);
+    $stmtSt = QueryAdminKonfirmasi::st([':besok' => $filterTglKunjungan]);
     $stData = $stmtSt->fetch();
 
     $statTotalKonseling = (int) ($stData['total'] ?? 0);
@@ -110,57 +52,12 @@ try {
     $statHadir          = (int) ($stData['hadir'] ?? 0);
     $statBatal          = (int) ($stData['batal'] ?? 0);
 
-    $where  = ["j.tanggal = :tgl", "po.nama ILIKE '%konseling%'"];
-    $params = [':tgl' => $filterTglKunjungan];
-
-    if ($search !== '') {
-        $where[]      = "(p.nama ILIKE :q OR p.nim_nip ILIKE :q OR r.no_reservasi ILIKE :q)";
-        $params[':q'] = '%' . $search . '%';
-    }
-    if (in_array($filterStatus, ['menunggu', 'dikonfirmasi', 'dibatalkan'], true)) {
-        $where[]           = "r.status = :status";
-        $params[':status'] = $filterStatus;
-    } else {
-        $where[] = "r.status <> 'dibatalkan'";
-    }
-
-    $sqlList = "
-        SELECT 
-            r.id AS reservasi_id,
-            r.no_reservasi,
-            r.status,
-            r.konfirmasi_diminta_at,
-            r.dikonfirmasi_at,
-            p.nama AS nama_pasien,
-            p.nim_nip,
-            p.no_hp,
-            j.tanggal AS tanggal_kunjungan,
-            j.jam_mulai,
-            j.jam_selesai,
-            d.nama AS nama_dokter
-        FROM reservasi r
-        JOIN pasien p ON p.id = r.pasien_id
-        JOIN jadwal j ON j.id = r.jadwal_id
-        JOIN poli po  ON po.id = j.poli_id
-        LEFT JOIN dokter d ON d.id = j.dokter_id
-        WHERE " . implode(" AND ", $where) . "
-        ORDER BY j.jam_mulai ASC, r.created_at ASC
-    ";
-    $stmtList = $pdo->prepare($sqlList);
-    $stmtList->execute($params);
-    $listKonfirmasi = $stmtList->fetchAll();
+    $listKonfirmasi = QueryDaftar::konfirmasiAdmin([
+        'tanggal' => $filterTglKunjungan, 'q' => $search, 'status' => $filterStatus,
+    ]);
 
     if ($catatId !== null) {
-        $stmtM = $pdo->prepare("
-            SELECT r.id AS reservasi_id, r.no_reservasi, p.nama AS nama_pasien, p.nim_nip, p.status_civitas,
-                   po.nama AS nama_poli, j.tanggal, j.jam_mulai, j.jam_selesai
-            FROM reservasi r
-            JOIN pasien p ON p.id = r.pasien_id
-            JOIN jadwal j ON j.id = r.jadwal_id
-            JOIN poli po  ON po.id = j.poli_id
-            WHERE r.id = :id
-        ");
-        $stmtM->execute([':id' => $catatId]);
+        $stmtM = QueryAdminKonfirmasi::m([':id' => $catatId]);
         $modalReservasi = $stmtM->fetch();
     }
 

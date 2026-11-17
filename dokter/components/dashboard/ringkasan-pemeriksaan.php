@@ -10,39 +10,9 @@ $paramId = $ringkasanPemeriksaanId ?? $ringkasanAntreanId;
 
 if (isset($pdo) && $paramId !== null) {
     try {
-        $whereRingkasan = $ringkasanPemeriksaanId !== null ? "pm.id = :id" : "pm.antrean_id = :id";
-
-        $stmtRgk = $pdo->prepare("
-            SELECT 
-                pm.*,
-                ps.nama AS nama_pasien,
-                ps.nim_nip,
-                ps.status_civitas,
-                d.nama AS nama_dokter,
-                pol.nama AS nama_poli,
-                po.id AS permintaan_obat_id,
-                po.status AS status_resep
-            FROM pemeriksaan pm
-            JOIN pasien ps ON ps.id = pm.pasien_id
-            JOIN dokter d  ON d.id  = pm.dokter_id
-            JOIN poli pol  ON pol.id = pm.poli_id
-            LEFT JOIN permintaan_obat po ON po.pemeriksaan_id = pm.id
-            WHERE {$whereRingkasan}
-            LIMIT 1
-        ");
-        $stmtRgk->execute([':id' => $paramId]);
-        $dataRingkasan = $stmtRgk->fetch();
-
+        $dataRingkasan = QueryDaftar::ringkasanDokter($paramId, $ringkasanPemeriksaanId !== null);
         if ($dataRingkasan) {
-            $stmtObatRgk = $pdo->prepare("
-                SELECT ro.jumlah, ro.aturan_pakai, o.nama_obat, o.satuan, o.bentuk
-                FROM resep_obat ro
-                JOIN obat o ON o.id = ro.obat_id
-                WHERE ro.pemeriksaan_id = :pem_id
-                ORDER BY ro.id ASC
-            ");
-            $stmtObatRgk->execute([':pem_id' => (int) $dataRingkasan['id']]);
-            $resepRingkasanList = $stmtObatRgk->fetchAll();
+            $resepRingkasanList = QueryDaftar::ringkasanObat((int) $dataRingkasan['id']);
         }
     } catch (PDOException $e) {
         $dataRingkasan = null;

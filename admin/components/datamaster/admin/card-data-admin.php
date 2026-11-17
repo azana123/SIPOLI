@@ -117,7 +117,7 @@
                                             </svg>
                                         </a>
                                         <?php if ((int) $row['id'] !== $currentAdminId): ?>
-                                            <form method="POST" action="datamaster.php" class="inline" onsubmit="return confirm('<?= $row['status_aktif'] ? 'Nonaktifkan akun admin ini?' : 'Aktifkan kembali akun admin ini?' ?>')">
+                                            <form method="POST" action="datamaster.php" data-api-endpoint="/api/admin/datamaster.php" data-api-redirect="/admin/datamaster.php?tab=admin" class="inline" onsubmit="return confirm('<?= $row['status_aktif'] ? 'Nonaktifkan akun admin ini?' : 'Aktifkan kembali akun admin ini?' ?>')">
                                                 <input type="hidden" name="action" value="toggle_active">
                                                 <input type="hidden" name="tab" value="admin">
                                                 <input type="hidden" name="entity" value="admin">

@@ -3,6 +3,7 @@ require_once __DIR__ . "/../config/config.php";
 require_once __DIR__ . '/../middleware/check-role.php';
 check_role('admin');
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../services/_load.php';
 
 $page_title = "Jadwal & Kuota";
 $app_name   = "SIPOLI";
@@ -47,125 +48,11 @@ $flashError   = $_SESSION['flash_error'] ?? null;
 unset($_SESSION['flash_success'], $_SESSION['flash_error']);
 
 try {
-    $todayDb = $pdo->query("SELECT fn_today()::text")->fetchColumn() ?: date('Y-m-d');
+    $todayDb = QueryAdminJadwal::todayDb() ?: date('Y-m-d');
 } catch (PDOException $e) {
     $todayDb = date('Y-m-d');
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $action       = $_POST['action'] ?? '';
-    $redirectDate = $_POST['redirect_tanggal'] ?? $todayDb;
-
-    try {
-        if ($action === 'create') {
-            $poliId      = (int) ($_POST['poli_id'] ?? 0);
-            $dokterId    = !empty($_POST['dokter_id']) ? (int) $_POST['dokter_id'] : null;
-            $tanggal     = trim($_POST['tanggal'] ?? '');
-            $jamMulai    = trim($_POST['jam_mulai'] ?? '');
-            $jamSelesai  = trim($_POST['jam_selesai'] ?? '');
-            $tanpaBatas  = isset($_POST['tanpa_batas']);
-            $kuota       = (!$tanpaBatas && isset($_POST['kuota']) && $_POST['kuota'] !== '')
-                           ? (int) $_POST['kuota']
-                           : null;
-            $dipublikasi = isset($_POST['dipublikasi']);
-
-            $stmt = $pdo->prepare("
-                INSERT INTO jadwal (poli_id, dokter_id, tanggal, jam_mulai, jam_selesai, kuota, dipublikasi)
-                VALUES (:poli_id, :dokter_id, :tanggal, :jam_mulai, :jam_selesai, :kuota, :dipublikasi)
-            ");
-            $stmt->bindValue(':poli_id', $poliId, PDO::PARAM_INT);
-            $stmt->bindValue(':dokter_id', $dokterId, $dokterId === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
-            $stmt->bindValue(':tanggal', $tanggal, PDO::PARAM_STR);
-            $stmt->bindValue(':jam_mulai', $jamMulai, PDO::PARAM_STR);
-            $stmt->bindValue(':jam_selesai', $jamSelesai, PDO::PARAM_STR);
-            $stmt->bindValue(':kuota', $kuota, $kuota === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
-            $stmt->bindValue(':dipublikasi', $dipublikasi, PDO::PARAM_BOOL);
-            $stmt->execute();
-
-            $_SESSION['flash_success'] = "Jadwal praktik berhasil ditambahkan.";
-            $redirectDate = $tanggal ?: $redirectDate;
-
-        } elseif ($action === 'update') {
-            $id           = (int) ($_POST['id'] ?? 0);
-            $poliId       = (int) ($_POST['poli_id'] ?? 0);
-            $dokterId     = !empty($_POST['dokter_id']) ? (int) $_POST['dokter_id'] : null;
-            $tanggal      = trim($_POST['tanggal'] ?? '');
-            $jamMulai     = trim($_POST['jam_mulai'] ?? '');
-            $jamSelesai   = trim($_POST['jam_selesai'] ?? '');
-            $tanpaBatas   = isset($_POST['tanpa_batas']);
-            $kuota        = (!$tanpaBatas && isset($_POST['kuota']) && $_POST['kuota'] !== '')
-                            ? (int) $_POST['kuota']
-                            : null;
-            $statusJadwal = $_POST['status'] ?? 'buka';
-            if (!in_array($statusJadwal, ['buka', 'penuh', 'tutup'], true)) {
-                $statusJadwal = 'buka';
-            }
-            $dipublikasi  = ($statusJadwal === 'tutup') ? false : isset($_POST['dipublikasi']);
-
-            $stmt = $pdo->prepare("
-                UPDATE jadwal
-                   SET poli_id     = :poli_id,
-                       dokter_id   = :dokter_id,
-                       tanggal     = :tanggal,
-                       jam_mulai   = :jam_mulai,
-                       jam_selesai = :jam_selesai,
-                       kuota       = :kuota,
-                       status      = :status,
-                       dipublikasi = :dipublikasi
-                 WHERE id = :id
-            ");
-            $stmt->bindValue(':id', $id, PDO::PARAM_INT);
-            $stmt->bindValue(':poli_id', $poliId, PDO::PARAM_INT);
-            $stmt->bindValue(':dokter_id', $dokterId, $dokterId === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
-            $stmt->bindValue(':tanggal', $tanggal, PDO::PARAM_STR);
-            $stmt->bindValue(':jam_mulai', $jamMulai, PDO::PARAM_STR);
-            $stmt->bindValue(':jam_selesai', $jamSelesai, PDO::PARAM_STR);
-            $stmt->bindValue(':kuota', $kuota, $kuota === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
-            $stmt->bindValue(':status', $statusJadwal, PDO::PARAM_STR);
-            $stmt->bindValue(':dipublikasi', $dipublikasi, PDO::PARAM_BOOL);
-            $stmt->execute();
-
-            if ($statusJadwal !== 'tutup') {
-                $stmtSync = $pdo->prepare("SELECT fn_hitung_status_jadwal(:id)");
-                $stmtSync->execute([':id' => $id]);
-            }
-
-            $_SESSION['flash_success'] = "Jadwal praktik berhasil diperbarui.";
-            $redirectDate = $tanggal ?: $redirectDate;
-
-        } elseif ($action === 'soft_delete') {
-            $id = (int) ($_POST['id'] ?? 0);
-            $stmtTutup = $pdo->prepare("
-                UPDATE jadwal
-                   SET status      = 'tutup',
-                       dipublikasi = FALSE
-                 WHERE id = :id
-            ");
-            $stmtTutup->execute([':id' => $id]);
-
-            $_SESSION['flash_success'] = "Jadwal berhasil ditutup. Seluruh reservasi aktif pada jadwal ini otomatis dibatalkan dan pasien telah diberi pemberitahuan.";
-        }
-    } catch (PDOException $e) {
-        $rawMsg = $e->getMessage();
-        if (str_contains($rawMsg, 'ex_jadwal_dokter_bentrok')) {
-            $_SESSION['flash_error'] = "Gagal menyimpan: Dokter tersebut sudah memiliki jadwal aktif lain yang waktunya beririsan pada tanggal yang sama.";
-        } elseif (str_contains($rawMsg, 'uq_jadwal')) {
-            $_SESSION['flash_error'] = "Gagal menyimpan: Jadwal untuk poli, tanggal, dan jam mulai tersebut sudah ada.";
-        } elseif (str_contains($rawMsg, 'chk_jadwal_jam')) {
-            $_SESSION['flash_error'] = "Gagal menyimpan: Jam selesai harus lebih besar dari jam mulai.";
-        } else {
-            if (preg_match('/ERROR:\s*(.+?)(\n|CONTEXT:|$)/s', $rawMsg, $matches)) {
-                $_SESSION['flash_error'] = trim($matches[1]);
-            } else {
-                $_SESSION['flash_error'] = "Terjadi kendala saat memproses jadwal.";
-            }
-        }
-        error_log('[jadwal-admin-crud] ' . $rawMsg);
-    }
-
-    header("Location: jadwal.php?tanggal=" . urlencode($redirectDate));
-    exit;
-}
 
 $filterTanggal = trim($_GET['tanggal'] ?? $todayDb);
 if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $filterTanggal)) {
@@ -193,30 +80,11 @@ $statJadwalPenuh      = 0;
 $infoJadwalPenuhLabel = 'Belum ada jadwal penuh';
 
 try {
-    $listPoli = $pdo->query("
-        SELECT id, nama, butuh_reservasi, kuota_harian, durasi_menit
-        FROM poli
-        ORDER BY id ASC
-    ")->fetchAll();
+    $listPoli = QueryAdminJadwal::listPoli();
 
-    $listDokter = $pdo->query("
-        SELECT d.id, d.poli_id, d.nama, d.profesi, p.nama AS nama_poli
-        FROM dokter d
-        JOIN users u ON d.user_id = u.id
-        JOIN poli p  ON d.poli_id = p.id
-        WHERE d.is_active = TRUE AND u.is_active = TRUE
-        ORDER BY d.poli_id ASC, d.nama ASC
-    ")->fetchAll();
+    $listDokter = QueryAdminJadwal::listDokter();
 
-    $stmtStats = $pdo->prepare("
-        SELECT 
-            j.id, j.kuota, j.status, j.dipublikasi, p.nama AS nama_poli, p.butuh_reservasi,
-            (SELECT COUNT(*) FROM reservasi r WHERE r.jadwal_id = j.id AND r.status <> 'dibatalkan') AS rsv_aktif
-        FROM jadwal j
-        JOIN poli p ON p.id = j.poli_id
-        WHERE j.tanggal = :tanggal AND j.status <> 'tutup'
-    ");
-    $stmtStats->execute([':tanggal' => $filterTanggal]);
+    $stmtStats = QueryAdminJadwal::stats([':tanggal' => $filterTanggal]);
     $allDaySchedules = $stmtStats->fetchAll();
 
     $statTotalJadwal = count($allDaySchedules);
@@ -242,103 +110,20 @@ try {
         $infoJadwalPenuhLabel = implode(', ', array_slice($penuhDetails, 0, 2));
     }
 
-    $where  = ["j.tanggal = :tanggal"];
-    $params = [':tanggal' => $filterTanggal];
-
-    if ($filterPoli !== '' && ctype_digit($filterPoli)) {
-        $where[]            = "j.poli_id = :poli_id";
-        $params[':poli_id'] = (int) $filterPoli;
-    }
-
-    if (in_array($filterStatus, ['buka', 'penuh', 'tutup'], true)) {
-        $where[]           = "j.status = :status";
-        $params[':status'] = $filterStatus;
-    } elseif ($filterStatus === '') {
-        $where[] = "j.status <> 'tutup'";
-    }
-
-    $sqlList = "
-        SELECT 
-            j.id, j.poli_id, p.nama AS nama_poli, p.butuh_reservasi, p.kuota_harian,
-            j.dokter_id, d.nama AS nama_dokter, d.profesi,
-            j.tanggal, j.jam_mulai, j.jam_selesai, j.kuota, j.status, j.dipublikasi,
-            (
-                SELECT COUNT(*) 
-                FROM reservasi r 
-                WHERE r.jadwal_id = j.id AND r.status <> 'dibatalkan'
-            ) AS terisi_reservasi,
-            (
-                SELECT COUNT(*) 
-                FROM antrean a 
-                WHERE (a.jadwal_id = j.id OR (a.jadwal_id IS NULL AND a.poli_id = j.poli_id AND a.tanggal = j.tanggal))
-                  AND a.status <> 'batal'
-            ) AS terisi_antrean
-        FROM jadwal j
-        JOIN poli p ON p.id = j.poli_id
-        LEFT JOIN dokter d ON d.id = j.dokter_id
-        WHERE " . implode(" AND ", $where) . "
-        ORDER BY (j.status = 'tutup') ASC, j.jam_mulai ASC, j.poli_id ASC
-    ";
-    $stmtList = $pdo->prepare($sqlList);
-    $stmtList->execute($params);
-    $jadwalRows = $stmtList->fetchAll();
+    $jadwalRows = QueryDaftar::jadwalAdmin([
+        'tanggal' => $filterTanggal, 'poli_id' => $filterPoli, 'status' => $filterStatus,
+    ]);
 
     if ($detailId !== null) {
-        $stmtDetail = $pdo->prepare("
-            SELECT 
-                j.id, j.poli_id, p.nama AS nama_poli, p.butuh_reservasi, p.kuota_harian, p.durasi_menit,
-                j.dokter_id, d.nama AS nama_dokter, d.profesi,
-                j.tanggal, j.jam_mulai, j.jam_selesai, j.kuota, j.status, j.dipublikasi,
-                (
-                    SELECT COUNT(*) FROM reservasi r
-                    WHERE r.jadwal_id = j.id AND r.status <> 'dibatalkan'
-                ) AS terisi_online,
-                (
-                    SELECT COUNT(*) FROM antrean a
-                    WHERE a.jadwal_id = j.id AND a.reservasi_id IS NULL AND a.status <> 'batal'
-                ) AS terisi_offline_jadwal,
-                (
-                    SELECT COUNT(*) FROM antrean a
-                    WHERE a.poli_id = j.poli_id AND a.tanggal = j.tanggal AND a.reservasi_id IS NULL AND a.status <> 'batal'
-                ) AS terisi_walkin_poli
-            FROM jadwal j
-            JOIN poli p ON p.id = j.poli_id
-            LEFT JOIN dokter d ON d.id = j.dokter_id
-            WHERE j.id = :id
-        ");
-        $stmtDetail->execute([':id' => $detailId]);
+        $stmtDetail = QueryAdminJadwal::detail([':id' => $detailId]);
         $detailJadwal = $stmtDetail->fetch();
 
         if ($detailJadwal) {
             if ($detailJadwal['butuh_reservasi']) {
-                $stmtPasien = $pdo->prepare("
-                    SELECT 
-                        ps.nama AS nama_pasien,
-                        ps.nim_nip,
-                        r.no_reservasi AS kode_tiket,
-                        'Reservasi Online' AS sumber,
-                        r.status
-                    FROM reservasi r
-                    JOIN pasien ps ON ps.id = r.pasien_id
-                    WHERE r.jadwal_id = :jadwal_id
-                    ORDER BY r.created_at ASC
-                ");
-                $stmtPasien->execute([':jadwal_id' => $detailId]);
+                $stmtPasien = QueryAdminJadwal::pasien([':jadwal_id' => $detailId]);
                 $detailPasienList = $stmtPasien->fetchAll();
             } else {
-                $stmtPasien = $pdo->prepare("
-                    SELECT 
-                        ps.nama AS nama_pasien,
-                        ps.nim_nip,
-                        concat('ANT-', lpad(a.no_antrean::text, 3, '0')) AS kode_tiket,
-                        CASE WHEN a.reservasi_id IS NOT NULL THEN 'Reservasi Online' ELSE 'Kunjungan Langsung' END AS sumber,
-                        a.status
-                    FROM antrean a
-                    JOIN pasien ps ON ps.id = a.pasien_id
-                    WHERE a.poli_id = :poli_id AND a.tanggal = :tanggal
-                    ORDER BY a.no_antrean ASC
-                ");
-                $stmtPasien->execute([
+                $stmtPasien = QueryAdminJadwal::pasien2([
                     ':poli_id' => $detailJadwal['poli_id'],
                     ':tanggal' => $detailJadwal['tanggal'],
                 ]);
@@ -348,13 +133,7 @@ try {
     }
 
     if ($editId !== null) {
-        $stmtEdit = $pdo->prepare("
-            SELECT j.*, p.butuh_reservasi, p.kuota_harian
-            FROM jadwal j
-            JOIN poli p ON p.id = j.poli_id
-            WHERE j.id = :id
-        ");
-        $stmtEdit->execute([':id' => $editId]);
+        $stmtEdit = QueryAdminJadwal::edit([':id' => $editId]);
         $editJadwal = $stmtEdit->fetch();
     }
 

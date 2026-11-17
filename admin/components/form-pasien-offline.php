@@ -1,123 +1,9 @@
 <?php
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'daftar_pasien_offline') {
-    require_once __DIR__ . '/../../config/config.php';
-    require_once __DIR__ . '/../../middleware/check-role.php';
-    check_role('admin');
-    require_once __DIR__ . '/../../config/database.php';
-
-    $nimNip  = trim($_POST['nim_nip'] ?? '');
-    $noHp    = trim($_POST['no_hp'] ?? '');
-    $poliId  = (int) ($_POST['poli_id'] ?? 1);
-    $adminId = isset($_SESSION['profil_id']) ? (int) $_SESSION['profil_id'] : null;
-
-    try {
-        $pdo->beginTransaction();
-
-        if (!empty($_SESSION['user_id'])) {
-            $stmtCfg = $pdo->prepare("SELECT set_config('app.user_id', :uid, true)");
-            $stmtCfg->execute([':uid' => (string) $_SESSION['user_id']]);
-        }
-
-        if ($adminId === null or $adminId <= 0) {
-            $admFirst = $pdo->query("SELECT id FROM admin ORDER BY id ASC LIMIT 1")->fetch();
-            $adminId  = (int) ($admFirst['id'] ?? 1);
-        }
-
-        $stmtJadwal = $pdo->prepare("
-            SELECT j.id AS jadwal_id, j.dokter_id, p.nama AS nama_poli
-            FROM jadwal j
-            JOIN poli p ON p.id = j.poli_id
-            WHERE j.poli_id = :poli_id
-              AND j.tanggal = fn_today()
-              AND j.status <> 'tutup'
-            ORDER BY 
-                ( (NOW() AT TIME ZONE 'Asia/Jakarta')::time BETWEEN j.jam_mulai AND j.jam_selesai ) DESC,
-                j.jam_mulai ASC
-            LIMIT 1
-        ");
-        $stmtJadwal->execute([':poli_id' => $poliId]);
-        $jadwalAktif = $stmtJadwal->fetch();
-
-        if (!$jadwalAktif) {
-            $stmtPoliInfo = $pdo->prepare("SELECT nama FROM poli WHERE id = :id");
-            $stmtPoliInfo->execute([':id' => $poliId]);
-            $poliInfo = $stmtPoliInfo->fetch();
-
-            $stmtBuatJadwal = $pdo->prepare("
-                INSERT INTO jadwal (poli_id, dokter_id, tanggal, jam_mulai, jam_selesai, kuota, status, dipublikasi)
-                VALUES (:poli_id, NULL, fn_today(), '08:00', '16:00', NULL, 'buka', TRUE)
-                ON CONFLICT (poli_id, tanggal, jam_mulai) DO UPDATE
-                    SET status = 'buka'
-                RETURNING id AS jadwal_id, dokter_id
-            ");
-            $stmtBuatJadwal->bindValue(':poli_id', $poliId, PDO::PARAM_INT);
-            $stmtBuatJadwal->execute();
-            $jadwalBaru = $stmtBuatJadwal->fetch();
-
-            $jadwalAktif = [
-                'jadwal_id' => $jadwalBaru['jadwal_id'],
-                'dokter_id' => $jadwalBaru['dokter_id'],
-                'nama_poli' => $poliInfo['nama'] ?? 'Poli Umum',
-            ];
-        }
-
-        $jadwalIdAktif = (int) $jadwalAktif['jadwal_id'];
-        $dokterIdAktif = $jadwalAktif['dokter_id'] !== null ? (int) $jadwalAktif['dokter_id'] : null;
-
-        $stmtPasien = $pdo->prepare("
-            INSERT INTO pasien (nim_nip, nama, jenis_kelamin, tanggal_lahir, status_civitas, no_hp)
-            VALUES (:nim_nip, '-', 'L', CURRENT_DATE, 'mahasiswa', NULLIF(:no_hp, ''))
-            ON CONFLICT (nim_nip) DO UPDATE
-                SET no_hp     = COALESCE(NULLIF(EXCLUDED.no_hp, ''), pasien.no_hp),
-                    is_active = TRUE
-            RETURNING id, nama
-        ");
-        $stmtPasien->execute([
-            ':nim_nip' => $nimNip,
-            ':no_hp'   => $noHp,
-        ]);
-        $pasienRow = $stmtPasien->fetch();
-
-        $stmtAntrean = $pdo->prepare("
-            INSERT INTO antrean (no_antrean, pasien_id, poli_id, jadwal_id, dokter_id, admin_id)
-            VALUES (0, :pasien_id, :poli_id, :jadwal_id, :dokter_id, :admin_id)
-            RETURNING no_antrean
-        ");
-        $stmtAntrean->bindValue(':pasien_id', (int) $pasienRow['id'], PDO::PARAM_INT);
-        $stmtAntrean->bindValue(':poli_id', $poliId, PDO::PARAM_INT);
-        $stmtAntrean->bindValue(':jadwal_id', $jadwalIdAktif, PDO::PARAM_INT);
-        $stmtAntrean->bindValue(':dokter_id', $dokterIdAktif, $dokterIdAktif === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
-        $stmtAntrean->bindValue(':admin_id', $adminId, PDO::PARAM_INT);
-        $stmtAntrean->execute();
-        $antRowBaru    = $stmtAntrean->fetch();
-        $noAntreanBaru = (int) ($antRowBaru['no_antrean'] ?? 0);
-
-        $pdo->commit();
-        $_SESSION['flash_success'] = "Pasien {$pasienRow['nama']} ({$nimNip}) berhasil didaftarkan ke {$jadwalAktif['nama_poli']} dengan Nomor Antrean #{$noAntreanBaru}.";
-
-    } catch (Exception $e) {
-        if ($pdo->inTransaction()) {
-            $pdo->rollBack();
-        }
-        $rawMsg = $e->getMessage();
-        if (str_contains($rawMsg, 'uq_antrean_pasien_aktif')) {
-            $_SESSION['flash_error'] = "Pasien dengan NIM/NIP {$nimNip} sudah memiliki antrean aktif di poli ini hari ini.";
-        } elseif (preg_match('/ERROR:\s*(.+?)(\n|CONTEXT:|$)/s', $rawMsg, $matches)) {
-            $_SESSION['flash_error'] = trim($matches[1]);
-        } else {
-            $_SESSION['flash_error'] = "Gagal mendaftarkan pasien: " . $rawMsg;
-        }
-        error_log('[walkin-offline] ' . $rawMsg);
-    }
-
-    header("Location: ../reservasi.php");
-    exit;
-}
 
 $poliWalkinList = [];
 if (isset($pdo)) {
     try {
-        $poliWalkinList = $pdo->query("SELECT id, nama FROM poli WHERE butuh_reservasi = FALSE ORDER BY id ASC")->fetchAll();
+        $poliWalkinList = QueryAdminPasienOffline::poliWalkinList();
     } catch (PDOException $e) {
         $poliWalkinList = [];
     }
@@ -144,7 +30,7 @@ if (isset($pdo)) {
                 </button>
             </div>
             <!-- Modal body -->
-            <form class="p-5" action="components/form-pasien-offline.php" method="POST">
+            <form class="p-5" action="components/form-pasien-offline.php" method="POST" data-api-endpoint="/api/admin/pasien-offline.php" data-api-redirect="/admin/reservasi.php">
                 <input type="hidden" name="action" value="daftar_pasien_offline">
 
                 <div class="grid gap-4 mb-4 grid-cols-2">
