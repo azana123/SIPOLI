@@ -267,7 +267,7 @@ $jamPraktikBanner =$jadwalHariIni
                                             </td>
                                             <td class="px-6 py-4 text-right">
                                                 <?php if ($row['status'] === 'selesai'): ?>
-                                                    <a href="dashboard.php?ringkasan_antrean_id=<?= (int) $row['antrean_id'] ?>" class="border border-gray-300 text-primary bg-white hover:bg-gray-50 rounded-base px-3 py-1.5 text-sm font-medium transition-colors inline-block">
+                                                    <a href="dashboard.php?ringkasan_antrean_id=<?= (int) $row['antrean_id'] ?>" class="text-xs font-semibold hover:underline text-primary">
                                                         Lihat Riwayat
                                                     </a>
                                                 <?php elseif ($row['status'] === 'diperiksa'): ?>
@@ -275,7 +275,7 @@ $jamPraktikBanner =$jadwalHariIni
                                                         <i class="fas fa-arrow-right text-xs"></i> Lanjutkan
                                                     </a>
                                                 <?php else: ?>
-                                                    <a href="dashboard.php?periksa_antrean_id=<?= (int) $row['antrean_id'] ?>" class="border border-gray-300 text-primary bg-white hover:bg-gray-50 rounded-base px-3 py-1.5 text-sm font-medium transition-colors inline-block">
+                                                    <a href="dashboard.php?periksa_antrean_id=<?= (int) $row['antrean_id'] ?>" class="text-xs font-semibold hover:underline text-primary">
                                                         Mulai Pemeriksaan
                                                     </a>
                                                 <?php endif; ?>

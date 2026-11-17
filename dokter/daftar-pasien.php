@@ -327,7 +327,7 @@ $kuotaLabel = ($jadwalSesi && $jadwalSesi['kuota'] !== null)
                                             </td>
                                             <td class="px-6 py-4 text-right">
                                                 <?php if ($row['status'] === 'selesai'): ?>
-                                                    <a href="daftar-pasien.php?<?= $baseQ ?>&ringkasan_antrean_id=<?= (int) $row['antrean_id'] ?>" class="border border-gray-300 text-primary-600 bg-white hover:bg-gray-50 rounded-base px-4 py-2 text-xs font-semibold transition-colors shadow-sm inline-block">
+                                                    <a href="daftar-pasien.php?<?= $baseQ ?>&ringkasan_antrean_id=<?= (int) $row['antrean_id'] ?>" class="text-xs font-semibold hover:underline text-primary">
                                                         Lihat Riwayat
                                                     </a>
                                                 <?php elseif ($row['status'] === 'diperiksa'): ?>
@@ -341,7 +341,7 @@ $kuotaLabel = ($jadwalSesi && $jadwalSesi['kuota'] !== null)
                                                     </div>
                                                 <?php else: ?>
                                                     <div class="flex flex-col items-end gap-1">
-                                                        <a href="daftar-pasien.php?<?= $baseQ ?>&periksa_antrean_id=<?= (int) $row['antrean_id'] ?>" class="border border-gray-300 text-primary-600 bg-white hover:bg-gray-50 rounded-base px-4 py-2 text-xs font-semibold transition-colors shadow-sm inline-block">
+                                                        <a href="daftar-pasien.php?<?= $baseQ ?>&periksa_antrean_id=<?= (int) $row['antrean_id'] ?>" class="text-xs font-semibold hover:underline text-primary">
                                                             Mulai Pemeriksaan
                                                         </a>
                                                         <a href="riwayat-penanganan.php?pasien_id=<?= (int) $row['pasien_id'] ?>" class="text-xs text-primary hover:underline font-medium inline-flex items-center gap-1">
