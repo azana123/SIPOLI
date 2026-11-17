@@ -16,9 +16,17 @@
     function apiToast(message, ok = true) {
         document.querySelectorAll('.api-toast').forEach((el) => el.remove());
         const box = document.createElement('div');
-        box.className = 'api-toast fixed top-4 right-4 z-[9999] max-w-sm px-4 py-3 rounded-base shadow-lg text-sm text-white ' +
-            (ok ? 'bg-primary' : 'bg-red-700');
-        box.textContent = message || (ok ? 'Berhasil.' : 'Terjadi kesalahan.');
+        box.className = 'api-toast fixed top-0 inset-x-0 z-[9999] flex items-center gap-2 px-4 md:px-8 py-3 text-sm border-b shadow-sm ' +
+            (ok
+                ? 'bg-success-soft text-fg-success-strong border-success'
+                : 'bg-danger-soft text-fg-danger border-danger');
+
+        const icon = document.createElement('i');
+        icon.className = ok ? 'fas fa-check-circle shrink-0' : 'fas fa-exclamation-circle shrink-0';
+        const teks = document.createElement('span');
+        teks.textContent = message || (ok ? 'Berhasil.' : 'Terjadi kesalahan.');
+
+        box.append(icon, teks);
         document.body.appendChild(box);
         setTimeout(() => box.remove(), 4000);
     }
