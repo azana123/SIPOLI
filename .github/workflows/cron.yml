@@ -1,0 +1,62 @@
+name: SIPOLI Cron
+
+# GitHub Actions menjalankan schedule dalam UTC.
+# 00:00 UTC = 07:00 WIB, 14:00 UTC = 21:00 WIB.
+on:
+  schedule:
+    - cron: '0 0 * * *'
+    - cron: '0 14 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: sipoli-cron
+  cancel-in-progress: false
+
+jobs:
+  pagi:
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'schedule' && contains(github.event.schedule, '0 0 * * *'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Siapkan PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_pgsql
+
+      - name: Jalankan job pagi
+        env:
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_SSLMODE: ${{ secrets.DB_SSLMODE }}
+          CRON_TOKEN: ${{ secrets.CRON_TOKEN }}
+        run: php cron/pagi.php "$CRON_TOKEN"
+
+  malam:
+    if: github.event_name == 'schedule' && contains(github.event.schedule, '0 14 * * *')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Siapkan PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_pgsql
+
+      - name: Jalankan job malam
+        env:
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_SSLMODE: ${{ secrets.DB_SSLMODE }}
+          CRON_TOKEN: ${{ secrets.CRON_TOKEN }}
+        run: php cron/malam.php "$CRON_TOKEN"
