@@ -375,7 +375,7 @@ $hasDetail = !empty($detailPenanganan);
                                             <?= !empty($detailPenanganan['waktu_diserahkan']) ? ' • Diserahkan pukul ' . e(date('H.i', strtotime($detailPenanganan['waktu_diserahkan']))) . ' WIB' : '' ?>
                                         </p>
                                         <?php if ((int) $detailPenanganan['jumlah_jenis_obat'] > 0): ?>
-                                            <a href="./detail-resep.php?pemeriksaan_id=<?= (int) $detailPenanganan['id'] ?>" class="border border-gray-300 text-primary-600 bg-white hover:bg-gray-50 rounded-base px-3.5 py-1.5 text-xs font-semibold transition-colors shadow-sm cursor-pointer self-start sm:self-auto">
+                                            <a href="./detail-resep.php?pemeriksaan_id=<?= (int) $detailPenanganan['id'] ?>" class="text-xs font-semibold hover:underline text-primary self-start sm:self-auto">
                                                 Lihat resep
                                             </a>
                                         <?php endif; ?>

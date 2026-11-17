@@ -321,7 +321,7 @@ try {
                                 <p class="text-xs text-gray-500">Penyiapan dan penyerahan obat kepada pasien dilakukan oleh Admin.</p>
                             </div>
                         </div>
-                        <a href="./riwayat-penanganan.php?id=<?= (int) $dataResep['id'] ?>" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-medium rounded-base px-4 py-2.5 transition-colors text-center shrink-0">
+                        <a href="./riwayat-penanganan.php?id=<?= (int) $dataResep['id'] ?>" class="text-xs font-semibold hover:underline text-primary shrink-0 self-center">
                             Kembali ke riwayat
                         </a>
                     </div>
