@@ -11,6 +11,7 @@ CREATE TABLE admin (
     nama       VARCHAR(100) NOT NULL,
     nim_nip    VARCHAR(30)  UNIQUE,
     is_super   BOOLEAN      NOT NULL DEFAULT FALSE,
+    is_active  BOOLEAN      NOT NULL DEFAULT TRUE,
     no_hp      VARCHAR(20),
     created_at TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );

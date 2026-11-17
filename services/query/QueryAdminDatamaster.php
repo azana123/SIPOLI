@@ -33,7 +33,13 @@ final class QueryAdminDatamaster {
             (
                 SELECT COUNT(*)
                 FROM poli
-            ) AS total_poli
+            ) AS total_poli,
+            (
+                SELECT COUNT(*)
+                FROM admin a
+                JOIN users u ON a.user_id = u.id
+                WHERE a.is_super = TRUE AND u.is_active = TRUE
+            ) AS super_aktif
     ")->fetch();
     }
 

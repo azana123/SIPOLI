@@ -219,22 +219,35 @@ final class DatamasterService {
         $entity   = api_str($in, 'entity');
         $id       = api_int($in, 'id');
         $newState = api_bool($in, 'new_state');
-        $adminId  = profil_id_sesi('admin');
 
         if (!in_array($entity, ['pasien', 'dokter', 'admin'], true)) {
             throw new ApiException('Jenis data tidak dikenal.');
         }
         if ($entity === 'admin') {
             self::pastikanSuperAdmin();
-            if ($id === $adminId && !$newState) {
-                throw new ApiException('Anda tidak dapat menonaktifkan akun sendiri.');
-            }
         }
         if ($id <= 0) {
             throw new ApiException('Data tidak ditemukan.');
         }
 
         api_transaction(static function (PDO $pdo) use ($entity, $id, $newState): void {
+            // Super Admin terakhir tidak boleh dinonaktifkan, termasuk oleh dirinya sendiri.
+            if ($entity === 'admin' && !$newState) {
+                $stmtSuper = $pdo->prepare('SELECT is_super FROM admin WHERE id = :id');
+                $stmtSuper->execute([':id' => $id]);
+                if ($stmtSuper->fetchColumn()) {
+                    $jumlah = (int) $pdo->query("
+                        SELECT COUNT(*)
+                        FROM admin a
+                        JOIN users u ON u.id = a.user_id
+                        WHERE a.is_super = TRUE AND u.is_active = TRUE
+                    ")->fetchColumn();
+                    if ($jumlah <= 1) {
+                        throw new ApiException('Super Admin terakhir tidak dapat dinonaktifkan.');
+                    }
+                }
+            }
+
             $kolom = $entity === 'pasien' ? 'pasien' : $entity;
             $stmt = $pdo->prepare("UPDATE {$kolom} SET is_active = :st WHERE id = :id RETURNING user_id");
             $stmt->bindValue(':st', $newState, PDO::PARAM_BOOL);
