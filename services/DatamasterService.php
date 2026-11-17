@@ -256,7 +256,7 @@ final class DatamasterService {
             $userId = (int) ($stmt->fetchColumn() ?: 0);
             if ($userId > 0) {
                 $pdo->prepare('UPDATE users SET is_active = :st WHERE id = :uid')
-                    ->execute([':st' => $newState, ':uid' => $userId]);
+                    ->execute([':st' => (int) $newState, ':uid' => $userId]);
             }
         });
 

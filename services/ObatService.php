@@ -86,7 +86,7 @@ final class ObatService {
 
         api_transaction(static function (PDO $pdo) use ($id, $newState): void {
             $pdo->prepare('UPDATE obat SET is_active = :st WHERE id = :id')
-                ->execute([':st' => $newState, ':id' => $id]);
+                ->execute([':st' => (int) $newState, ':id' => $id]);
         });
 
         return ['obat_id' => $id, 'is_active' => $newState];
