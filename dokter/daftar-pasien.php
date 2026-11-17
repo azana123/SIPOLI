@@ -3,6 +3,7 @@ require_once __DIR__ . "/../config/config.php";
 require_once __DIR__ . '/../middleware/check-role.php';
 check_role('dokter');
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../services/_load.php';
 
 $page_title = "Daftar Pasien";
 $app_name   = "SIPOLI";
@@ -18,16 +19,9 @@ $dokterId = (int) ($_SESSION['profil_id'] ?? 0);
 $dokterProfil = null;
 
 try {
-    $todayDb = $pdo->query("SELECT fn_today()::text")->fetchColumn() ?: date('Y-m-d');
+    $todayDb = QueryDokterDaftarPasien::todayDb() ?: date('Y-m-d');
     if ($dokterId > 0) {
-        $stmtDok = $pdo->prepare("
-            SELECT d.id, d.nama, d.profesi, d.no_str, d.no_hp, d.poli_id,
-                   p.nama AS nama_poli, p.butuh_reservasi, p.kuota_harian
-            FROM dokter d
-            JOIN poli p ON p.id = d.poli_id
-            WHERE d.id = :id
-        ");
-        $stmtDok->execute([':id' => $dokterId]);
+        $stmtDok = QueryDokterDaftarPasien::dok([':id' => $dokterId]);
         $dokterProfil = $stmtDok->fetch();
     }
 } catch (PDOException $e) {
@@ -76,32 +70,11 @@ $errorDb        = false;
 
 try {
     // Info jadwal dokter pada tanggal yang dipilih
-    $stmtJdw = $pdo->prepare("
-        SELECT id, tanggal, jam_mulai, jam_selesai, kuota, status
-        FROM jadwal
-        WHERE dokter_id = :dok_id AND tanggal = :tgl AND status <> 'tutup'
-        ORDER BY jam_mulai ASC
-        LIMIT 1
-    ");
-    $stmtJdw->execute([':dok_id' => $dokterId, ':tgl' => $filterTanggal]);
+    $stmtJdw = QueryDokterDaftarPasien::jdw([':dok_id' => $dokterId, ':tgl' => $filterTanggal]);
     $jadwalSesi = $stmtJdw->fetch();
 
     // Statistik Counter pada tanggal tersebut (tanpa filter pencarian/status)
-    $stmtStat = $pdo->prepare("
-        SELECT 
-            COUNT(*) AS total,
-            COUNT(*) FILTER (WHERE a.reservasi_id IS NOT NULL) AS online_cnt,
-            COUNT(*) FILTER (WHERE a.reservasi_id IS NULL) AS offline_cnt,
-            COUNT(*) FILTER (WHERE a.status = 'menunggu') AS menunggu_cnt,
-            COUNT(*) FILTER (WHERE a.status = 'diperiksa') AS diperiksa_cnt,
-            COUNT(*) FILTER (WHERE a.status = 'selesai') AS selesai_cnt
-        FROM antrean a
-        WHERE a.tanggal = :tgl
-          AND a.poli_id = :poli_id
-          AND (a.dokter_id = :dok_id OR a.dokter_id IS NULL)
-          AND a.status <> 'batal'
-    ");
-    $stmtStat->execute([
+    $stmtStat = QueryDokterDaftarPasien::stat([
         ':tgl'     => $filterTanggal,
         ':poli_id' => $poliIdDokter,
         ':dok_id'  => $dokterId,
@@ -116,64 +89,10 @@ try {
     $cntSelesai   = (int) ($st['selesai_cnt'] ?? 0);
 
     // Daftar pasien sesuai filter
-    $where = [
-        "a.tanggal = :tgl",
-        "a.poli_id = :poli_id",
-        "(a.dokter_id = :dok_id OR a.dokter_id IS NULL)",
-        "a.status <> 'batal'",
-    ];
-    $params = [
-        ':tgl'     => $filterTanggal,
-        ':poli_id' => $poliIdDokter,
-        ':dok_id'  => $dokterId,
-    ];
-
-    if ($search !== '') {
-        $where[]      = "(ps.nama ILIKE :q OR ps.nim_nip ILIKE :q)";
-        $params[':q'] = '%' . $search . '%';
-    }
-    if (in_array($filterStatus, ['menunggu', 'diperiksa', 'selesai'], true)) {
-        $where[]           = "a.status = :status";
-        $params[':status'] = $filterStatus;
-    }
-    if ($filterAsal === 'online') {
-        $where[] = "a.reservasi_id IS NOT NULL";
-    } elseif ($filterAsal === 'offline') {
-        $where[] = "a.reservasi_id IS NULL";
-    }
-
-    $sqlList = "
-        SELECT 
-            a.id AS antrean_id,
-            a.no_antrean,
-            a.status,
-            a.reservasi_id,
-            a.waktu_daftar,
-            ps.id AS pasien_id,
-            ps.nama AS nama_pasien,
-            ps.nim_nip,
-            ps.status_civitas,
-            COALESCE(j.jam_mulai, (a.waktu_daftar AT TIME ZONE 'Asia/Jakarta')::time) AS jam_kunjungan,
-            COALESCE(pm.keluhan, r.keluhan, 'Pemeriksaan langsung') AS keluhan_awal,
-            pm.id AS pemeriksaan_id
-        FROM antrean a
-        JOIN pasien ps ON ps.id = a.pasien_id
-        LEFT JOIN jadwal j       ON j.id = a.jadwal_id
-        LEFT JOIN reservasi r    ON r.id = a.reservasi_id
-        LEFT JOIN pemeriksaan pm ON pm.antrean_id = a.id
-        WHERE " . implode(" AND ", $where) . "
-        ORDER BY 
-            CASE a.status
-                WHEN 'diperiksa' THEN 1
-                WHEN 'menunggu'  THEN 2
-                WHEN 'selesai'   THEN 3
-                ELSE 4
-            END ASC,
-            a.no_antrean ASC
-    ";
-    $stmtList = $pdo->prepare($sqlList);
-    $stmtList->execute($params);
-    $pasienRows = $stmtList->fetchAll();
+    $pasienRows = QueryDaftar::daftarPasienDokter([
+        'tanggal' => $todayDb, 'poli_id' => $poliIdDokter,
+        'q' => $search, 'status' => $filterStatus, 'asal' => $filterAsal,
+    ]);
 
     foreach ($pasienRows as $pr) {
         if ($pr['status'] === 'diperiksa') {

@@ -3,6 +3,7 @@ require_once __DIR__ . "/../config/config.php";
 require_once __DIR__ . '/../middleware/check-role.php';
 check_role('admin');
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../services/_load.php';
 
 $page_title = "Kirim Informasi";
 $app_name   = "SIPOLI";
@@ -18,75 +19,9 @@ $flashSuccess = $_SESSION['flash_success'] ?? null;
 $flashError   = $_SESSION['flash_error'] ?? null;
 unset($_SESSION['flash_success'], $_SESSION['flash_error']);
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $judul  = trim($_POST['judul'] ?? '');
-    $pesan  = trim($_POST['pesan'] ?? '');
-    $target = $_POST['target_penerima'] ?? 'semua';
-
-    if ($judul === '' or $pesan === '') {
-        $_SESSION['flash_error'] = "Judul dan isi pesan informasi wajib diisi.";
-    } else {
-        try {
-            $pdo->beginTransaction();
-
-            $sqlUser    = "SELECT id FROM users WHERE role = 'pasien' AND is_active = TRUE";
-            $paramsUser = [];
-
-            if (in_array($target, ['mahasiswa', 'dosen', 'staf'], true)) {
-                $sqlUser = "
-                    SELECT u.id 
-                    FROM users u 
-                    JOIN pasien p ON p.user_id = u.id 
-                    WHERE u.role = 'pasien' AND u.is_active = TRUE AND p.status_civitas = :civ
-                ";
-                $paramsUser[':civ'] = $target;
-            }
-
-            $stmtTarget = $pdo->prepare($sqlUser);
-            $stmtTarget->execute($paramsUser);
-            $penerimaList = $stmtTarget->fetchAll();
-
-            if (empty($penerimaList)) {
-                throw new Exception("Belum ada akun pasien aktif pada kategori penerima yang dipilih.");
-            }
-
-            $stmtIns = $pdo->prepare("
-                INSERT INTO inbox (user_id, tipe, judul, pesan, ref_tipe, ref_id)
-                VALUES (:uid, 'info', :judul, :pesan, 'informasi', NULL)
-            ");
-
-            foreach ($penerimaList as $uRow) {
-                $stmtIns->execute([
-                    ':uid'   => (int) $uRow['id'],
-                    ':judul' => $judul,
-                    ':pesan' => $pesan,
-                ]);
-            }
-
-            $pdo->commit();
-            $_SESSION['flash_success'] = "Pengumuman berhasil dikirimkan kepada " . count($penerimaList) . " pasien.";
-        } catch (Exception $e) {
-            if ($pdo->inTransaction()) {
-                $pdo->rollBack();
-            }
-            $_SESSION['flash_error'] = "Gagal mengirim pengumuman: " . $e->getMessage();
-        }
-    }
-
-    header("Location: kirim-informasi.php");
-    exit;
-}
-
 $riwayatInfo = [];
 try {
-    $riwayatInfo = $pdo->query("
-        SELECT i.judul, i.pesan, i.created_at, COUNT(i.id) AS jumlah_penerima
-        FROM inbox i
-        WHERE i.ref_tipe = 'informasi'
-        GROUP BY i.judul, i.pesan, i.created_at
-        ORDER BY i.created_at DESC
-        LIMIT 10
-    ")->fetchAll();
+    $riwayatInfo = QueryAdminInformasi::riwayatInfo();
 } catch (PDOException $e) {
     $riwayatInfo = [];
 }
@@ -130,7 +65,7 @@ try {
                     <div class="lg:col-span-2 bg-white p-6 border border-gray-200 rounded-base shadow-sm flex flex-col">
                         <h3 class="text-lg font-bold text-gray-900 mb-5">Tulis pengumuman baru</h3>
                         
-                        <form action="kirim-informasi.php" method="POST" class="flex flex-col gap-5 flex-1">
+                        <form action="kirim-informasi.php" method="POST" data-api-endpoint="/api/admin/kirim-informasi.php" data-api-redirect="/admin/kirim-informasi.php" class="flex flex-col gap-5 flex-1">
                             <div>
                                 <label class="block mb-2 text-sm font-semibold text-gray-800">Penerima pengumuman *</label>
                                 <select name="target_penerima" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-base block w-full p-2.5 focus:ring-primary-500 focus:border-primary-500">

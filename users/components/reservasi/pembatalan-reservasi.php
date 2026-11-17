@@ -12,7 +12,7 @@
                 <p class= text-sm text-slate-500 mt-0.5">dr. Sarah Amelia, Sp.KJ</p>
             </div>
 
-            <form action="#" method="POST">
+            <form action="#" method="POST" onsubmit="return false;">
                 <div class="mb-4 text-left">
                     <label for="alasan_batal" class="block mb-2 text-sm font-medium text-slate-500">Alasan(opsional)</label>
                     <textarea id="alasan_batal" name="alasan_batal" rows="2" class="bg-white border border-gray-300 text-gray-900 text-sm rounded focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 resize-none transition-colors" placeholder=""></textarea>
@@ -28,7 +28,7 @@
                     <button type="button" data-modal-hide="modal-konfirmasi-pembatalan" class="w-full px-4 py-2.5 text-sm font-bold text-primary-700 bg-white border border-primary-600 rounded hover:bg-primary-50 focus:ring-4 focus:outline-none focus:ring-primary-100 transition-colors">
                         Kembali
                     </button>
-                    <button type="submit" class="w-full px-4 py-2.5 text-sm font-bold text-white bg-red-700 border border-red-700 rounded hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-200 transition-colors">
+                    <button type="submit" data-api-click data-api-endpoint="/api/pasien/reservasi.php" data-api-payload='{"action":"batal","reservasi_id":<?= (int)($reservasiId ?? 0) ?>}' class="w-full px-4 py-2.5 text-sm font-bold text-white bg-red-700 border border-red-700 rounded hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-200 transition-colors">
                         Ya, batalkan
                     </button>
                 </div>

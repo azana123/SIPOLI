@@ -4,13 +4,7 @@ $dokterIdSession = (int) ($_SESSION['profil_id'] ?? 0);
 
 if (!isset($dokterProfil) && isset($pdo) && $dokterIdSession > 0) {
     try {
-        $stmtDokNav = $pdo->prepare("
-            SELECT d.id, d.nama, d.profesi, d.no_str, d.no_hp, d.poli_id, p.nama AS nama_poli, p.butuh_reservasi
-            FROM dokter d
-            JOIN poli p ON p.id = d.poli_id
-            WHERE d.id = :id
-        ");
-        $stmtDokNav->execute([':id' => $dokterIdSession]);
+        $stmtDokNav = QueryDokterNavbar::dokNav([':id' => $dokterIdSession]);
         $dokterProfil = $stmtDokNav->fetch();
     } catch (PDOException $e) {
         $dokterProfil = null;
@@ -29,10 +23,7 @@ $jamWibNav    = date('H.i');
 
 if (isset($pdo)) {
     try {
-        $rowTimeNav = $pdo->query("
-            SELECT fn_today()::text AS tgl,
-                   TO_CHAR((NOW() AT TIME ZONE 'Asia/Jakarta'), 'HH24.MI') AS jam
-        ")->fetch();
+        $rowTimeNav = QueryDokterNavbar::rowTimeNav();
         if ($rowTimeNav) {
             $todayDateNav = $rowTimeNav['tgl'];
             $jamWibNav    = $rowTimeNav['jam'];
@@ -99,3 +90,7 @@ $formattedDate = $hariIndoNav[(int) date('N', $tsNav)] . ', ' . (int) date('j', 
         </div>
     </div>
 </nav>
+<script>
+    window.APP_ROOT = <?= json_encode(rtrim((string) getenv('APP_BASE_URL'), '/')) ?>;
+</script>
+<script defer src="./../assets/js/api.js"></script>

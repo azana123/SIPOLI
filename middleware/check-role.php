@@ -31,7 +31,11 @@ function check_role($allowed_roles, bool $json = false): void {
         if ($json) {
             http_response_code($kode);
             header('Content-Type: application/json');
-            echo json_encode(['error' => $pesan]);
+            echo json_encode([
+                'success' => false,
+                'message' => $pesan,
+                'errors'  => [],
+            ], JSON_UNESCAPED_UNICODE);
             exit;
         }
         redirect($tujuan);

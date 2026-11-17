@@ -3,6 +3,7 @@ require_once __DIR__ . "/../config/config.php";
 require_once __DIR__ . '/../middleware/check-role.php';
 check_role('admin');
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../services/_load.php';
 
 $page_title = "Reservasi";
 $app_name   = "SIPOLI";
@@ -23,7 +24,7 @@ function formatTglSingkatRsv(string $dateStr): string
 }
 
 try {
-    $todayDb = $pdo->query("SELECT fn_today()::text")->fetchColumn() ?: date('Y-m-d');
+    $todayDb = QueryAdminReservasi::todayDb() ?: date('Y-m-d');
 } catch (PDOException $e) {
     $todayDb = date('Y-m-d');
 }
@@ -33,99 +34,6 @@ $flashError   = $_SESSION['flash_error'] ?? null;
 unset($_SESSION['flash_success'], $_SESSION['flash_error']);
 
 // PROSES POST: CHECK-IN, JADWAL ULANG, DAN PEMBATALAN KUNJUNGAN
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $action      = $_POST['action'] ?? '';
-    $redirectTgl = $_POST['redirect_tanggal'] ?? $todayDb;
-    $adminId     = isset($_SESSION['profil_id']) ? (int) $_SESSION['profil_id'] : null;
-
-    try {
-        $pdo->beginTransaction();
-
-        if (!empty($_SESSION['user_id'])) {
-            $stmtCfg = $pdo->prepare("SELECT set_config('app.user_id', :uid, true)");
-            $stmtCfg->execute([':uid' => (string) $_SESSION['user_id']]);
-        }
-
-        if ($action === 'checkin') {
-            $reservasiId = (int) ($_POST['reservasi_id'] ?? 0);
-
-            $stmtIns = $pdo->prepare("
-                INSERT INTO antrean (no_antrean, pasien_id, poli_id, jadwal_id, dokter_id, reservasi_id, admin_id)
-                SELECT 0, r.pasien_id, j.poli_id, j.id, j.dokter_id, r.id, :admin_id
-                FROM reservasi r
-                JOIN jadwal j ON j.id = r.jadwal_id
-                WHERE r.id = :rsv_id
-                RETURNING no_antrean
-            ");
-            $stmtIns->bindValue(':admin_id', $adminId, $adminId === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
-            $stmtIns->bindValue(':rsv_id', $reservasiId, PDO::PARAM_INT);
-            $stmtIns->execute();
-            $noAntrean = $stmtIns->fetchColumn();
-
-            $stmtHadir = $pdo->prepare("UPDATE reservasi SET status = 'hadir' WHERE id = :id AND status = 'dikonfirmasi'");
-            $stmtHadir->execute([':id' => $reservasiId]);
-
-            $_SESSION['flash_success'] = "Kehadiran pasien berhasil dicatat. Pasien masuk ke antrean nomor #" . (int) $noAntrean . ".";
-
-        } elseif ($action === 'reschedule') {
-            $reservasiId  = (int) ($_POST['reservasi_id'] ?? 0);
-            $jadwalBaruId = (int) ($_POST['jadwal_baru_id'] ?? 0);
-
-            $stmtRes = $pdo->prepare("SELECT fn_reschedule_reservasi(:rsv_id, :jadwal_baru_id)");
-            $stmtRes->execute([
-                ':rsv_id'         => $reservasiId,
-                ':jadwal_baru_id' => $jadwalBaruId,
-            ]);
-
-            $_SESSION['flash_success'] = "Jadwal reservasi pasien berhasil diperbarui.";
-
-        } elseif ($action === 'batal_reservasi') {
-            $reservasiId = (int) ($_POST['reservasi_id'] ?? 0);
-            $stmtBtl     = $pdo->prepare("
-                UPDATE reservasi
-                   SET status = 'dibatalkan', alasan_batal = 'admin'
-                 WHERE id = :id
-            ");
-            $stmtBtl->execute([':id' => $reservasiId]);
-
-            $stmtBtlAnt = $pdo->prepare("
-                UPDATE antrean SET status = 'batal'
-                 WHERE reservasi_id = :id AND status IN ('menunggu', 'diperiksa')
-            ");
-            $stmtBtlAnt->execute([':id' => $reservasiId]);
-
-            $_SESSION['flash_success'] = "Reservasi pasien telah dibatalkan.";
-
-        } elseif ($action === 'batal_walkin') {
-            $antreanId = (int) ($_POST['antrean_id'] ?? 0);
-            $stmtBtl   = $pdo->prepare("
-                UPDATE antrean SET status = 'batal'
-                 WHERE id = :id AND status IN ('menunggu', 'diperiksa')
-            ");
-            $stmtBtl->execute([':id' => $antreanId]);
-
-            $_SESSION['flash_success'] = "Kunjungan langsung telah dibatalkan.";
-        }
-
-        $pdo->commit();
-    } catch (PDOException $e) {
-        if ($pdo->inTransaction()) {
-            $pdo->rollBack();
-        }
-        $rawMsg = $e->getMessage();
-        if (str_contains($rawMsg, 'uq_antrean_reservasi')) {
-            $_SESSION['flash_error'] = "Pasien pada reservasi ini sudah tercatat hadir di antrean.";
-        } elseif (preg_match('/ERROR:\s*(.+?)(\n|CONTEXT:|$)/s', $rawMsg, $matches)) {
-            $_SESSION['flash_error'] = trim($matches[1]);
-        } else {
-            $_SESSION['flash_error'] = "Gagal memproses tindakan: " . $rawMsg;
-        }
-        error_log('[reservasi-admin-post] ' . $rawMsg);
-    }
-
-    header("Location: reservasi.php?tanggal=" . urlencode($redirectTgl));
-    exit;
-}
 
 // PROSES GET: FILTER, STATISTIK COUNTER, DAN DAFTAR KUNJUNGAN GABUNGAN
 $filterTanggal = trim($_GET['tanggal'] ?? $todayDb);
@@ -158,22 +66,9 @@ $cntReschedule     = 0;
 $cntDibatalkan     = 0;
 
 try {
-    $listPoli = $pdo->query("SELECT id, nama FROM poli ORDER BY id ASC")->fetchAll();
+    $listPoli = QueryAdminReservasi::listPoli();
 
-    $stmtCnt = $pdo->prepare("
-        SELECT
-            (SELECT COUNT(*) FROM reservasi r JOIN jadwal j ON j.id = r.jadwal_id WHERE j.tanggal = :tgl AND r.status <> 'dibatalkan') AS online_aktif,
-            (SELECT COUNT(*) FROM antrean a WHERE a.tanggal = :tgl AND a.reservasi_id IS NULL AND a.status <> 'batal') AS offline_aktif,
-            (SELECT COUNT(*) FROM reservasi r JOIN jadwal j ON j.id = r.jadwal_id WHERE j.tanggal = :tgl AND r.status = 'selesai') AS online_selesai,
-            (SELECT COUNT(*) FROM antrean a WHERE a.tanggal = :tgl AND a.reservasi_id IS NULL AND a.status = 'selesai') AS offline_selesai,
-            (SELECT COUNT(*) FROM reservasi r JOIN jadwal j ON j.id = r.jadwal_id WHERE j.tanggal = :tgl AND r.status IN ('menunggu', 'dikonfirmasi'))
-              + (SELECT COUNT(*) FROM antrean a WHERE a.tanggal = :tgl AND a.reservasi_id IS NULL AND a.status = 'menunggu') AS total_menunggu,
-            (SELECT COUNT(*) FROM reservasi r JOIN jadwal j ON j.id = r.jadwal_id WHERE j.tanggal = :tgl AND r.status = 'dikonfirmasi' AND NOT EXISTS (SELECT 1 FROM antrean a WHERE a.reservasi_id = r.id)) AS belum_checkin,
-            (SELECT COUNT(*) FROM reservasi r JOIN jadwal j ON j.id = r.jadwal_id WHERE j.tanggal = :tgl AND r.reschedule_count > 0) AS sudah_reschedule,
-            (SELECT COUNT(*) FROM reservasi r JOIN jadwal j ON j.id = r.jadwal_id WHERE j.tanggal = :tgl AND r.status IN ('dibatalkan', 'tidak_hadir'))
-              + (SELECT COUNT(*) FROM antrean a WHERE a.tanggal = :tgl AND a.reservasi_id IS NULL AND a.status = 'batal') AS total_batal
-    ");
-    $stmtCnt->execute([':tgl' => $filterTanggal]);
+    $stmtCnt = QueryAdminReservasi::cnt([':tgl' => $filterTanggal]);
     $c = $stmtCnt->fetch();
 
     $cntOnlineTotal    = (int) ($c['online_aktif'] ?? 0);
@@ -185,169 +80,27 @@ try {
     $cntReschedule     = (int) ($c['sudah_reschedule'] ?? 0);
     $cntDibatalkan     = (int) ($c['total_batal'] ?? 0);
 
-    $sqlUnion = "
-        SELECT * FROM (
-            SELECT 
-                r.id AS item_id,
-                'online' AS asal,
-                r.no_reservasi AS kode_tiket,
-                p.id AS pasien_id,
-                p.nama AS nama_pasien,
-                p.nim_nip,
-                p.status_civitas,
-                j.poli_id,
-                po.nama AS nama_poli,
-                d.nama AS nama_dokter,
-                j.tanggal,
-                j.jam_mulai,
-                j.jam_selesai,
-                r.status,
-                r.reschedule_count,
-                r.keluhan,
-                r.created_at,
-                a.id AS antrean_id,
-                a.no_antrean
-            FROM reservasi r
-            JOIN pasien p ON p.id = r.pasien_id
-            JOIN jadwal j ON j.id = r.jadwal_id
-            JOIN poli po  ON po.id = j.poli_id
-            LEFT JOIN dokter d  ON d.id = j.dokter_id
-            LEFT JOIN antrean a ON a.reservasi_id = r.id
-
-            UNION ALL
-
-            SELECT 
-                a.id AS item_id,
-                'offline' AS asal,
-                concat('ANT-', lpad(a.no_antrean::text, 3, '0')) AS kode_tiket,
-                p.id AS pasien_id,
-                p.nama AS nama_pasien,
-                p.nim_nip,
-                p.status_civitas,
-                a.poli_id,
-                po.nama AS nama_poli,
-                COALESCE(d.nama, jd.nama) AS nama_dokter,
-                a.tanggal,
-                j.jam_mulai,
-                j.jam_selesai,
-                CASE a.status
-                    WHEN 'batal'     THEN 'dibatalkan'
-                    WHEN 'diperiksa' THEN 'hadir'
-                    ELSE a.status
-                END AS status,
-                0 AS reschedule_count,
-                pm.keluhan,
-                a.waktu_daftar AS created_at,
-                a.id AS antrean_id,
-                a.no_antrean
-            FROM antrean a
-            JOIN pasien p ON p.id = a.pasien_id
-            JOIN poli po  ON po.id = a.poli_id
-            LEFT JOIN dokter d       ON d.id = a.dokter_id
-            LEFT JOIN jadwal j       ON j.id = a.jadwal_id
-            LEFT JOIN dokter jd      ON jd.id = j.dokter_id
-            LEFT JOIN pemeriksaan pm ON pm.antrean_id = a.id
-            WHERE a.reservasi_id IS NULL
-        ) gabungan
-        WHERE tanggal = :tanggal
-    ";
-
-    $params = [':tanggal' => $filterTanggal];
-
-    if ($search !== '') {
-        $sqlUnion    .= " AND (nama_pasien ILIKE :q OR nim_nip ILIKE :q OR kode_tiket ILIKE :q OR COALESCE(nama_dokter, '') ILIKE :q)";
-        $params[':q'] = '%' . $search . '%';
-    }
-    if ($filterPoli !== '' && ctype_digit($filterPoli)) {
-        $sqlUnion          .= " AND poli_id = :poli_id";
-        $params[':poli_id'] = (int) $filterPoli;
-    }
-    if (in_array($filterAsal, ['online', 'offline'], true)) {
-        $sqlUnion       .= " AND asal = :asal";
-        $params[':asal'] = $filterAsal;
-    }
-    if ($filterStatus !== '') {
-        $sqlUnion         .= " AND status = :status";
-        $params[':status'] = $filterStatus;
-    }
-
-    $sqlUnion .= " ORDER BY COALESCE(jam_mulai, '08:00:00'::time) ASC, created_at ASC";
-
-    $stmtList = $pdo->prepare($sqlUnion);
-    $stmtList->execute($params);
-    $kunjunganRows = $stmtList->fetchAll();
+    $kunjunganRows = QueryDaftar::reservasiAdmin([
+        'tanggal' => $filterTanggal, 'q' => $search, 'poli_id' => $filterPoli,
+        'asal' => $filterAsal, 'status' => $filterStatus,
+    ]);
 
     if ($detailId !== null && in_array($detailSource, ['online', 'offline'], true)) {
         if ($detailSource === 'online') {
-            $stmtDet = $pdo->prepare("
-                SELECT 
-                    'online' AS asal,
-                    r.id, r.no_reservasi AS kode_tiket, r.status, r.keluhan, r.reschedule_count,
-                    r.konfirmasi_diminta_at, r.dikonfirmasi_at, r.dibatalkan_at, r.alasan_batal, r.created_at,
-                    p.nama AS nama_pasien, p.nim_nip, p.status_civitas, p.no_hp,
-                    po.nama AS nama_poli, po.butuh_reservasi,
-                    d.nama AS nama_dokter,
-                    j.tanggal, j.jam_mulai, j.jam_selesai,
-                    a.id AS antrean_id, a.no_antrean
-                FROM reservasi r
-                JOIN pasien p ON p.id = r.pasien_id
-                JOIN jadwal j ON j.id = r.jadwal_id
-                JOIN poli po  ON po.id = j.poli_id
-                LEFT JOIN dokter d  ON d.id = j.dokter_id
-                LEFT JOIN antrean a ON a.reservasi_id = r.id
-                WHERE r.id = :id
-            ");
-            $stmtDet->execute([':id' => $detailId]);
+            $stmtDet = QueryAdminReservasi::det([':id' => $detailId]);
             $detailData = $stmtDet->fetch();
         } else {
-            $stmtDet = $pdo->prepare("
-                SELECT 
-                    'offline' AS asal,
-                    a.id, concat('ANT-', lpad(a.no_antrean::text, 3, '0')) AS kode_tiket,
-                    a.status, pm.keluhan, 0 AS reschedule_count,
-                    NULL AS konfirmasi_diminta_at, NULL AS dikonfirmasi_at, NULL AS dibatalkan_at, NULL AS alasan_batal,
-                    a.waktu_daftar AS created_at,
-                    p.nama AS nama_pasien, p.nim_nip, p.status_civitas, p.no_hp,
-                    po.nama AS nama_poli, po.butuh_reservasi,
-                    COALESCE(d.nama, jd.nama) AS nama_dokter,
-                    a.tanggal, j.jam_mulai, j.jam_selesai,
-                    a.id AS antrean_id, a.no_antrean
-                FROM antrean a
-                JOIN pasien p ON p.id = a.pasien_id
-                JOIN poli po  ON po.id = a.poli_id
-                LEFT JOIN dokter d       ON d.id = a.dokter_id
-                LEFT JOIN jadwal j       ON j.id = a.jadwal_id
-                LEFT JOIN dokter jd      ON jd.id = j.dokter_id
-                LEFT JOIN pemeriksaan pm ON pm.antrean_id = a.id
-                WHERE a.id = :id
-            ");
-            $stmtDet->execute([':id' => $detailId]);
+            $stmtDet = QueryAdminReservasi::det2([':id' => $detailId]);
             $detailData = $stmtDet->fetch();
         }
     }
 
     if ($rescheduleId !== null) {
-        $stmtRsc = $pdo->prepare("
-            SELECT r.id, r.no_reservasi, r.jadwal_id, r.status, r.reschedule_count,
-                   p.nama AS nama_pasien, p.nim_nip,
-                   j.poli_id, po.nama AS nama_poli, j.tanggal, j.jam_mulai, j.jam_selesai
-            FROM reservasi r
-            JOIN pasien p ON p.id = r.pasien_id
-            JOIN jadwal j ON j.id = r.jadwal_id
-            JOIN poli po  ON po.id = j.poli_id
-            WHERE r.id = :id
-        ");
-        $stmtRsc->execute([':id' => $rescheduleId]);
+        $stmtRsc = QueryAdminReservasi::rsc([':id' => $rescheduleId]);
         $rescheduleData = $stmtRsc->fetch();
 
         if ($rescheduleData) {
-            $stmtJdw = $pdo->prepare("
-                SELECT id, dokter, tanggal, jam_mulai, jam_selesai, sisa_kuota
-                FROM v_jadwal_tersedia
-                WHERE poli_id = :poli_id AND id <> :jadwal_lama AND sisa_kuota > 0
-                ORDER BY tanggal ASC, jam_mulai ASC
-            ");
-            $stmtJdw->execute([
+            $stmtJdw = QueryAdminReservasi::jdw([
                 ':poli_id'     => $rescheduleData['poli_id'],
                 ':jadwal_lama' => $rescheduleData['jadwal_id'],
             ]);
@@ -599,7 +352,7 @@ try {
                                                     <a href="reservasi.php?<?= $baseQ ?>&detail_src=<?= e($row['asal']) ?>&detail_id=<?= (int) $row['item_id'] ?>" class="text-xs font-semibold hover:underline text-primary">Lihat</a>
 
                                                     <?php if ($canCheckin): ?>
-                                                        <form method="POST" action="reservasi.php" class="inline">
+                                                        <form method="POST" action="reservasi.php" data-api-endpoint="/api/admin/reservasi.php" data-api-redirect="/admin/reservasi.php?tanggal=<?= urlencode($filterTanggal) ?>" class="inline">
                                                             <input type="hidden" name="action" value="checkin">
                                                             <input type="hidden" name="reservasi_id" value="<?= (int) $row['item_id'] ?>">
                                                             <input type="hidden" name="redirect_tanggal" value="<?= e($filterTanggal) ?>">
@@ -616,7 +369,7 @@ try {
                                                     <?php endif; ?>
 
                                                     <?php if ($canCancel): ?>
-                                                        <form method="POST" action="reservasi.php" class="inline" onsubmit="return confirm('Batalkan kunjungan/reservasi ini?')">
+                                                        <form method="POST" action="reservasi.php" data-api-endpoint="/api/admin/reservasi.php" data-api-redirect="/admin/reservasi.php?tanggal=<?= urlencode($filterTanggal) ?>" class="inline" onsubmit="return confirm('Batalkan kunjungan/reservasi ini?')">
                                                             <input type="hidden" name="action" value="<?= $row['asal'] === 'online' ? 'batal_reservasi' : 'batal_walkin' ?>">
                                                             <input type="hidden" name="<?= $row['asal'] === 'online' ? 'reservasi_id' : 'antrean_id' ?>" value="<?= (int) $row['item_id'] ?>">
                                                             <input type="hidden" name="redirect_tanggal" value="<?= e($filterTanggal) ?>">

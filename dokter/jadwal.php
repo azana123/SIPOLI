@@ -3,6 +3,7 @@ require_once __DIR__ . "/../config/config.php";
 require_once __DIR__ . '/../middleware/check-role.php';
 check_role('dokter');
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../services/_load.php';
 
 $page_title = "Jadwal Saya";
 $app_name   = "SIPOLI";
@@ -18,16 +19,9 @@ $dokterId     = (int) ($_SESSION['profil_id'] ?? 0);
 $dokterProfil = null;
 
 try {
-    $todayDb = $pdo->query("SELECT fn_today()::text")->fetchColumn() ?: date('Y-m-d');
+    $todayDb = QueryDokterJadwal::todayDb() ?: date('Y-m-d');
     if ($dokterId > 0) {
-        $stmtDok = $pdo->prepare("
-            SELECT d.id, d.nama, d.profesi, d.no_str, d.no_hp, d.poli_id,
-                   p.nama AS nama_poli, p.butuh_reservasi, p.kuota_harian
-            FROM dokter d
-            JOIN poli p ON p.id = d.poli_id
-            WHERE d.id = :id
-        ");
-        $stmtDok->execute([':id' => $dokterId]);
+        $stmtDok = QueryDokterJadwal::dok([':id' => $dokterId]);
         $dokterProfil = $stmtDok->fetch();
     }
 } catch (PDOException $e) {
@@ -76,46 +70,15 @@ $errorDb          = false;
 
 try {
     // Jadwal hari ini
-    $stmtToday = $pdo->prepare("
-        SELECT id, tanggal, jam_mulai, jam_selesai, kuota, status
-        FROM jadwal
-        WHERE dokter_id = :dok_id AND tanggal = :today AND status <> 'tutup'
-        ORDER BY jam_mulai ASC
-        LIMIT 1
-    ");
-    $stmtToday->execute([':dok_id' => $dokterId, ':today' => $todayDb]);
+    $stmtToday = QueryDokterJadwal::today([':dok_id' => $dokterId, ':today' => $todayDb]);
     $jadwalHariIni = $stmtToday->fetch();
 
     // Jadwal praktik berikutnya (setelah hari ini)
-    $stmtNext = $pdo->prepare("
-        SELECT j.id, j.tanggal, j.jam_mulai, j.jam_selesai, j.kuota, p.nama AS nama_poli,
-               (SELECT COUNT(*) FROM reservasi r WHERE r.jadwal_id = j.id AND r.status <> 'dibatalkan') AS terisi_rsv,
-               (SELECT COUNT(*) FROM antrean a WHERE a.jadwal_id = j.id AND a.status <> 'batal') AS terisi_ant
-        FROM jadwal j
-        JOIN poli p ON p.id = j.poli_id
-        WHERE j.dokter_id = :dok_id AND j.tanggal > :today AND j.status <> 'tutup'
-        ORDER BY j.tanggal ASC, j.jam_mulai ASC
-        LIMIT 1
-    ");
-    $stmtNext->execute([':dok_id' => $dokterId, ':today' => $todayDb]);
+    $stmtNext = QueryDokterJadwal::next([':dok_id' => $dokterId, ':today' => $todayDb]);
     $jadwalBerikutnya = $stmtNext->fetch();
 
     // Daftar jadwal pada periode minggu yang dipilih
-    $stmtList = $pdo->prepare("
-        SELECT 
-            j.id, j.tanggal, j.jam_mulai, j.jam_selesai, j.kuota, j.status,
-            p.nama AS nama_poli, p.butuh_reservasi,
-            EXTRACT(EPOCH FROM (j.jam_selesai - j.jam_mulai)) / 3600.0 AS durasi_jam,
-            (SELECT COUNT(*) FROM reservasi r WHERE r.jadwal_id = j.id AND r.status <> 'dibatalkan') AS terisi_rsv,
-            (SELECT COUNT(*) FROM antrean a WHERE (a.jadwal_id = j.id OR (a.jadwal_id IS NULL AND a.poli_id = j.poli_id AND a.tanggal = j.tanggal)) AND a.status <> 'batal') AS terisi_ant
-        FROM jadwal j
-        JOIN poli p ON p.id = j.poli_id
-        WHERE j.dokter_id = :dok_id
-          AND j.tanggal BETWEEN :tgl_mulai AND :tgl_selesai
-          AND j.status <> 'tutup'
-        ORDER BY j.tanggal ASC, j.jam_mulai ASC
-    ");
-    $stmtList->execute([
+    $stmtList = QueryDokterJadwal::list([
         ':dok_id'      => $dokterId,
         ':tgl_mulai'   => $tglMulaiPeriode,
         ':tgl_selesai' => $tglSelesaiPeriode,

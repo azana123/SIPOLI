@@ -39,7 +39,7 @@ $epAlergi  = $editPasien['riwayat_alergi'] ?? '';
             </div>
 
             <!-- Modal Body (Form) -->
-            <form id="form-edit-pasien" action="datamaster.php" method="POST" class="p-5 space-y-4">
+            <form id="form-edit-pasien" action="datamaster.php" method="POST" data-api-endpoint="/api/admin/datamaster.php" data-api-redirect="/admin/datamaster.php?tab=pasien" class="p-5 space-y-4">
                 <input type="hidden" name="action" value="save_pasien">
                 <input type="hidden" name="tab" value="pasien">
                 <input type="hidden" name="pasien_id" value="<?= $epId ?>">

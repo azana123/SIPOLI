@@ -3,6 +3,7 @@ require_once __DIR__ . "/../config/config.php";
 require_once __DIR__ . '/../middleware/check-role.php';
 check_role('admin');
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../services/_load.php';
 
 $page_title = "Notifikasi";
 $app_name   = "SIPOLI";
@@ -20,30 +21,11 @@ unset($_SESSION['flash_success'], $_SESSION['flash_error']);
 
 $currentUserId = (int) ($_SESSION['user_id'] ?? 0);
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'baca_semua') {
-    try {
-        $stmt = $pdo->prepare("UPDATE inbox SET dibaca_at = NOW() WHERE user_id = :uid AND dibaca_at IS NULL");
-        $stmt->execute([':uid' => $currentUserId]);
-        $_SESSION['flash_success'] = "Seluruh pemberitahuan telah ditandai sudah dibaca.";
-    } catch (PDOException $e) {
-        error_log('[notifikasi-admin] ' . $e->getMessage());
-    }
-    header("Location: notifikasi.php");
-    exit;
-}
-
 $listInbox = [];
 $errorDb   = false;
 
 try {
-    $stmt = $pdo->prepare("
-        SELECT id, tipe, judul, pesan, ref_tipe, ref_id, dibaca_at, created_at
-        FROM inbox
-        WHERE user_id = :uid
-        ORDER BY created_at DESC
-        LIMIT 30
-    ");
-    $stmt->execute([':uid' => $currentUserId]);
+    $stmt = QueryAdminNotifikasi::stmt([':uid' => $currentUserId]);
     $listInbox = $stmt->fetchAll();
 
 } catch (PDOException $e) {
@@ -84,7 +66,7 @@ try {
                             <p class="text-sm text-gray-500 mt-0.5">Informasi stok obat, pengajuan perubahan jadwal dokter, dan konfirmasi kehadiran pasien</p>
                         </div>
                         <?php if (!empty($listInbox)): ?>
-                            <form method="POST" action="notifikasi.php">
+                            <form method="POST" action="notifikasi.php" data-api-endpoint="/api/admin/notifikasi.php" data-api-redirect="/admin/notifikasi.php">
                                 <input type="hidden" name="action" value="baca_semua">
                                 <button type="submit" class="px-3.5 py-2 text-xs font-semibold text-primary bg-primary-50 border border-primary-100 rounded-base hover:bg-primary-100 cursor-pointer transition-colors">
                                     <i class="fas fa-check-double mr-1.5"></i> Tandai Semua Dibaca

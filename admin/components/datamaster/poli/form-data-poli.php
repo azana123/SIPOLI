@@ -32,7 +32,7 @@ $plDurasi = (int) ($editPoli['durasi_menit'] ?? 30);
                 <?php endif; ?>
             </div>
 
-            <form id="form-poli" action="datamaster.php" method="POST" class="p-5 space-y-4">
+            <form id="form-poli" action="datamaster.php" method="POST" data-api-endpoint="/api/admin/datamaster.php" data-api-redirect="/admin/datamaster.php?tab=poli" class="p-5 space-y-4">
                 <input type="hidden" name="action" value="save_poli">
                 <input type="hidden" name="tab" value="poli">
                 <input type="hidden" name="poli_id_PK" value="<?= $plId ?>">

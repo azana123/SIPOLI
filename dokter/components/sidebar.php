@@ -3,13 +3,7 @@ $dokterIdSidebar = (int) ($_SESSION['profil_id'] ?? 0);
 
 if (!isset($dokterProfil) && isset($pdo) && $dokterIdSidebar > 0) {
     try {
-        $stmtDokSb = $pdo->prepare("
-            SELECT d.id, d.nama, d.profesi, d.no_str, d.no_hp, d.poli_id, p.nama AS nama_poli, p.butuh_reservasi
-            FROM dokter d
-            JOIN poli p ON p.id = d.poli_id
-            WHERE d.id = :id
-        ");
-        $stmtDokSb->execute([':id' => $dokterIdSidebar]);
+        $stmtDokSb = QueryDokterSidebar::dokSb([':id' => $dokterIdSidebar]);
         $dokterProfil = $stmtDokSb->fetch();
     } catch (PDOException $e) {
         $dokterProfil = null;
@@ -32,7 +26,7 @@ $linkBantuanAdmin = '#';
 $namaAdminJaga    = 'Admin Poliklinik';
 if (isset($pdo)) {
     try {
-        $admKontak = $pdo->query("SELECT nama, no_hp FROM fn_kontak_admin() LIMIT 1")->fetch();
+        $admKontak = QueryDokterSidebar::admKontak();
         if ($admKontak && !empty($admKontak['no_hp'])) {
             $namaAdminJaga = $admKontak['nama'];
             $hpDigits      = preg_replace('/[^0-9]/', '', (string) $admKontak['no_hp']);

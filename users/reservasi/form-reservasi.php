@@ -1,9 +1,22 @@
 <?php
-// Inisialisasi data referensi (Bisa dihubungkan ke database SIPOLI)
+require_once __DIR__ . '/../../config/bootstrap.php';
+require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../middleware/check-role.php';
+check_role('pasien');
+
 $page_title = "Form Reservasi";
 $doctorName = "drg. Nadia Putri, Sp.KG";
 $doctorSpecialist = "Spesialis Konservasi Gigi";
 $selectedDate = "24, Sep, 2026";
+
+$jadwalId = isset($_GET['jadwal_id']) ? (int) $_GET['jadwal_id'] : 0;
+if ($jadwalId <= 0) {
+    try {
+        $jadwalId = (int) ($pdo->query('SELECT id FROM v_jadwal_tersedia ORDER BY tanggal, jam_mulai LIMIT 1')->fetchColumn() ?: 0);
+    } catch (PDOException $e) {
+        $jadwalId = 0;
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -64,7 +77,8 @@ $selectedDate = "24, Sep, 2026";
             </div>
 
             <!-- Form Reservasi -->
-            <form id="formReservasi" action="status-reservasi.php" method="GET" class="space-y-5">
+            <form id="formReservasi" action="status-reservasi.php" method="GET" data-api-endpoint="/api/pasien/reservasi.php" data-api-action="create" data-api-redirect="/users/reservasi/status-reservasi.php" class="space-y-5">
+                <input type="hidden" name="jadwal_id" value="<?= $jadwalId ?>">
 
                 <!-- Input Nama -->
                 <div>
@@ -111,17 +125,14 @@ $selectedDate = "24, Sep, 2026";
     <script>
         function submitForm() {
             const form = document.getElementById('formReservasi');
-
-            // Memeriksa apakah semua input yang 'required' sudah diisi
             if (form.checkValidity()) {
-                // Jika validasi lolos, submit form ke action url
-                form.submit();
+                form.requestSubmit();
             } else {
-                // Jika ada yang kosong, tampilkan peringatan bawaan browser
                 form.reportValidity();
             }
         }
     </script>
+    <?php require __DIR__ . '/../components/api-script.php'; ?>
     <script src="./../../node_modules/flowbite/dist/flowbite.min.js"></script>
 </body>
 

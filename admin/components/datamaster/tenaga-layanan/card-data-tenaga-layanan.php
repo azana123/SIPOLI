@@ -113,7 +113,7 @@
                                         </svg>
                                     </a>
 
-                                    <form method="POST" action="datamaster.php" class="inline" onsubmit="return confirm('<?= $row['status_aktif'] ? 'Nonaktifkan tenaga layanan ini?' : 'Aktifkan kembali tenaga layanan ini?' ?>')">
+                                    <form method="POST" action="datamaster.php" data-api-endpoint="/api/admin/datamaster.php" data-api-redirect="/admin/datamaster.php?tab=tenaga-layanan" class="inline" onsubmit="return confirm('<?= $row['status_aktif'] ? 'Nonaktifkan tenaga layanan ini?' : 'Aktifkan kembali tenaga layanan ini?' ?>')">
                                         <input type="hidden" name="action" value="toggle_active">
                                         <input type="hidden" name="tab" value="tenaga-layanan">
                                         <input type="hidden" name="entity" value="dokter">

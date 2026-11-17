@@ -36,3 +36,12 @@ try {
     http_response_code(500);
     exit('Database connection failed.');
 }
+
+// Akses koneksi yang sama dari service, tanpa harus mengulang global $pdo
+if (!function_exists('db')) {
+    function db(): PDO
+    {
+        global $pdo;
+        return $pdo;
+    }
+}

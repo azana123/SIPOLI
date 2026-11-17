@@ -4,8 +4,7 @@ $adminIdSession = (int) ($_SESSION['profil_id'] ?? 0);
 
 if (!isset($adminProfil) && isset($pdo) && $adminIdSession > 0) {
     try {
-        $stmtAdmNav = $pdo->prepare("SELECT id, nama, nim_nip, is_super, no_hp FROM admin WHERE id = :id");
-        $stmtAdmNav->execute([':id' => $adminIdSession]);
+        $stmtAdmNav = QueryAdminNavbar::admNav([':id' => $adminIdSession]);
         $adminProfil = $stmtAdmNav->fetch();
     } catch (PDOException $e) {
         $adminProfil = null;
@@ -23,10 +22,7 @@ $jamWibNav    = date('H.i');
 
 if (isset($pdo)) {
     try {
-        $rowTimeNav = $pdo->query("
-            SELECT fn_today()::text AS tgl,
-                   TO_CHAR((NOW() AT TIME ZONE 'Asia/Jakarta'), 'HH24.MI') AS jam
-        ")->fetch();
+        $rowTimeNav = QueryAdminNavbar::rowTimeNav();
         if ($rowTimeNav) {
             $todayDateNav = $rowTimeNav['tgl'];
             $jamWibNav    = $rowTimeNav['jam'];
@@ -102,3 +98,7 @@ $formattedDate = $hariIndoNav[(int) date('N', $tsNav)] . ', ' . (int) date('j', 
 </nav>
 
 <?php require_once __DIR__ . '/form-pasien-offline.php'; ?>
+<script>
+    window.APP_ROOT = <?= json_encode(rtrim((string) getenv('APP_BASE_URL'), '/')) ?>;
+</script>
+<script defer src="./../assets/js/api.js"></script>

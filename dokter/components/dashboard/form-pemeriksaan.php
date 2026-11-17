@@ -3,266 +3,22 @@ $dokterIdFormPeriksa = (int) ($_SESSION['profil_id'] ?? 0);
 $periksaAntreanId    = isset($_GET['periksa_antrean_id']) && ctype_digit((string) $_GET['periksa_antrean_id']) ? (int) $_GET['periksa_antrean_id'] : null;
 $redirectBackPeriksa = basename($_SERVER['PHP_SELF'] ?? 'dashboard.php');
 
-// =====================================================================
-// PROSES POST: SIMPAN DRAF ATAU SELESAIKAN PEMERIKSAAN & RESEP OBAT
-// =====================================================================
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action_pemeriksaan'] ?? '', ['draft', 'selesai'], true)) {
-    $aksiPeriksa    = $_POST['action_pemeriksaan'];
-    $antreanIdPost  = (int) ($_POST['antrean_id'] ?? 0);
-    $tensi          = trim($_POST['tensi'] ?? '');
-    $suhuRaw        = str_replace(',', '.', trim($_POST['suhu'] ?? ''));
-    $bbRaw          = str_replace(',', '.', trim($_POST['bb'] ?? ''));
-    $hasilAnamnesis = trim($_POST['hasil_pemeriksaan'] ?? '');
-    $diagnosis      = trim($_POST['diagnosis'] ?? '');
-    $saranTindakan  = trim($_POST['saran_medis'] ?? '');
-
-    $suhuVal = ($suhuRaw !== '' && is_numeric($suhuRaw)) ? (float) $suhuRaw : null;
-    $bbVal   = ($bbRaw !== '' && is_numeric($bbRaw)) ? (float) $bbRaw : null;
-
-    if ($aksiPeriksa === 'draft') {
-        $_SESSION['draft_pemeriksaan'][$antreanIdPost] = [
-            'tensi'             => $tensi,
-            'suhu'              => $suhuRaw,
-            'bb'                => $bbRaw,
-            'hasil_pemeriksaan' => $hasilAnamnesis,
-            'diagnosis'         => $diagnosis,
-            'saran_medis'       => $saranTindakan,
-        ];
-        $_SESSION['flash_success'] = "Draf pemeriksaan berhasil disimpan sementara. Status pasien saat ini: Diperiksa.";
-    } else {
-        try {
-            $pdo->beginTransaction();
-
-            if (!empty($_SESSION['user_id'])) {
-                $stmtCfg = $pdo->prepare("SELECT set_config('app.user_id', :uid, true)");
-                $stmtCfg->execute([':uid' => (string) $_SESSION['user_id']]);
-            }
-
-            $stmtAnt = $pdo->prepare("
-                SELECT a.id, a.pasien_id, a.poli_id, a.tanggal, a.status, r.keluhan AS keluhan_rsv
-                FROM antrean a
-                LEFT JOIN reservasi r ON r.id = a.reservasi_id
-                WHERE a.id = :id
-                FOR UPDATE OF a
-            ");
-            $stmtAnt->execute([':id' => $antreanIdPost]);
-            $antRow = $stmtAnt->fetch();
-
-            if (!$antRow) {
-                throw new Exception("Data antrean pasien tidak ditemukan.");
-            }
-
-            $stmtSetDok = $pdo->prepare("
-                UPDATE antrean
-                   SET status      = CASE WHEN status = 'menunggu' THEN 'diperiksa' ELSE status END,
-                       dokter_id   = COALESCE(dokter_id, :dok_id),
-                       waktu_mulai = COALESCE(waktu_mulai, NOW())
-                 WHERE id = :id
-            ");
-            $stmtSetDok->execute([
-                ':dok_id' => $dokterIdFormPeriksa,
-                ':id'     => $antreanIdPost,
-            ]);
-
-            $keluhanAwal = $antRow['keluhan_rsv'] ?: $hasilAnamnesis;
-
-            $stmtInsPem = $pdo->prepare("
-                INSERT INTO pemeriksaan (
-                    antrean_id, pasien_id, dokter_id, poli_id, tanggal,
-                    keluhan, tekanan_darah, suhu, berat_badan, diagnosa, catatan, tindak_lanjut
-                ) VALUES (
-                    :antrean_id, :pasien_id, :dokter_id, :poli_id, :tanggal,
-                    :keluhan, :tensi, :suhu, :bb, :diagnosa, :catatan, :tindak_lanjut
-                )
-                ON CONFLICT (antrean_id) DO UPDATE
-                    SET tekanan_darah = EXCLUDED.tekanan_darah,
-                        suhu          = EXCLUDED.suhu,
-                        berat_badan   = EXCLUDED.berat_badan,
-                        diagnosa      = EXCLUDED.diagnosa,
-                        catatan       = EXCLUDED.catatan,
-                        tindak_lanjut = EXCLUDED.tindak_lanjut
-                RETURNING id
-            ");
-            $stmtInsPem->bindValue(':antrean_id', $antreanIdPost, PDO::PARAM_INT);
-            $stmtInsPem->bindValue(':pasien_id', (int) $antRow['pasien_id'], PDO::PARAM_INT);
-            $stmtInsPem->bindValue(':dokter_id', $dokterIdFormPeriksa, PDO::PARAM_INT);
-            $stmtInsPem->bindValue(':poli_id', (int) $antRow['poli_id'], PDO::PARAM_INT);
-            $stmtInsPem->bindValue(':tanggal', $antRow['tanggal'], PDO::PARAM_STR);
-            $stmtInsPem->bindValue(':keluhan', $keluhanAwal !== '' ? $keluhanAwal : null, $keluhanAwal !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
-            $stmtInsPem->bindValue(':tensi', $tensi !== '' ? $tensi : null, $tensi !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
-            $stmtInsPem->bindValue(':suhu', $suhuVal, $suhuVal !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
-            $stmtInsPem->bindValue(':bb', $bbVal, $bbVal !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
-            $stmtInsPem->bindValue(':diagnosa', $diagnosis, PDO::PARAM_STR);
-            $stmtInsPem->bindValue(':catatan', $hasilAnamnesis, PDO::PARAM_STR);
-            $stmtInsPem->bindValue(':tindak_lanjut', $saranTindakan !== '' ? $saranTindakan : null, $saranTindakan !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
-            $stmtInsPem->execute();
-
-            $pemeriksaanBaruRow = $stmtInsPem->fetch();
-            $pemeriksaanBaruId  = (int) ($pemeriksaanBaruRow['id'] ?? 0);
-
-            if ($pemeriksaanBaruId <= 0) {
-                $stmtCekPem = $pdo->prepare("SELECT id FROM pemeriksaan WHERE antrean_id = :aid LIMIT 1");
-                $stmtCekPem->execute([':aid' => $antreanIdPost]);
-                $cekPemRow = $stmtCekPem->fetch();
-                $pemeriksaanBaruId = (int) ($cekPemRow['id'] ?? 0);
-            }
-
-            if ($pemeriksaanBaruId <= 0) {
-                throw new Exception("Gagal memperoleh ID rekam medis pemeriksaan.");
-            }
-
-            $obatIds  = $_POST['obat_id'] ?? [];
-            $jumlahs  = $_POST['jumlah'] ?? [];
-            $dosiss   = $_POST['dosis'] ?? [];
-            $aturans  = $_POST['aturan'] ?? [];
-            $catatans = $_POST['catatan'] ?? [];
-
-            $resepValid = [];
-            if (is_array($obatIds)) {
-                foreach ($obatIds as $idx => $obIdRaw) {
-                    $obId = (int) $obIdRaw;
-                    $jml  = (int) ($jumlahs[$idx] ?? 0);
-
-                    if ($obId <= 0 or $jml <= 0) {
-                        continue;
-                    }
-
-                    $dosisTxt   = trim($dosiss[$idx] ?? '');
-                    $aturanTxt  = trim($aturans[$idx] ?? '');
-                    $catatanTxt = trim($catatans[$idx] ?? '');
-
-                    $gabungAturan = trim($dosisTxt . ($aturanTxt !== '' ? ' - ' . $aturanTxt : '') . ($catatanTxt !== '' ? ' (' . $catatanTxt . ')' : ''));
-                    $gabungAturan = mb_substr($gabungAturan, 0, 100);
-
-                    if (isset($resepValid[$obId])) {
-                        $resepValid[$obId]['jumlah'] += $jml;
-                    } else {
-                        $resepValid[$obId] = [
-                            'obat_id' => $obId,
-                            'jumlah'  => $jml,
-                            'aturan'  => $gabungAturan !== '' ? $gabungAturan : null,
-                        ];
-                    }
-                }
-            }
-
-            $adaResep = false;
-            if (!empty($resepValid)) {
-                $stmtInsResep = $pdo->prepare("
-                    INSERT INTO resep_obat (pemeriksaan_id, obat_id, jumlah, aturan_pakai)
-                    VALUES (:pem_id, :obat_id, :jumlah, :aturan)
-                    ON CONFLICT (pemeriksaan_id, obat_id) DO NOTHING
-                ");
-
-                foreach ($resepValid as $itemRsp) {
-                    $stmtInsResep->bindValue(':pem_id', $pemeriksaanBaruId, PDO::PARAM_INT);
-                    $stmtInsResep->bindValue(':obat_id', (int) $itemRsp['obat_id'], PDO::PARAM_INT);
-                    $stmtInsResep->bindValue(':jumlah', (int) $itemRsp['jumlah'], PDO::PARAM_INT);
-                    $stmtInsResep->bindValue(':aturan', $itemRsp['aturan'], $itemRsp['aturan'] !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
-                    $stmtInsResep->execute();
-                    $adaResep = true;
-                }
-            }
-
-            if ($adaResep) {
-                $stmtPermObat = $pdo->prepare("
-                    INSERT INTO permintaan_obat (pemeriksaan_id, status, catatan)
-                    VALUES (:pem_id, 'menunggu', :cat)
-                    ON CONFLICT (pemeriksaan_id) DO NOTHING
-                ");
-                $stmtPermObat->execute([
-                    ':pem_id' => $pemeriksaanBaruId,
-                    ':cat'    => 'Resep dari pemeriksaan #' . $pemeriksaanBaruId,
-                ]);
-            }
-
-            unset($_SESSION['draft_pemeriksaan'][$antreanIdPost]);
-            $pdo->commit();
-
-            $_SESSION['flash_success'] = $adaResep
-                ? "Pemeriksaan selesai disimpan dan resep obat telah diteruskan ke Admin."
-                : "Pemeriksaan pasien berhasil diselesaikan.";
-
-        } catch (Exception $e) {
-            if ($pdo->inTransaction()) {
-                $pdo->rollBack();
-            }
-            $rawMsg = $e->getMessage();
-            if (preg_match('/ERROR:\s*(.+?)(\n|CONTEXT:|$)/s', $rawMsg, $matches)) {
-                $_SESSION['flash_error'] = trim($matches[1]);
-            } else {
-                $_SESSION['flash_error'] = "Gagal menyimpan pemeriksaan: " . $rawMsg;
-            }
-            error_log('[dokter-form-pemeriksaan] ' . $rawMsg);
-        }
-    }
-
-    if (!headers_sent()) {
-        header("Location: " . $redirectBackPeriksa);
-        exit;
-    }
-    echo '<script>window.location.href = ' . json_encode($redirectBackPeriksa) . ';</script>';
-    exit;
-}
-
-// =====================================================================
-// PROSES GET: AMBIL DATA ANTREAN YANG AKAN DIPERIKSA & KATALOG OBAT AKTIF
-// =====================================================================
 $pasienPeriksa = null;
 $katalogObat   = [];
 
 if (isset($pdo) && $periksaAntreanId !== null && $dokterIdFormPeriksa > 0) {
     try {
-        $stmtMulai = $pdo->prepare("
-            UPDATE antrean
-               SET status      = 'diperiksa',
-                   dokter_id   = COALESCE(dokter_id, :dok_id),
-                   waktu_mulai = COALESCE(waktu_mulai, NOW())
-             WHERE id = :id AND status = 'menunggu'
-        ");
-        $stmtMulai->execute([
+        $stmtMulai = QueryDokterFormPeriksa::mulai([
             ':dok_id' => $dokterIdFormPeriksa,
             ':id'     => $periksaAntreanId,
         ]);
 
-        $stmtRsvHadir = $pdo->prepare("
-            UPDATE reservasi
-               SET status = 'hadir'
-             WHERE id = (SELECT reservasi_id FROM antrean WHERE id = :id)
-               AND status = 'dikonfirmasi'
-        ");
-        $stmtRsvHadir->execute([':id' => $periksaAntreanId]);
+        $stmtRsvHadir = QueryDokterFormPeriksa::rsvHadir([':id' => $periksaAntreanId]);
 
-        $stmtDataAnt = $pdo->prepare("
-            SELECT 
-                a.id AS antrean_id,
-                a.no_antrean,
-                a.status,
-                a.waktu_daftar,
-                ps.id AS pasien_id,
-                ps.nama AS nama_pasien,
-                ps.nim_nip,
-                ps.status_civitas,
-                ps.riwayat_alergi,
-                pol.nama AS nama_poli,
-                j.jam_mulai,
-                r.keluhan AS keluhan_awal
-            FROM antrean a
-            JOIN pasien ps ON ps.id = a.pasien_id
-            JOIN poli pol  ON pol.id = a.poli_id
-            LEFT JOIN jadwal j    ON j.id = a.jadwal_id
-            LEFT JOIN reservasi r ON r.id = a.reservasi_id
-            WHERE a.id = :id AND a.status IN ('menunggu', 'diperiksa')
-        ");
-        $stmtDataAnt->execute([':id' => $periksaAntreanId]);
+        $stmtDataAnt = QueryDokterFormPeriksa::dataAnt([':id' => $periksaAntreanId]);
         $pasienPeriksa = $stmtDataAnt->fetch();
 
-        $katalogObat = $pdo->query("
-            SELECT id, kode_obat, nama_obat, COALESCE(bentuk, '-') AS bentuk, satuan, stok
-            FROM obat
-            WHERE is_active = TRUE AND stok > 0
-            ORDER BY nama_obat ASC
-        ")->fetchAll();
+        $katalogObat = QueryDokterFormPeriksa::katalogObat();
 
     } catch (PDOException $e) {
         $pasienPeriksa = null;
@@ -305,7 +61,7 @@ $draftData     = $isPeriksaOpen ? ($_SESSION['draft_pemeriksaan'][(int) $pasienP
                     : date('H.i', strtotime($pasienPeriksa['waktu_daftar'])) . ' WIB';
                 ?>
                 <!-- Modal Body (Scrollable Form) -->
-                <form action="" method="POST" class="overflow-y-auto">
+                <form action="" method="POST" data-api-endpoint="/api/dokter/pemeriksaan.php" class="overflow-y-auto">
                     <input type="hidden" name="antrean_id" value="<?= (int) $pasienPeriksa['antrean_id'] ?>">
 
                     <div class="px-6 pb-6 space-y-6">
