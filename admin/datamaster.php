@@ -48,6 +48,7 @@ $totalPasien  = 0;
 $totalDokter  = 0;
 $totalPoli    = 0;
 $totalAdmin   = 0;
+$superAktif   = 0;
 $rows         = [];
 $listPoli     = [];
 
@@ -66,6 +67,7 @@ try {
     $totalPasien = (int) ($stats['total_pasien'] ?? 0);
     $totalDokter = (int) ($stats['total_dokter'] ?? 0);
     $totalPoli   = (int) ($stats['total_poli'] ?? 0);
+    $superAktif  = (int) ($stats['super_aktif'] ?? 0);
 
     if ($activeTab === 'pasien') {
         $rows = QueryDaftar::datamaster($activeTab, [
