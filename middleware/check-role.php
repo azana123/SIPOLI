@@ -8,7 +8,7 @@ require_once __DIR__ . '/../config/database.php';
 const HOME_PER_ROLE = [
     'admin'  => 'admin/dashboard.php',
     'dokter' => 'dokter/dashboard.php',
-    'pasien' => 'pasien/dashboard.php',
+    'pasien' => 'index.php',
 ];
 
 function redirect_by_role(string $role): void {
