@@ -59,11 +59,16 @@
         }
         const data = {};
         fd.forEach((value, key) => {
-            if (Object.prototype.hasOwnProperty.call(data, key)) {
-                if (!Array.isArray(data[key])) data[key] = [data[key]];
-                data[key].push(value);
+            const berulang = key.endsWith('[]');
+            const kunci = berulang ? key.slice(0, -2) : key;
+            if (berulang) {
+                if (!Array.isArray(data[kunci])) data[kunci] = [];
+                data[kunci].push(value);
+            } else if (Object.prototype.hasOwnProperty.call(data, kunci)) {
+                if (!Array.isArray(data[kunci])) data[kunci] = [data[kunci]];
+                data[kunci].push(value);
             } else {
-                data[key] = value;
+                data[kunci] = value;
             }
         });
         BOOLEAN_FIELDS.forEach((name) => {

@@ -132,16 +132,15 @@ final class PemeriksaanService {
 
     // Gabungkan array-array obat dari form jadi satu daftar valid
     private static function resepValid(array $in): array {
-        $obatIds  = $in['obat_id'] ?? [];
-        $jumlahs  = $in['jumlah'] ?? [];
-        $dosis    = $in['dosis'] ?? [];
-        $aturan   = $in['aturan'] ?? [];
-        $catatan  = $in['catatan'] ?? [];
+        // Input bisa berisi array (banyak obat) maupun string (satu obat).
+        // Samakan keduanya jadi array supaya satu resep pun tidak terlewat.
+        $obatIds  = isset($in['obat_id']) ? (array) $in['obat_id'] : [];
+        $jumlahs  = isset($in['jumlah']) ? (array) $in['jumlah'] : [];
+        $dosis    = isset($in['dosis']) ? (array) $in['dosis'] : [];
+        $aturan   = isset($in['aturan']) ? (array) $in['aturan'] : [];
+        $catatan  = isset($in['catatan']) ? (array) $in['catatan'] : [];
         $hasil    = [];
 
-        if (!is_array($obatIds)) {
-            return $hasil;
-        }
         foreach ($obatIds as $i => $obatRaw) {
             $obatId = (int) $obatRaw;
             $jumlah = (int) ($jumlahs[$i] ?? 0);
