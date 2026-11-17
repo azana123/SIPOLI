@@ -29,7 +29,6 @@
     --color-amber-600: oklch(66.6% 0.179 58.318);
     --color-amber-700: oklch(55.5% 0.163 48.998);
     --color-amber-800: oklch(47.3% 0.137 46.201);
-    --color-amber-900: oklch(41.4% 0.112 45.904);
     --color-yellow-50: oklch(98.7% 0.026 102.212);
     --color-yellow-100: oklch(97.3% 0.071 103.193);
     --color-yellow-200: oklch(94.5% 0.129 101.54);
@@ -43,9 +42,7 @@
     --color-green-50: oklch(98.2% 0.018 155.826);
     --color-green-100: oklch(96.2% 0.044 156.743);
     --color-green-200: oklch(92.5% 0.084 155.995);
-    --color-green-600: oklch(62.7% 0.194 149.214);
     --color-green-700: oklch(52.7% 0.154 150.069);
-    --color-green-800: oklch(44.8% 0.119 151.328);
     --color-emerald-50: oklch(97.9% 0.021 166.113);
     --color-emerald-100: oklch(95% 0.052 163.051);
     --color-emerald-200: oklch(90.5% 0.093 164.15);
@@ -150,7 +147,6 @@
     --color-fg-brand-strong: var(--color-blue-900);
     --color-fg-success-strong: var(--color-emerald-900);
     --color-fg-danger: var(--color-rose-700);
-    --color-fg-danger-strong: var(--color-rose-900);
     --color-fg-warning: var(--color-orange-900);
     --color-neutral-primary-soft: var(--color-white);
     --color-neutral-primary: var(--color-white);
@@ -158,16 +154,15 @@
     --color-neutral-secondary: var(--color-gray-50);
     --color-neutral-secondary-medium: var(--color-gray-50);
     --color-neutral-tertiary: var(--color-gray-100);
-    --color-neutral-tertiary-medium: var(--color-gray-100);
     --color-neutral-quaternary: var(--color-gray-200);
     --color-brand-softer: var(--color-blue-50);
     --color-brand: var(--color-blue-700);
     --color-success-soft: var(--color-emerald-50);
+    --color-success: var(--color-emerald-700);
     --color-danger-soft: var(--color-rose-50);
+    --color-danger: var(--color-rose-700);
     --color-warning-soft: var(--color-orange-50);
-    --color-warning: var(--color-orange-500);
     --color-dark: var(--color-gray-800);
-    --color-buffer: var(--color-white);
     --color-default: var(--color-gray-200);
     --color-default-medium: var(--color-gray-200);
     --color-brand-subtle: var(--color-blue-200);
@@ -365,6 +360,9 @@
   .inset-0 {
     inset: 0px;
   }
+  .inset-x-0 {
+    inset-inline: 0px;
+  }
   .inset-y-0 {
     inset-block: 0px;
   }
@@ -386,17 +384,11 @@
   .top-1\/2 {
     top: calc(1 / 2 * 100%);
   }
-  .top-4 {
-    top: calc(var(--spacing) * 4);
-  }
   .right-0 {
     right: 0px;
   }
   .right-3\.5 {
     right: calc(var(--spacing) * 3.5);
-  }
-  .right-4 {
-    right: calc(var(--spacing) * 4);
   }
   .left-0 {
     left: 0px;
@@ -1075,6 +1067,9 @@
       border-color: color-mix(in oklab, var(--color-cyan-100) 60%, transparent);
     }
   }
+  .border-danger {
+    border-color: var(--color-danger);
+  }
   .border-default {
     border-color: var(--color-default);
   }
@@ -1164,6 +1159,9 @@
   }
   .border-red-700 {
     border-color: var(--color-red-700);
+  }
+  .border-success {
+    border-color: var(--color-success);
   }
   .border-transparent {
     border-color: transparent;
