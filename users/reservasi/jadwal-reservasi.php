@@ -1,29 +1,48 @@
 <?php
-// Menangkap parameter bulan dan tahun dari URL, default disesuaikan dengan referensi gambar (September 2020)
-$month = isset($_GET['m']) ? (int)$_GET['m'] : 9;
-$year = isset($_GET['y']) ? (int)$_GET['y'] : 2020;
-$dayNow = date('d');
+require_once __DIR__ . '/../../config/bootstrap.php';
+require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../services/_load.php';
 
-// Kalkulasi untuk navigasi Prev dan Next Month
+$month = isset($_GET['m']) && ctype_digit((string) $_GET['m']) ? (int) $_GET['m'] : (int) date('n');
+$year  = isset($_GET['y']) && ctype_digit((string) $_GET['y']) ? (int) $_GET['y'] : (int) date('Y');
+$dayNow = (int) date('j');
+
 $prevMonth = $month == 1 ? 12 : $month - 1;
 $prevYear = $month == 1 ? $year - 1 : $year;
 $nextMonth = $month == 12 ? 1 : $month + 1;
 $nextYear = $month == 12 ? $year + 1 : $year;
 
-// Detail informasi bulan yang sedang aktif
 $daysInMonth = cal_days_in_month(CAL_GREGORIAN, $month, $year);
 $prevMonthDays = cal_days_in_month(CAL_GREGORIAN, $prevMonth, $prevYear);
-$firstDayOfMonth = date('w', strtotime("$year-$month-01")); // 0 (Minggu) s/d 6 (Sabtu)
+$firstDayOfMonth = date('w', strtotime("$year-$month-01"));
 
-// Array nama bulan bahasa Indonesia
 $bulanIndo = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 $monthName = $bulanIndo[$month - 1];
 
 $page_title = "Jadwal Pengobatan";
 
-// Simulasi data dari database untuk referensi UI
-$selectedDate = ""; // Tanggal yang dipilih (kotak primary)
-$fullQuotaDate = [1, 5, 14]; // Tanggal kuota penuh (titik merah)
+$kalender = PasienService::kalender($month, $year);
+$jadwalBulan = PasienService::daftarJadwal(sprintf('%04d-%02d-01', $year, $month));
+
+// Tanggal yang dipilih: dari URL atau tanggal pertama yang tersedia.
+$selectedDate = isset($_GET['tanggal']) && ctype_digit((string) $_GET['tanggal'])
+    ? (int) $_GET['tanggal']
+    : (int) (array_key_first($kalender) ?: 0);
+$fullQuotaDate = [];
+foreach ($kalender as $hari => $status) {
+    if ($status === 'penuh') $fullQuotaDate[] = $hari;
+}
+$jadwalTerpilih = null;
+foreach ($jadwalBulan as $j) {
+    if ((int) date('j', strtotime($j['tanggal'])) === $selectedDate) {
+        $jadwalTerpilih = $j;
+        break;
+    }
+}
+$kuotaTersedia = $jadwalTerpilih ? (int) $jadwalTerpilih['sisa_kuota'] : 0;
+$dokterNama = $jadwalTerpilih && $jadwalTerpilih['dokter']
+    ? $jadwalTerpilih['dokter']
+    : 'Dokter akan ditentukan';
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -55,7 +74,7 @@ $fullQuotaDate = [1, 5, 14]; // Tanggal kuota penuh (titik merah)
                     <i class="far fa-calendar-alt"></i>
                     <span>Jadwal Pengobatan</span>
                 </div>
-                <h1 class="text-3xl font-bold text-gray-900 leading-tight">drg. Nadia<br>Putri, Sp.KG</h1>
+                <h1 class="text-3xl font-bold text-gray-900 leading-tight"><?= e($dokterNama) ?></h1>
                 <p class="mt-3 text-sm text-gray-500 leading-relaxed pr-2">
                     Spesialis Konservasi Gigi yang berfokus pada perawatan saraf, penambalan estetika, dan kesehatan gigi menyeluruh.
                 </p>
@@ -76,7 +95,7 @@ $fullQuotaDate = [1, 5, 14]; // Tanggal kuota penuh (titik merah)
         <section class="mt-6 bg-primary rounded-xl p-4 grid grid-cols-3 gap-2.5 items-center text-white shadow-md">
             <div class="flex items-center gap-2.5 border-primary-500">
                 <i class="fas fa-history text-xl"></i>
-                <span class="text-xs font-medium">3 Kuota</span>
+                <span class="text-xs font-medium"><?= $kuotaTersedia ?> Kuota</span>
             </div>
             <div class="flex items-center gap-2.5 border-primary-500">
                 <i class="far fa-user-circle text-xl"></i>
@@ -118,40 +137,35 @@ $fullQuotaDate = [1, 5, 14]; // Tanggal kuota penuh (titik merah)
 
                 for ($day = 1; $day <= $daysInMonth; $day++) {
                     $dayFormatted = sprintf("%02d", $day);
-
-                    $isPast = ($day >= 1 && $day <= $dayNow - 1);
-                    $isH7 = ($day >= $dayNow + 7);
+                    $status = $kalender[$day] ?? null;
 
                     $wrapperClass = "flex flex-col items-center justify-center";
                     $textClass = "text-sm font-medium py-1.5 px-2 w-8 h-8 flex items-center justify-center";
                     $dotIndicator = "";
 
                     if ($day == $selectedDate) {
-                        // Tanggal dipilih (Kotak Primary + 'rounded' standar)
                         $wrapperClass .= " cursor-pointer";
                         $textClass .= " bg-primary-600 text-white rounded shadow-md";
-                    } elseif ($isPast || $isH7) {
-                        // Tanggal terlewat
+                    } elseif ($status === null) {
                         $wrapperClass .= " cursor-not-allowed";
                         $textClass .= " text-gray-300";
                     } else {
-                        // Tanggal tersedia normal
                         $wrapperClass .= " cursor-pointer";
                         $textClass .= " text-gray-900 hover:bg-gray-100 rounded";
                     }
 
-                    for ($i = 0; $i < count($fullQuotaDate); $i++) {
-                        if ($day == $fullQuotaDate[$i]) {
-                            $dotIndicator = "<div class='w-1.5 h-1.5 bg-red-600 rounded-full mt-1'></div>";
-                            $textClass .= " text-gray-300";
-                        }
+                    if (in_array($day, $fullQuotaDate, true)) {
+                        $dotIndicator = "<div class='w-1.5 h-1.5 bg-red-600 rounded-full mt-1'></div>";
                     }
 
-                    echo "
-                    <div class='$wrapperClass'>
-                        <span class='$textClass'>$dayFormatted</span>
-                        $dotIndicator
-                    </div>";
+                    echo "<div class='$wrapperClass'>";
+                    if ($status !== null) {
+                        echo "<a href='?m=$month&y=$year&tanggal=$day' class='no-underline'>";
+                    }
+                    echo "<span class='$textClass'>$dayFormatted</span>";
+                    if ($status !== null) echo "</a>";
+                    echo $dotIndicator;
+                    echo "</div>";
                 }
 
                 // 3. Render sisa kotak untuk bulan berikutnya
@@ -177,9 +191,15 @@ $fullQuotaDate = [1, 5, 14]; // Tanggal kuota penuh (titik merah)
                     <span class="text-xs font-medium text-gray-500">Dipilih</span>
                 </div>
             </div>
-            <a href="./form-reservasi.php" class="w-full py-2 block bg-primary hover:bg-primary-700 text-white text-center font-semibold rounded-full shadow-lg transition-colors">
-                Reservasi
-            </a>
+            <?php if ($jadwalTerpilih && !$jadwalTerpilih['penuh']): ?>
+                <a href="./form-reservasi.php?jadwal_id=<?= (int) $jadwalTerpilih['id'] ?>" class="w-full py-2 block bg-primary hover:bg-primary-700 text-white text-center font-semibold rounded-full shadow-lg transition-colors">
+                    Reservasi
+                </a>
+            <?php else: ?>
+                <span class="w-full py-2 block bg-gray-200 text-gray-500 text-center font-semibold rounded-full">
+                    Pilih tanggal yang tersedia
+                </span>
+            <?php endif; ?>
         </section>
 
     </div>

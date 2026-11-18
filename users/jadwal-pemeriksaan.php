@@ -1,3 +1,32 @@
+<?php
+require_once __DIR__ . '/../config/bootstrap.php';
+require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../services/_load.php';
+
+$hariIni = $pdo->query('SELECT fn_today()::text')->fetchColumn() ?: date('Y-m-d');
+$tanggalDipilih = isset($_GET['tanggal']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $_GET['tanggal'])
+    ? (string) $_GET['tanggal']
+    : $hariIni;
+$poliId = isset($_GET['poli_id']) && ctype_digit((string) $_GET['poli_id']) ? (int) $_GET['poli_id'] : 0;
+
+$jadwal = PasienService::daftarJadwal($tanggalDipilih, $poliId);
+
+$hariMap  = [1 => 'Sen', 2 => 'Sel', 3 => 'Rab', 4 => 'Kam', 5 => 'Jum', 6 => 'Sab', 7 => 'Min'];
+$bulanMap = [1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April', 5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus', 9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'];
+
+$labelBulan = $bulanMap[(int) date('n', strtotime($tanggalDipilih))] . ' ' . date('Y', strtotime($tanggalDipilih));
+$labelTanggal = $hariMap[(int) date('N', strtotime($tanggalDipilih))] . ', ' . (int) date('j', strtotime($tanggalDipilih)) . ' ' . $bulanMap[(int) date('n', strtotime($tanggalDipilih))];
+
+$daftarTanggal = [];
+for ($i = 1; $i <= 5; $i++) {
+    $t = date('Y-m-d', strtotime($hariIni . ' +' . $i . ' day'));
+    $daftarTanggal[] = [
+        'tanggal' => $t,
+        'hari'    => $hariMap[(int) date('N', strtotime($t))],
+        'angka'   => (int) date('j', strtotime($t)),
+    ];
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -26,15 +55,15 @@
                 <div class="category">
                     <ul class="flex justify-between md:justify-start md:gap-3">
                         <li>
-                            <input type="radio" id="hosting-small" name="hosting" value="hosting-small" class="hidden peer" required />
-                            <label for="hosting-small" class="inline-flex items-center bg-primary-500 justify-between text-sm py-3 px-4 rounded-full text-white bg-neutral-primary-soft border-default cursor-pointer peer-checked:hover:bg-brand-softer peer-checked:border-brand-subtle peer-checked:bg-brand-softer hover:bg-neutral-secondary-medium peer-checked:text-fg-brand-strong">
+                            <input type="radio" id="semua" name="hosting" value="" onchange="location.href='?poli_id='" <?= $poliId === 0 ? 'checked' : '' ?> class="hidden peer" required />
+                            <label for="semua" class="inline-flex items-center bg-primary-500 justify-between text-sm py-3 px-4 rounded-full text-white bg-neutral-primary-soft border-default cursor-pointer peer-checked:hover:bg-brand-softer peer-checked:border-brand-subtle peer-checked:bg-brand-softer hover:bg-neutral-secondary-medium peer-checked:text-fg-brand-strong">
                                 <div class="block">
                                     <div class="w-full font-semibold">Semua</div>
                                 </div>
                             </label>
                         </li>
                         <li>
-                            <input type="radio" id="umum" name="hosting" value="umum" class="hidden peer" required />
+                            <input type="radio" id="umum" name="hosting" value="1" onchange="location.href='?poli_id=1'" <?= $poliId === 1 ? 'checked' : '' ?> class="hidden peer" required />
                             <label for="umum" class="inline-flex items-center justify-between text-sm py-3 px-4 rounded-full text-body bg-neutral-primary-soft border-1 border-default rounded-base cursor-pointer peer-checked:hover:bg-brand-softer peer-checked:border-brand-subtle peer-checked:bg-brand-softer hover:bg-neutral-secondary-medium peer-checked:text-fg-brand-strong">
                                 <div class="block">
                                     <div class="w-full font-semibold">Umum</div>
@@ -42,7 +71,7 @@
                             </label>
                         </li>
                         <li>
-                            <input type="radio" id="gigi" name="hosting" value="gigi" class="hidden peer" required />
+                            <input type="radio" id="gigi" name="hosting" value="2" onchange="location.href='?poli_id=2'" <?= $poliId === 2 ? 'checked' : '' ?> class="hidden peer" required />
                             <label for="gigi" class="inline-flex items-center justify-between text-sm py-3 px-4 rounded-full text-body bg-neutral-primary-soft border-1 border-default rounded-base cursor-pointer peer-checked:hover:bg-brand-softer peer-checked:border-brand-subtle peer-checked:bg-brand-softer hover:bg-neutral-secondary-medium peer-checked:text-fg-brand-strong">
                                 <div class="block">
                                     <div class="w-full font-semibold">Gigi</div>
@@ -50,7 +79,7 @@
                             </label>
                         </li>
                         <li>
-                            <input type="radio" id="konseling" name="hosting" value="konseling" class="hidden peer" required />
+                            <input type="radio" id="konseling" name="hosting" value="3" onchange="location.href='?poli_id=3'" <?= $poliId === 3 ? 'checked' : '' ?> class="hidden peer" required />
                             <label for="konseling" class="inline-flex items-center justify-between text-sm py-3 px-4 rounded-full text-body bg-neutral-primary-soft border-1 border-default rounded-base cursor-pointer peer-checked:hover:bg-brand-softer peer-checked:border-brand-subtle peer-checked:bg-brand-softer hover:bg-neutral-secondary-medium peer-checked:text-fg-brand-strong">
                                 <div class="block">
                                     <div class="w-full font-semibold">Konseling</div>
@@ -59,64 +88,51 @@
                         </li>
                     </ul>
                 </div>
-                <h4 class="month my-3 text-xl font-bold">September 2026</h4>
+                <h4 class="month my-3 text-xl font-bold"><?= e($labelBulan) ?></h4>
                 <div class="date-filter grid grid-cols-5 gap-3">
-                    <a href="#" class="bg-primary-500 text-white rounded flex flex-col items-center justify-center p-1.5 text-sm">
-                        <span class="day">Sen</span>
-                        <span class="date">21</span>
-                    </a>
-                    <a href="#" class="bg-white rounded flex flex-col items-center justify-center p-1.5 text-sm">
-                        <span class="day">Sel</span>
-                        <span class="date">22</span>
-                    </a>
-                    <a href="#" class="bg-white rounded flex flex-col items-center justify-center p-1.5 text-sm">
-                        <span class="day">Rab</span>
-                        <span class="date">23</span>
-                    </a>
-                    <a href="#" class="bg-white rounded flex flex-col items-center justify-center p-1.5 text-sm">
-                        <span class="day">Kam</span>
-                        <span class="date">24</span>
-                    </a>
-                    <a href="#" class="bg-white rounded flex flex-col items-center justify-center p-1.5 text-sm">
-                        <span class="day">Jum</span>
-                        <span class="date">25</span>
-                    </a>
+                    <?php foreach ($daftarTanggal as $t): ?>
+                        <a href="?tanggal=<?= e($t['tanggal']) ?><?= $poliId > 0 ? '&poli_id=' . $poliId : '' ?>" class="<?= $t['tanggal'] === $tanggalDipilih ? 'bg-primary-500 text-white' : 'bg-white' ?> rounded flex flex-col items-center justify-center p-1.5 text-sm">
+                            <span class="day"><?= e($t['hari']) ?></span>
+                            <span class="date"><?= (int) $t['angka'] ?></span>
+                        </a>
+                    <?php endforeach; ?>
                 </div>
-                <p class="date text-primary-700 font-medium my-3">Senin, 21 September</p>
+                <p class="date text-primary-700 font-medium my-3"><?= e($labelTanggal) ?></p>
                 <div class="schedule md:grid md:grid-cols-3 md:gap-3">
-                    <div class="bg-neutral-primary-soft w-full p-6 rounded-base flex flex-col gap-4 mb-4 md:mb-0">
-                        <div class="flex gap-3">
-                            <div class="icon w-12 h-12 rounded-full bg-primary-100 flex justify-center items-center">
-                                <i class="far fa-calendar-alt text-primary text-2xl"></i>
-                            </div>
-                            <div class="desc">
-                                <h6 class="font-bold">Konseling</h6>
-                                <p class="doctor-name text-sm">Dr. Sarah Amelia</p>
-                                <p class="date text-sm">Jum, 18 Sep. 14.00</p>
-                            </div>
+                    <?php if (!$jadwal): ?>
+                        <div class="bg-neutral-primary-soft w-full p-6 rounded-base text-sm text-gray-500 md:col-span-3">
+                            Belum ada jadwal yang tersedia untuk tanggal ini.
                         </div>
-                        <a href="./reservasi/jadwal-reservasi.php" class="action-link text-page text-center rounded-full text-sm px-4 py-2.5 bg-primary-500 hover:bg-primary-700">
-                            <span class="font-medium">Reservasi</span>
-                        </a>
-                    </div>
-                    <div class="bg-neutral-primary-soft max-w-sm p-6 rounded-base flex flex-col gap-4">
-                        <div class="flex gap-3">
-                            <div class="icon w-12 h-12 rounded-full bg-primary-100 flex justify-center items-center">
-                                <i class="far fa-calendar-alt text-primary text-2xl"></i>
+                    <?php else: ?>
+                        <?php foreach ($jadwal as $j): ?>
+                            <div class="bg-neutral-primary-soft w-full p-6 rounded-base flex flex-col gap-4 mb-4 md:mb-0">
+                                <div class="flex gap-3">
+                                    <div class="icon w-12 h-12 rounded-full bg-primary-100 flex justify-center items-center">
+                                        <i class="far fa-calendar-alt text-primary text-2xl"></i>
+                                    </div>
+                                    <div class="desc flex-1">
+                                        <h6 class="font-bold"><?= e($j['poli']) ?></h6>
+                                        <p class="doctor-name text-sm"><?= e($j['dokter'] ?? 'Dokter akan ditentukan') ?></p>
+                                        <p class="date text-sm"><?= e($j['tanggal_pendek']) ?>. <?= e($j['jam']) ?></p>
+                                    </div>
+                                    <?php if ($j['penuh']): ?>
+                                        <div class="status-badge">
+                                            <span class="bg-danger-soft text-fg-danger text-xs font-medium px-2 py-1 rounded">Penuh</span>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                                <?php if ($j['penuh']): ?>
+                                    <span class="action-link text-gray-300 bg-neutral-secondary-medium box-border border border-default-medium shadow-xs font-medium text-center rounded-full text-sm px-4 py-2.5">
+                                        Kuota Penuh
+                                    </span>
+                                <?php else: ?>
+                                    <a href="./reservasi/form-reservasi.php?jadwal_id=<?= (int) $j['id'] ?>" class="action-link text-page text-center rounded-full text-sm px-4 py-2.5 bg-primary-500 hover:bg-primary-700">
+                                        <span class="font-medium">Reservasi</span>
+                                    </a>
+                                <?php endif; ?>
                             </div>
-                            <div class="desc flex-1">
-                                <h6 class="font-bold">Konseling</h6>
-                                <p class="doctor-name text-sm">Dr. Sarah Amelia</p>
-                                <p class="date text-sm">Jum, 18 Sep. 14.00</p>
-                            </div>
-                            <div class="status-badge">
-                                <span class="bg-danger-soft text-fg-danger text-xs font-medium px-2 py-1 rounded">Penuh 5/5</span>
-                            </div>
-                        </div>
-                        <a href="./users/jadwal-dokter.php" class="action-link text-gray-300 bg-neutral-secondary-medium box-border border border-default-medium focus:ring-4 focus:ring-neutral-tertiary shadow-xs font-medium text-center rounded-full text-sm px-4 py-2.5 focus:outline-none">
-                            <span class="font-medium">Kuota Penuh</span>
-                        </a>
-                    </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
                 </div>
             </section>
         </main>
