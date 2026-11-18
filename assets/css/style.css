@@ -372,6 +372,9 @@
   .start-0 {
     inset-inline-start: calc(var(--spacing) * 0);
   }
+  .start-10 {
+    inset-inline-start: calc(var(--spacing) * 10);
+  }
   .end-0 {
     inset-inline-end: calc(var(--spacing) * 0);
   }
@@ -383,6 +386,9 @@
   }
   .top-1\/2 {
     top: calc(1 / 2 * 100%);
+  }
+  .top-10 {
+    top: calc(var(--spacing) * 10);
   }
   .right-0 {
     right: 0px;
@@ -734,6 +740,9 @@
   }
   .w-28 {
     width: calc(var(--spacing) * 28);
+  }
+  .w-48 {
+    width: calc(var(--spacing) * 48);
   }
   .w-52 {
     width: calc(var(--spacing) * 52);
@@ -1879,6 +1888,9 @@
   .italic {
     font-style: italic;
   }
+  .no-underline {
+    text-decoration-line: none;
+  }
   .underline {
     text-decoration-line: underline;
   }
@@ -2168,9 +2180,6 @@
   .focus\:ring-gray-300:focus {
     --tw-ring-color: var(--color-gray-300);
   }
-  .focus\:ring-neutral-tertiary:focus {
-    --tw-ring-color: var(--color-neutral-tertiary);
-  }
   .focus\:ring-primary:focus {
     --tw-ring-color: var(--color-primary);
   }
@@ -2207,6 +2216,9 @@
   }
   .disabled\:text-gray-500:disabled {
     color: var(--color-gray-500);
+  }
+  .disabled\:no-underline:disabled {
+    text-decoration-line: none;
   }
   @media (hover: hover) {
     .disabled\:hover\:bg-white:disabled:hover {

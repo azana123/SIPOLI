@@ -3,8 +3,16 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/_boot.php';
 
-api_method('POST');
+api_method('GET', 'POST');
 api_role('pasien');
+
+if (strtoupper($_SERVER['REQUEST_METHOD']) === 'GET') {
+    $id = isset($_GET['id']) && ctype_digit((string) $_GET['id']) ? (int) $_GET['id'] : 0;
+    api_success($id > 0
+        ? PasienService::detailReservasi($id)
+        : PasienService::daftarReservasi());
+}
+
 api_write_guard();
 
 $in    = api_input();

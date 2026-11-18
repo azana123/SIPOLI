@@ -3,8 +3,13 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/_boot.php';
 
-api_method('POST');
+api_method('GET', 'POST');
 api_role('pasien');
+
+if (strtoupper($_SERVER['REQUEST_METHOD']) === 'GET') {
+    api_success(['notifikasi' => PasienService::daftarNotifikasi()]);
+}
+
 api_write_guard();
 
 $hasil = NotifikasiService::tandaiDibaca(api_input());

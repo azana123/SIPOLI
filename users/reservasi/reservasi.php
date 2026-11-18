@@ -1,7 +1,17 @@
 <?php
+require_once __DIR__ . '/../../config/bootstrap.php';
+require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../services/_load.php';
+require_once __DIR__ . '/../../middleware/check-role.php';
+check_role('pasien');
+
 $page_title = "Reservasi Saya";
 
-// Dummy data simulasi database SIPOLI
+$dataReservasi = PasienService::daftarReservasi();
+$akan_datang = $dataReservasi['akan_datang'];
+$riwayat = $dataReservasi['riwayat'];
+
+/*
 $akan_datang = [
     [
         'poli' => 'Poli Gigi',
@@ -50,6 +60,7 @@ $riwayat = [
         'badge_color' => 'bg-gray-200 text-gray-700'
     ]
 ];
+*/
 ?>
 
 <!DOCTYPE html>
@@ -84,7 +95,7 @@ $riwayat = [
                 <div class="flex flex-col gap-5">
                     <?php foreach ($akan_datang as $item): ?>
                         <!-- Card Item -->
-                        <a href="./detail-reservasi.php" class="group bg-white rounded p-4 border-primary shadow-md/50 shadow-primary-400 flex gap-4 relative transition-colors duration-300 hover:bg-primary">
+                        <a href="./detail-reservasi.php?id=<?= (int) $item['id'] ?>" class="group bg-white rounded p-4 border-primary shadow-md/50 shadow-primary-400 flex gap-4 relative transition-colors duration-300 hover:bg-primary">
                             <!-- Icon Kiri -->
                             <div class="w-14 h-14 rounded-full bg-primary-50 shrink-0 flex justify-center items-center self-start mt-1 transition-colors duration-300 group-hover:bg-white/20">
                                 <i class="far fa-calendar-alt text-primary-500 text-2xl transition-colors duration-300 group-hover:text-white"></i>
@@ -118,7 +129,7 @@ $riwayat = [
                 <div class="flex flex-col gap-3">
                     <?php foreach ($riwayat as $item): ?>
                         <!-- Card Item -->
-                        <a href="./detail-reservasi.php" class="group bg-white rounded p-4 border-primary shadow-md/50 shadow-primary-400 flex gap-4 relative transition-colors duration-300 hover:bg-primary">
+                        <a href="./detail-reservasi.php?id=<?= (int) $item['id'] ?>" class="group bg-white rounded p-4 border-primary shadow-md/50 shadow-primary-400 flex gap-4 relative transition-colors duration-300 hover:bg-primary">
                             <!-- Icon Kiri -->
                             <div class="w-14 h-14 rounded-full bg-primary-50 shrink-0 flex justify-center items-center self-start mt-1 transition-colors duration-300 group-hover:bg-white/20">
                                 <i class="far fa-calendar-alt text-primary-500 text-2xl transition-colors duration-300 group-hover:text-white"></i>

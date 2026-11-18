@@ -77,7 +77,7 @@ if ($jadwalId <= 0) {
             </div>
 
             <!-- Form Reservasi -->
-            <form id="formReservasi" action="status-reservasi.php" method="GET" data-api-endpoint="/api/pasien/reservasi.php" data-api-action="create" data-api-redirect="/users/reservasi/status-reservasi.php" class="space-y-5">
+            <form id="formReservasi" action="status-reservasi.php" method="GET" data-api-endpoint="/api/pasien/reservasi.php" data-api-action="create" data-api-redirect="/users/reservasi/status-reservasi.php?id={id}" class="space-y-5">
                 <input type="hidden" name="jadwal_id" value="<?= $jadwalId ?>">
 
                 <!-- Input Nama -->

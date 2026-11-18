@@ -92,15 +92,21 @@
         }
     }
 
+    function arahkan(tujuan, data) {
+        if (!tujuan) {
+            window.location.reload();
+            return;
+        }
+        const hasil = tujuan.replace(/\{(\w+)\}/g, (_, kunci) => {
+            const nilai = data && data[kunci] !== undefined ? data[kunci] : '';
+            return encodeURIComponent(String(nilai));
+        });
+        window.location.href = root + hasil;
+    }
+
     function sesudahSukses(form, json) {
         apiToast(json.message || 'Berhasil.', true);
-        setTimeout(() => {
-            if (form.dataset.apiRedirect) {
-                window.location.href = root + form.dataset.apiRedirect;
-            } else {
-                window.location.reload();
-            }
-        }, 500);
+        setTimeout(() => arahkan(form.dataset.apiRedirect, json.data), 500);
     }
 
     document.addEventListener('submit', async function (e) {
@@ -134,10 +140,7 @@
         try {
             const json = await apiFetch(el.dataset.apiEndpoint, payload);
             apiToast(json.message || 'Berhasil.', true);
-            setTimeout(() => {
-                if (el.dataset.apiRedirect) window.location.href = root + el.dataset.apiRedirect;
-                else window.location.reload();
-            }, 500);
+            setTimeout(() => arahkan(el.dataset.apiRedirect, json.data), 500);
         } catch (err) {
             apiToast(err.message, false);
             sibuk(el, false);
