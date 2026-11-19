@@ -1,7 +1,7 @@
 @import "tailwindcss";
 @import "flowbite/src/themes/default";
 @plugin "flowbite/plugin";
-@source "../node_modules/flowbite";
+@source "../../node_modules/flowbite"; /* Sesuaikan path ke folder node_modules */
 
 @theme {
   --color-primary: #0f7485 !important;
