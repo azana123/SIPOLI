@@ -1,3 +1,32 @@
+<?php
+require_once __DIR__ . '/config/bootstrap.php';
+require_once __DIR__ . '/config/database.php';
+require_once __DIR__ . '/services/_load.php';
+
+$jadwalPublik = QueryPasienJadwal::daftar(null, 0);
+$dokterPublik = QueryPasienDokter::daftar();
+
+$apakahLogin = isset($_SESSION['user_id'], $_SESSION['role']);
+$namaPasien  = null;
+
+if ($apakahLogin) {
+    require_once __DIR__ . '/middleware/check-role.php';
+    check_role(['admin', 'dokter', 'pasien']);
+
+    $peran = (string) ($_SESSION['role'] ?? '');
+    if ($peran !== 'pasien') {
+        redirect_by_role($peran);
+    }
+
+    try {
+        $stmtNama = $pdo->prepare('SELECT nama FROM pasien WHERE user_id = :uid AND is_active = TRUE LIMIT 1');
+        $stmtNama->execute([':uid' => (int) $_SESSION['user_id']]);
+        $namaPasien = (string) ($stmtNama->fetchColumn() ?: ($_SESSION['username'] ?? 'Pasien'));
+    } catch (PDOException $e) {
+        $namaPasien = (string) ($_SESSION['username'] ?? 'Pasien');
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -99,6 +128,39 @@
             <section class="flex justify-between items-center w-full py-4 px-6 md:px-20 text-page relative z-20 pointer-events-auto">
                 <div class="brand text-xl font-bold tracking-wider">
                     SIPOLI
+    <div class="w-full min-h-screen bg-primary-500">
+        <main>
+            <section class="flex justify-between w-full py-4 px-6 text-page">
+                <div class="profile flex gap-2 items-center relative">
+                    <div class="icon-profile text-2xl">
+                        <i class="fas fa-user-circle"></i>
+                    </div>
+                    <?php if ($apakahLogin): ?>
+                        <button type="button" data-dropdown-toggle="dropdown-pasien-beranda" class="font-medium text-page hover:text-primary-100 flex items-center gap-2 cursor-pointer">
+                            <span>Halo, <?= e($namaPasien) ?></span>
+                            <i class="fas fa-chevron-down text-xs"></i>
+                        </button>
+                        <div id="dropdown-pasien-beranda" class="z-50 hidden absolute start-10 top-10 bg-white text-gray-800 border border-default-medium rounded-base shadow-lg w-48" role="none">
+                            <div class="px-4 py-3 border-b border-gray-100" role="none">
+                                <p class="text-sm font-bold text-heading truncate" role="none"><?= e($namaPasien) ?></p>
+                                <p class="text-xs text-body truncate mt-0.5" role="none">Pasien &bull; SIPOLI</p>
+                            </div>
+                            <ul class="p-2 text-sm font-medium" role="none">
+                                <li>
+                                    <a href="./auth/logout.php" class="inline-flex items-center w-full p-2 text-red-600 hover:bg-red-50 rounded" role="menuitem">
+                                        <i class="fas fa-sign-out-alt mr-2"></i> Keluar
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    <?php else: ?>
+                        <a href="./auth/login.php">login</a>
+                    <?php endif; ?>
+                </div>
+                <div class="notifikasi text-2xl">
+                    <?php if ($apakahLogin): ?>
+                        <a href="./users/notifikasi.php"><i class="fas fa-bell"></i></a>
+                    <?php endif; ?>
                 </div>
                 <div class="flex items-center gap-5">
                     <a href="./auth/login.php" class="profile flex gap-2 items-center bg-primary px-3 py-1.5 rounded-base hover:bg-primary-700 transition">
@@ -295,6 +357,29 @@
                                 <span class="bg-warning-soft text-fg-warning text-xs md:text-sm font-medium px-2.5 py-1 rounded">Menunggu</span>
                             </div>
                         </div>
+                            <h5 class="text-lg tracking-tight text-heading leading-8">Umum</h5>
+                        </a> -->
+                        <?php if (!$jadwalPublik): ?>
+                            <p class="text-sm text-gray-500">Belum ada jadwal yang dipublikasikan.</p>
+                        <?php else: ?>
+                            <?php foreach (array_slice($jadwalPublik, 0, 2) as $j): ?>
+                                <div class="bg-neutral-primary-soft max-w-sm p-6 border rounded-base border-primary shadow-md/50 shadow-primary-400 flex justify-between mb-3">
+                                    <div class="icon w-12 h-12 rounded-full bg-primary-100 flex justify-center items-center self-center">
+                                        <i class="far fa-calendar-alt text-primary text-2xl"></i>
+                                    </div>
+                                    <div class="desc">
+                                        <h6 class="font-bold text-xl"><?= e($j['poli']) ?></h6>
+                                        <p class="doctor-name"><?= e($j['dokter'] ?? 'Dokter akan ditentukan') ?></p>
+                                        <p class="date"><?= e($j['tanggal_pendek']) ?>. <?= e($j['jam']) ?></p>
+                                    </div>
+                                    <div class="status-badge">
+                                        <span class="<?= $j['penuh'] ? 'bg-danger-soft text-fg-danger' : 'bg-warning-soft text-fg-warning' ?> text-sm font-medium px-2 py-1 rounded">
+                                            <?= $j['penuh'] ? 'Penuh' : 'Sisa ' . (int) $j['sisa_kuota'] ?>
+                                        </span>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
                     </div>
                 </section>
 
@@ -351,6 +436,27 @@
 
                         <!-- Tambahkan card dokter/perawat berikutnya di sini -->
 
+                            <h5 class="text-lg tracking-tight text-heading leading-8">Umum</h5>
+                        </a> -->
+                        <?php if (!$dokterPublik): ?>
+                            <p class="text-sm text-gray-500">Belum ada dokter yang ditampilkan.</p>
+                        <?php else: ?>
+                            <?php foreach ($dokterPublik as $d): ?>
+                                <div class="bg-neutral-primary-soft max-w-sm p-6 border border-primary shadow-md/50 shadow-primary-400 rounded-base shadow-xs flex justify-between mb-3">
+                                    <div class="w-16 self-center">
+                                        <img src="./assets/img/doc-pic.png" alt="<?= e($d['nama']) ?>">
+                                    </div>
+                                    <div class="desc">
+                                        <h6 class="font-bold text-xl"><?= e($d['poli']) ?></h6>
+                                        <p class="doctor-name"><?= e($d['nama']) ?></p>
+                                        <p class="date"><?= e($d['jam']) ?></p>
+                                    </div>
+                                    <a href="./users/jadwal-pemeriksaan.php" class="icon self-center text-primary">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </a>
+                                </div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
                     </div>
                 </section>
             </section>

@@ -77,12 +77,8 @@ if ($jadwalId <= 0) {
                             <p class="text-sm font-bold text-gray-900"><?= $selectedDate ?></p>
                         </div>
                     </section>
-                </div>
-
-                <!-- Kolom Kanan (Desktop): Form Data Pasien & Tombol Submit -->
-                <div class="md:col-span-8 flex flex-col">
                     <!-- Card 3: Form Data Pasien -->
-                    <section class="bg-primary-100 rounded-xl p-5 md:p-6 shadow-sm mb-6 border border-primary-50">
+                    <section class="bg-primary-100 rounded-xl p-5 flex-1 shadow-sm mb-6 border border-primary-50">
                         <!-- Header Form -->
                         <div class="flex items-center gap-3 mb-6 text-primary">
                             <i class="fas fa-user text-lg"></i>
@@ -90,7 +86,7 @@ if ($jadwalId <= 0) {
                         </div>
 
                         <!-- Form Reservasi -->
-                        <form id="formReservasi" action="status-reservasi.php" method="GET" data-api-endpoint="/api/pasien/reservasi.php" data-api-action="create" data-api-redirect="/users/reservasi/status-reservasi.php" class="space-y-5">
+                        <form id="formReservasi" action="status-reservasi.php" method="GET" data-api-endpoint="/api/pasien/reservasi.php" data-api-action="create" data-api-redirect="/users/reservasi/status-reservasi.php?id={id}" class="space-y-5">
                             <input type="hidden" name="jadwal_id" value="<?= $jadwalId ?>">
 
                             <!-- Input Nama -->
@@ -101,40 +97,62 @@ if ($jadwalId <= 0) {
                                 <input type="text" id="nama" name="nama" class="bg-page border-0 text-gray-900 text-sm rounded focus:ring-primary-500 focus:border-primary-500 block w-full p-3 shadow-inner" placeholder="Nama Lengkap" required>
                             </div>
 
-                            <!-- Input NIM (Spesifik Konteks Kampus) -->
-                            <div>
-                                <label for="nim" class="flex items-center gap-2 mb-2 text-sm font-medium text-gray-500">
-                                    <i class="far fa-id-badge text-primary w-4 text-center"></i> NIM
-                                </label>
-                                <input type="number" id="nim" name="nim" class="bg-page border-0 text-gray-900 text-sm rounded focus:ring-primary-500 focus:border-primary-500 block w-full p-3 shadow-inner" placeholder="Nomor Induk Mahasiswa" required>
+                            <!-- Kolom Kanan (Desktop): Form Data Pasien & Tombol Submit -->
+                            <div class="md:col-span-8 flex flex-col">
+                                <!-- Card 3: Form Data Pasien -->
+                                <section class="bg-primary-100 rounded-xl p-5 md:p-6 shadow-sm mb-6 border border-primary-50">
+                                    <!-- Header Form -->
+                                    <div class="flex items-center gap-3 mb-6 text-primary">
+                                        <i class="fas fa-user text-lg"></i>
+                                        <h3 class="font-bold text-base">Data Pasien</h3>
+                                    </div>
+
+                                    <!-- Form Reservasi -->
+                                    <form id="formReservasi" action="status-reservasi.php" method="GET" data-api-endpoint="/api/pasien/reservasi.php" data-api-action="create" data-api-redirect="/users/reservasi/status-reservasi.php" class="space-y-5">
+                                        <input type="hidden" name="jadwal_id" value="<?= $jadwalId ?>">
+
+                                        <!-- Input Nama -->
+                                        <div>
+                                            <label for="nama" class="flex items-center gap-2 mb-2 text-sm font-medium text-gray-500">
+                                                <i class="far fa-user text-primary w-4 text-center"></i> Nama
+                                            </label>
+                                            <input type="text" id="nama" name="nama" class="bg-page border-0 text-gray-900 text-sm rounded focus:ring-primary-500 focus:border-primary-500 block w-full p-3 shadow-inner" placeholder="Nama Lengkap" required>
+                                        </div>
+
+                                        <!-- Input NIM (Spesifik Konteks Kampus) -->
+                                        <div>
+                                            <label for="nim" class="flex items-center gap-2 mb-2 text-sm font-medium text-gray-500">
+                                                <i class="far fa-id-badge text-primary w-4 text-center"></i> NIM
+                                            </label>
+                                            <input type="number" id="nim" name="nim" class="bg-page border-0 text-gray-900 text-sm rounded focus:ring-primary-500 focus:border-primary-500 block w-full p-3 shadow-inner" placeholder="Nomor Induk Mahasiswa" required>
+                                        </div>
+
+                                        <!-- Input Jurusan -->
+                                        <div>
+                                            <label for="jurusan" class="flex items-center gap-2 mb-2 text-sm font-medium text-gray-500">
+                                                <i class="fas fa-users text-primary w-4 text-center"></i> Jurusan
+                                            </label>
+                                            <input type="text" id="jurusan" name="jurusan" class="bg-page border-0 text-gray-900 text-sm rounded focus:ring-primary-500 focus:border-primary-500 block w-full p-3 shadow-inner" placeholder="Contoh: Teknik Informatika" required>
+                                        </div>
+
+                                        <!-- Input Keluhan -->
+                                        <div>
+                                            <label for="keluhan" class="flex items-center gap-2 mb-2 text-sm font-medium text-gray-500">
+                                                <i class="fas fa-comment-medical text-primary w-4 text-center"></i> Keluhan
+                                            </label>
+                                            <textarea id="keluhan" name="keluhan" rows="3" class="bg-page border-0 text-gray-900 text-sm rounded focus:ring-primary-500 focus:border-primary-500 block w-full p-3 shadow-inner resize-none" placeholder="Deskripsikan keluhan Anda" required></textarea>
+                                        </div>
+                                    </form>
+                                </section>
+
+                                <div class="pb-6">
+                                    <button type="button" onclick="submitForm()" class="w-full py-2.5 bg-primary hover:bg-primary-700 text-white text-center font-semibold rounded-full shadow-lg transition-colors focus:ring-4 focus:ring-primary-300 cursor-pointer">
+                                        Reservasi
+                                    </button>
+                                </div>
                             </div>
 
-                            <!-- Input Jurusan -->
-                            <div>
-                                <label for="jurusan" class="flex items-center gap-2 mb-2 text-sm font-medium text-gray-500">
-                                    <i class="fas fa-users text-primary w-4 text-center"></i> Jurusan
-                                </label>
-                                <input type="text" id="jurusan" name="jurusan" class="bg-page border-0 text-gray-900 text-sm rounded focus:ring-primary-500 focus:border-primary-500 block w-full p-3 shadow-inner" placeholder="Contoh: Teknik Informatika" required>
-                            </div>
-
-                            <!-- Input Keluhan -->
-                            <div>
-                                <label for="keluhan" class="flex items-center gap-2 mb-2 text-sm font-medium text-gray-500">
-                                    <i class="fas fa-comment-medical text-primary w-4 text-center"></i> Keluhan
-                                </label>
-                                <textarea id="keluhan" name="keluhan" rows="3" class="bg-page border-0 text-gray-900 text-sm rounded focus:ring-primary-500 focus:border-primary-500 block w-full p-3 shadow-inner resize-none" placeholder="Deskripsikan keluhan Anda" required></textarea>
-                            </div>
-                        </form>
-                    </section>
-
-                    <div class="pb-6">
-                        <button type="button" onclick="submitForm()" class="w-full py-2.5 bg-primary hover:bg-primary-700 text-white text-center font-semibold rounded-full shadow-lg transition-colors focus:ring-4 focus:ring-primary-300 cursor-pointer">
-                            Reservasi
-                        </button>
-                    </div>
                 </div>
-
-            </div>
         </main>
     </div>
 
