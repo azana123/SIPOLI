@@ -7,10 +7,11 @@ api_method('GET', 'POST');
 api_role('pasien');
 
 if (strtoupper($_SERVER['REQUEST_METHOD']) === 'GET') {
-    $id = isset($_GET['id']) && ctype_digit((string) $_GET['id']) ? (int) $_GET['id'] : 0;
+    $id       = isset($_GET['id']) && ctype_digit((string) $_GET['id']) ? (int) $_GET['id'] : 0;
+    $pasienId = profil_id_sesi('pasien');
     api_success($id > 0
-        ? PasienService::detailReservasi($id)
-        : PasienService::daftarReservasi());
+        ? QueryPasienReservasi::detail($id, $pasienId)
+        : QueryPasienReservasi::daftar($pasienId));
 }
 
 api_write_guard();

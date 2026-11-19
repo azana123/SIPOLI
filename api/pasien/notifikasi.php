@@ -7,7 +7,8 @@ api_method('GET', 'POST');
 api_role('pasien');
 
 if (strtoupper($_SERVER['REQUEST_METHOD']) === 'GET') {
-    api_success(['notifikasi' => PasienService::daftarNotifikasi()]);
+    $userId = (int) ($_SESSION['user_id'] ?? 0);
+    api_success(['notifikasi' => QueryPasienNotifikasi::daftar($userId)]);
 }
 
 api_write_guard();

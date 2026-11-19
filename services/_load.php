@@ -14,7 +14,7 @@ require_once __DIR__ . '/InformasiService.php';
 require_once __DIR__ . '/PasienOfflineService.php';
 require_once __DIR__ . '/PemeriksaanService.php';
 require_once __DIR__ . '/JadwalDokterService.php';
-require_once __DIR__ . '/PasienService.php';
+require_once __DIR__ . '/FormatPasien.php';
 
 // QUERY LOAD
 require_once __DIR__ . '/query/QueryAdminDashboard.php';
@@ -60,3 +60,13 @@ require_once __DIR__ . '/query/QueryDokterFormPeriksa.php';
 require_once __DIR__ . '/query/QueryDokterPerubahanJadwal.php';
 
 require_once __DIR__ . '/query/QueryDaftar.php';
+
+require_once __DIR__ . '/query/QueryPasienBeranda.php';
+
+require_once __DIR__ . '/query/QueryPasienJadwal.php';
+
+require_once __DIR__ . '/query/QueryPasienDokter.php';
+
+require_once __DIR__ . '/query/QueryPasienReservasi.php';
+
+require_once __DIR__ . '/query/QueryPasienNotifikasi.php';

@@ -13,6 +13,6 @@ $bulan   = isset($_GET['m']) && ctype_digit((string) $_GET['m']) ? (int) $_GET['
 $tahun   = isset($_GET['y']) && ctype_digit((string) $_GET['y']) ? (int) $_GET['y'] : (int) date('Y');
 
 api_success([
-    'jadwal'   => PasienService::daftarJadwal($tanggal, $poliId),
-    'kalender' => PasienService::kalender($bulan, $tahun),
+    'jadwal'   => QueryPasienJadwal::daftar($tanggal, $poliId),
+    'kalender' => QueryPasienJadwal::kalender($bulan, $tahun),
 ]);
