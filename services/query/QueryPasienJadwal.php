@@ -30,7 +30,7 @@ final class QueryPasienJadwal {
         return $stmt->fetchAll();
     }
 
-    // Daftar jadwal yang bisa dipesan, opsional filter tanggal dan poli
+    /** Daftar jadwal yang bisa dipesan, opsional filter tanggal dan poli. */
     public static function daftar(?string $tanggal = null, int $poliId = 0): array {
         $baris = self::mentah($tanggal, $poliId);
 

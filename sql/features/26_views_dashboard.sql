@@ -15,7 +15,12 @@ SELECT j.id, j.poli_id, p.nama AS poli, j.dokter_id, d.nama AS dokter,
   LEFT JOIN dokter d ON d.id = j.dokter_id
   LEFT JOIN reservasi r ON r.jadwal_id = j.id AND r.status <> 'dibatalkan'
  WHERE p.butuh_reservasi AND j.dipublikasi AND j.status = 'buka'
-   AND j.tanggal BETWEEN fn_today() + 1 AND fn_today() + 7
+   AND j.tanggal BETWEEN fn_today() AND fn_today() + 7
+   AND (
+         j.tanggal > fn_today()
+         OR (j.tanggal = fn_today()
+             AND j.jam_mulai > (NOW() AT TIME ZONE 'Asia/Jakarta')::time)
+       )
  GROUP BY j.id, p.nama, d.nama;
 
 -- Layar antrean & dashboard admin/dokter
