@@ -86,7 +86,7 @@ $notifikasi = QueryPasienNotifikasi::daftar($userId);
         </main>
     </div>
 
-    <?php require __DIR__ . '/../components/api-script.php'; ?>
+    <?php require __DIR__ . '/components/api-script.php'; ?>
     <script src="./../node_modules/flowbite/dist/flowbite.min.js"></script>
 </body>
 
