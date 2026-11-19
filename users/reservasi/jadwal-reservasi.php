@@ -1,4 +1,15 @@
 <?php
+require_once __DIR__ . '/../../config/bootstrap.php';
+require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../services/_load.php';
+
+$page_title = $page_title ?? 'Jadwal Dokter';
+$page_description = "Cek ketersediaan jadwal praktik dokter dan pilih waktu kunjungan Anda.";
+$back_url = $back_url ?? './../index.php';
+$breadcrumbs = $breadcrumbs ?? [
+    ['label' => $page_title]
+];
+
 date_default_timezone_set('Asia/Jakarta');
 
 $today = new DateTime('today');
@@ -112,117 +123,117 @@ $dokterNama = $jadwalTerpilih && $jadwalTerpilih['dokter']
                 </p>
             </div>
 
-                <section class="md:col-span-7 bg-white rounded-3xl mt-2 md:mt-0 mb-8 px-4 md:px-6 pt-5 pb-8 shadow-[0_-4px_15px_rgba(0,0,0,0.02)] border border-gray-100">
+            <section class="md:col-span-7 bg-white rounded-3xl mt-2 md:mt-0 mb-8 px-4 md:px-6 pt-5 pb-8 shadow-[0_-4px_15px_rgba(0,0,0,0.02)] border border-gray-100">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="font-bold text-sm md:text-base text-gray-900">Pilih Tanggal</h2>
+                    <div class="flex items-center gap-2">
+                        <a href="?m=<?= $prevMonth ?>&y=<?= $prevYear ?>&dokter_id=<?= urlencode($doctorId) ?>&jadwal_id=<?= urlencode($scheduleId) ?><?= $selectedDate ? '&tanggal=' . urlencode($selectedDate) : '' ?>"
+                            aria-label="Bulan Sebelumnya"
+                            class="w-8 h-8 rounded-lg bg-gray-50 border border-gray-200 text-gray-600 hover:bg-primary-50 hover:text-primary-600 flex items-center justify-center transition-colors">
+                            <i class="fas fa-chevron-left text-xs"></i>
+                        </a>
+                        <span class="bg-primary-50 text-primary-700 px-4 py-1.5 rounded text-xs font-semibold min-w-[115px] text-center">
+                            <?= $monthName ?> <?= $year ?>
+                        </span>
+                        <a href="?m=<?= $nextMonth ?>&y=<?= $nextYear ?>&dokter_id=<?= urlencode($doctorId) ?>&jadwal_id=<?= urlencode($scheduleId) ?><?= $selectedDate ? '&tanggal=' . urlencode($selectedDate) : '' ?>"
+                            aria-label="Bulan Berikutnya"
+                            class="w-8 h-8 rounded-lg bg-gray-50 border border-gray-200 text-gray-600 hover:bg-primary-50 hover:text-primary-600 flex items-center justify-center transition-colors">
+                            <i class="fas fa-chevron-right text-xs"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Card Statistik -->
+                <!-- Memakai 'rounded' sesuai aturan spesifikasi elemen dasar -->
+                <section class="mt-6 bg-primary rounded-xl p-4 grid grid-cols-3 gap-2.5 items-center text-white shadow-md">
+                    <div class="flex items-center gap-2.5 border-primary-500">
+                        <i class="fas fa-history text-xl"></i>
+                        <span class="text-xs font-medium"><?= $kuotaTersedia ?> Kuota</span>
+                    </div>
+                    <div class="flex items-center gap-2.5 border-primary-500">
+                        <i class="far fa-user-circle text-xl"></i>
+                        <span class="text-xs font-medium leading-tight">200+<br>Total Pasien</span>
+                    </div>
+                    <div class="flex items-center gap-2.5">
+                        <i class="fas fa-briefcase-medical text-xl"></i>
+                        <span class="text-xs font-medium leading-tight">5 Tahun<br>Pengalaman</span>
+                    </div>
+                </section>
+
+                <!-- Bottom Sheet Kalender -->
+                <section class="bg-white rounded-3xl my-8 flex-1 px-4 pt-4 pb-8 shadow-[0_-4px_15px_rgba(0,0,0,0.02)]">
                     <div class="flex justify-between items-center mb-6">
-                        <h2 class="font-bold text-sm md:text-base text-gray-900">Pilih Tanggal</h2>
-                        <div class="flex items-center gap-2">
-                            <a href="?m=<?= $prevMonth ?>&y=<?= $prevYear ?>&dokter_id=<?= urlencode($doctorId) ?>&jadwal_id=<?= urlencode($scheduleId) ?><?= $selectedDate ? '&tanggal=' . urlencode($selectedDate) : '' ?>"
-                                aria-label="Bulan Sebelumnya"
-                                class="w-8 h-8 rounded-lg bg-gray-50 border border-gray-200 text-gray-600 hover:bg-primary-50 hover:text-primary-600 flex items-center justify-center transition-colors">
-                                <i class="fas fa-chevron-left text-xs"></i>
-                            </a>
-                            <span class="bg-primary-50 text-primary-700 px-4 py-1.5 rounded text-xs font-semibold min-w-[115px] text-center">
-                                <?= $monthName ?> <?= $year ?>
-                            </span>
-                            <a href="?m=<?= $nextMonth ?>&y=<?= $nextYear ?>&dokter_id=<?= urlencode($doctorId) ?>&jadwal_id=<?= urlencode($scheduleId) ?><?= $selectedDate ? '&tanggal=' . urlencode($selectedDate) : '' ?>"
-                                aria-label="Bulan Berikutnya"
-                                class="w-8 h-8 rounded-lg bg-gray-50 border border-gray-200 text-gray-600 hover:bg-primary-50 hover:text-primary-600 flex items-center justify-center transition-colors">
-                                <i class="fas fa-chevron-right text-xs"></i>
-                            </a>
-                        </div>
+                        <h2 class="font-bold text-sm text-gray-900">Pilih Tanggal</h2>
+                        <span class="bg-primary-50 text-primary-700 px-4 py-1.5 rounded text-xs font-semibold">
+                            <?= $monthName ?>
+                        </span>
                     </div>
 
-        <!-- Card Statistik -->
-        <!-- Memakai 'rounded' sesuai aturan spesifikasi elemen dasar -->
-        <section class="mt-6 bg-primary rounded-xl p-4 grid grid-cols-3 gap-2.5 items-center text-white shadow-md">
-            <div class="flex items-center gap-2.5 border-primary-500">
-                <i class="fas fa-history text-xl"></i>
-                <span class="text-xs font-medium"><?= $kuotaTersedia ?> Kuota</span>
-            </div>
-            <div class="flex items-center gap-2.5 border-primary-500">
-                <i class="far fa-user-circle text-xl"></i>
-                <span class="text-xs font-medium leading-tight">200+<br>Total Pasien</span>
-            </div>
-            <div class="flex items-center gap-2.5">
-                <i class="fas fa-briefcase-medical text-xl"></i>
-                <span class="text-xs font-medium leading-tight">5 Tahun<br>Pengalaman</span>
-            </div>
-        </section>
+                    <!-- Grid Header Hari -->
+                    <div class="grid grid-cols-7 mb-4 text-center text-sm font-medium text-gray-500">
+                        <div>Min</div>
+                        <div>Sen</div>
+                        <div>Sel</div>
+                        <div>Rab</div>
+                        <div>Kam</div>
+                        <div>Jum</div>
+                        <div>Sab</div>
+                    </div>
 
-        <!-- Bottom Sheet Kalender -->
-        <section class="bg-white rounded-3xl my-8 flex-1 px-4 pt-4 pb-8 shadow-[0_-4px_15px_rgba(0,0,0,0.02)]">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="font-bold text-sm text-gray-900">Pilih Tanggal</h2>
-                <span class="bg-primary-50 text-primary-700 px-4 py-1.5 rounded text-xs font-semibold">
-                    <?= $monthName ?>
-                </span>
-            </div>
+                    <!-- Grid Tanggal -->
+                    <div class="grid grid-cols-7 gap-y-4 text-center">
+                        <?php
+                        for ($i = $firstDayOfMonth - 1; $i >= 0; $i--) {
+                            $day = $prevMonthDays - $i;
+                            echo "<div class='text-sm text-gray-300 font-medium py-2'>$day</div>";
+                        }
 
-            <!-- Grid Header Hari -->
-            <div class="grid grid-cols-7 mb-4 text-center text-sm font-medium text-gray-500">
-                <div>Min</div>
-                <div>Sen</div>
-                <div>Sel</div>
-                <div>Rab</div>
-                <div>Kam</div>
-                <div>Jum</div>
-                <div>Sab</div>
-            </div>
+                        for ($day = 1; $day <= $daysInMonth; $day++) {
+                            $dayFormatted = sprintf("%02d", $day);
+                            $status = $kalender[$day] ?? null;
 
-            <!-- Grid Tanggal -->
-            <div class="grid grid-cols-7 gap-y-4 text-center">
-                <?php
-                for ($i = $firstDayOfMonth - 1; $i >= 0; $i--) {
-                    $day = $prevMonthDays - $i;
-                    echo "<div class='text-sm text-gray-300 font-medium py-2'>$day</div>";
-                }
+                            $wrapperClass = "flex flex-col items-center justify-center";
+                            $textClass = "text-sm font-medium py-1.5 px-2 w-8 h-8 flex items-center justify-center";
+                            $dotIndicator = "";
 
-                for ($day = 1; $day <= $daysInMonth; $day++) {
-                    $dayFormatted = sprintf("%02d", $day);
-                    $status = $kalender[$day] ?? null;
+                            if ($day == $selectedDate) {
+                                $wrapperClass .= " cursor-pointer";
+                                $textClass .= " bg-primary-600 text-white rounded shadow-md";
+                            } elseif ($status === null) {
+                                $wrapperClass .= " cursor-not-allowed";
+                                $textClass .= " text-gray-300";
+                            } else {
+                                $wrapperClass .= " cursor-pointer";
+                                $textClass .= " text-gray-900 hover:bg-gray-100 rounded";
+                            }
 
-                    $wrapperClass = "flex flex-col items-center justify-center";
-                    $textClass = "text-sm font-medium py-1.5 px-2 w-8 h-8 flex items-center justify-center";
-                    $dotIndicator = "";
+                            if (in_array($day, $fullQuotaDate, true)) {
+                                $dotIndicator = "<div class='w-1.5 h-1.5 bg-red-600 rounded-full mt-1'></div>";
+                            }
 
-                    if ($day == $selectedDate) {
-                        $wrapperClass .= " cursor-pointer";
-                        $textClass .= " bg-primary-600 text-white rounded shadow-md";
-                    } elseif ($status === null) {
-                        $wrapperClass .= " cursor-not-allowed";
-                        $textClass .= " text-gray-300";
-                    } else {
-                        $wrapperClass .= " cursor-pointer";
-                        $textClass .= " text-gray-900 hover:bg-gray-100 rounded";
-                    }
+                            echo "<div class='$wrapperClass'>";
+                            if ($status !== null) {
+                                echo "<a href='?m=$month&y=$year&tanggal=$day' class='no-underline'>";
+                            }
+                            echo "<span class='$textClass'>$dayFormatted</span>";
+                            if ($status !== null) echo "</a>";
+                            echo $dotIndicator;
+                            echo "</div>";
+                        }
 
-                    if (in_array($day, $fullQuotaDate, true)) {
-                        $dotIndicator = "<div class='w-1.5 h-1.5 bg-red-600 rounded-full mt-1'></div>";
-                    }
+                        $isWithin7Days = ($currentDateObj >= $today && $currentDateObj <= $maxActiveDate);
+                        $isFullQuota   = in_array($currentDateStr, $fullQuotaDates, true);
+                        $isSelectable  = $isWithin7Days && !$isFullQuota;
+                        $isSelected    = ($currentDateStr === $selectedDate && $isSelectable);
 
-                    echo "<div class='$wrapperClass'>";
-                    if ($status !== null) {
-                        echo "<a href='?m=$month&y=$year&tanggal=$day' class='no-underline'>";
-                    }
-                    echo "<span class='$textClass'>$dayFormatted</span>";
-                    if ($status !== null) echo "</a>";
-                    echo $dotIndicator;
-                    echo "</div>";
-                }
+                        $dotIndicator = $isFullQuota ? "<div class='w-1.5 h-1.5 bg-red-600 rounded-full mt-1'></div>" : "";
 
-                            $isWithin7Days = ($currentDateObj >= $today && $currentDateObj <= $maxActiveDate);
-                            $isFullQuota   = in_array($currentDateStr, $fullQuotaDates, true);
-                            $isSelectable  = $isWithin7Days && !$isFullQuota;
-                            $isSelected    = ($currentDateStr === $selectedDate && $isSelectable);
+                        if ($isSelectable) {
+                            $btnStateClass = $isSelected
+                                ? "bg-primary text-white shadow-md"
+                                : "text-gray-900 hover:bg-gray-100";
 
-                            $dotIndicator = $isFullQuota ? "<div class='w-1.5 h-1.5 bg-red-600 rounded-full mt-1'></div>" : "";
-
-                            if ($isSelectable) {
-                                $btnStateClass = $isSelected
-                                    ? "bg-primary text-white shadow-md"
-                                    : "text-gray-900 hover:bg-gray-100";
-
-                                echo "
+                            echo "
                                 <div class='flex flex-col items-center justify-center'>
                                     <button type='button'
                                         data-date='$currentDateStr'
@@ -230,13 +241,13 @@ $dokterNama = $jadwalTerpilih && $jadwalTerpilih['dokter']
                                         $dayFormatted
                                     </button>
                                 </div>";
-                            } else {
-                                echo "
+                        } else {
+                            echo "
                                 <div class='flex flex-col items-center justify-center cursor-not-allowed'>
                                     <span class='text-sm font-medium w-8 h-8 flex items-center justify-center text-gray-300'>$dayFormatted</span>
                                     $dotIndicator
                                 </div>";
-                            }
+                        }
 
                         $totalCells = $firstDayOfMonth + $daysInMonth;
                         $remainingCells = (7 - ($totalCells % 7)) % 7;
@@ -277,29 +288,29 @@ $dokterNama = $jadwalTerpilih && $jadwalTerpilih['dokter']
                     </form>
                 </section>
 
-            </div>
+    </div>
 
-            <!-- Legenda -->
-            <div class="flex items-center gap-6 mt-8 mb-4">
-                <div class="flex items-center gap-2">
-                    <div class="w-3 h-3 bg-red-600 rounded-full"></div>
-                    <span class="text-xs font-medium text-gray-500">Kouta penuh</span>
-                </div>
-                <div class="flex items-center gap-2">
-                    <div class="w-3 h-3 bg-primary-600 rounded-sm"></div>
-                    <span class="text-xs font-medium text-gray-500">Dipilih</span>
-                </div>
-            </div>
-            <?php if ($jadwalTerpilih && !$jadwalTerpilih['penuh']): ?>
-                <a href="./form-reservasi.php?jadwal_id=<?= (int) $jadwalTerpilih['id'] ?>" class="w-full py-2 block bg-primary hover:bg-primary-700 text-white text-center font-semibold rounded-full shadow-lg transition-colors">
-                    Reservasi
-                </a>
-            <?php else: ?>
-                <span class="w-full py-2 block bg-gray-200 text-gray-500 text-center font-semibold rounded-full">
-                    Pilih tanggal yang tersedia
-                </span>
-            <?php endif; ?>
-        </section>
+    <!-- Legenda -->
+    <div class="flex items-center gap-6 mt-8 mb-4">
+        <div class="flex items-center gap-2">
+            <div class="w-3 h-3 bg-red-600 rounded-full"></div>
+            <span class="text-xs font-medium text-gray-500">Kouta penuh</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <div class="w-3 h-3 bg-primary-600 rounded-sm"></div>
+            <span class="text-xs font-medium text-gray-500">Dipilih</span>
+        </div>
+    </div>
+    <?php if ($jadwalTerpilih && !$jadwalTerpilih['penuh']): ?>
+        <a href="./form-reservasi.php?jadwal_id=<?= (int) $jadwalTerpilih['id'] ?>" class="w-full py-2 block bg-primary hover:bg-primary-700 text-white text-center font-semibold rounded-full shadow-lg transition-colors">
+            Reservasi
+        </a>
+    <?php else: ?>
+        <span class="w-full py-2 block bg-gray-200 text-gray-500 text-center font-semibold rounded-full">
+            Pilih tanggal yang tersedia
+        </span>
+    <?php endif; ?>
+    </section>
 
     </div>
 
