@@ -15,4 +15,4 @@ RUN apt-get update \
 COPY . /var/www/html/
 RUN chown -R www-data:www-data /var/www/html
 
-EXPOSE 3000
+EXPOSE 80
