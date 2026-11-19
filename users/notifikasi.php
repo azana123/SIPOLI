@@ -6,7 +6,8 @@ require_once __DIR__ . '/../middleware/check-role.php';
 check_role('pasien');
 
 $page_title = "Notifikasi";
-$notifikasi = PasienService::daftarNotifikasi();
+$userId = (int) ($_SESSION['user_id'] ?? 0);
+$notifikasi = QueryPasienNotifikasi::daftar($userId);
 ?>
 
 <!DOCTYPE html>

@@ -21,8 +21,8 @@ $monthName = $bulanIndo[$month - 1];
 
 $page_title = "Jadwal Pengobatan";
 
-$kalender = PasienService::kalender($month, $year);
-$jadwalBulan = PasienService::daftarJadwal(sprintf('%04d-%02d-01', $year, $month));
+$kalender = QueryPasienJadwal::kalender($month, $year);
+$jadwalBulan = QueryPasienJadwal::daftar(sprintf('%04d-%02d-01', $year, $month));
 
 // Tanggal yang dipilih: dari URL atau tanggal pertama yang tersedia.
 $selectedDate = isset($_GET['tanggal']) && ctype_digit((string) $_GET['tanggal'])
