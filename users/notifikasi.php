@@ -1,11 +1,16 @@
 <?php
+$page_title       = $page_title ?? "Notifikasi";
+$page_description = "Pantau pemberitahuan terbaru terkait jadwal pemeriksaan dan status reservasi Anda.";
+$back_url         = $back_url ?? './../index.php';
+$breadcrumbs      = $breadcrumbs ?? [
+    ['label' => $page_title]
+];
 require_once __DIR__ . '/../config/bootstrap.php';
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../services/_load.php';
 require_once __DIR__ . '/../middleware/check-role.php';
 check_role('pasien');
 
-$page_title = "Notifikasi";
 $userId = (int) ($_SESSION['user_id'] ?? 0);
 $notifikasi = QueryPasienNotifikasi::daftar($userId);
 ?>
@@ -23,20 +28,126 @@ $notifikasi = QueryPasienNotifikasi::daftar($userId);
 </head>
 
 <body class="bg-gray-100 antialiased text-gray-800">
-    <!-- Kontainer Utama Mobile First -->
-    <div class="w-full md:max-w-md mx-auto min-h-screen bg-page flex flex-col shadow-xl relative">
+    <!-- Kontainer Utama: Diperlebar untuk desktop agar header baru terlihat proporsional -->
+    <div class="w-full mx-auto min-h-screen bg-page flex flex-col shadow-xl">
 
-        <!-- App Bar / Header -->
-        <header class="bg-primary-500 text-white px-5 py-4 flex items-center sticky top-0 z-20 shadow-sm">
-            <a href="./../index.php" class="mr-4 hover:bg-primary-600 p-1 rounded transition-colors">
-                <i class="fas fa-chevron-left text-lg"></i>
-            </a>
-            <h1 class="text-lg font-semibold tracking-wide"><?= $page_title ?></h1>
-        </header>
+        <!-- Komponen Header Desktop & Mobile -->
+        <?php require_once __DIR__ . "./components/header.php" ?>
 
         <!-- Main Content -->
-        <main class="flex-1 px-5 py-6 overflow-y-auto">
+        <main class="flex-1 px-5 md:px-20 py-6 overflow-y-auto">
 
+            <!-- Opsional: Wrapper tambahan (misal max-w-3xl) jika card notifikasi terasa terlalu lebar di layar desktop -->
+            <div class="flex flex-col md:grid md:grid-cols-3 gap-4">
+
+                <!-- Kartu 1 -->
+                <div class="bg-primary-50 border border-primary-200 rounded-2xl p-4 flex gap-3.5 relative">
+                    <!-- Icon Kiri -->
+                    <div class="w-10 h-10 rounded-full bg-orange-100 text-orange-700 shrink-0 flex justify-center items-center mt-0.5">
+                        <i class="fas fa-history text-lg"></i>
+                    </div>
+
+                    <!-- Konten Tengah & Kanan -->
+                    <div class="flex-1 flex flex-col">
+                        <!-- Header Card (Judul & Unread Dot) -->
+                        <div class="flex justify-between items-start gap-2">
+                            <h3 class="font-bold text-gray-900 text-[15px] leading-snug">
+                                Konfirmasi kehadiran besok
+                            </h3>
+                            <!-- Indikator Unread (Titik Teal) -->
+                            <span class="w-2.5 h-2.5 bg-primary-600 rounded-full mt-1.5 shrink-0"></span>
+                        </div>
+
+                        <!-- Pesan Notifikasi -->
+                        <p class="text-[13px] text-gray-600 mt-1 leading-relaxed">
+                            pembersihan karang gigi dengan drg. Nadia Putri, Sp.KG, Kam 24 Sep, 14.00. Mohon Konfirmasi kehadiranmu
+                        </p>
+
+                        <!-- Footer Card: mt-auto pt-3 mendorong elemen ini selalu ke dasar card -->
+                        <div class="flex justify-between items-center mt-auto pt-3 text-xs">
+                            <span class="text-gray-500">2 Jam lalu</span>
+
+                            <!-- Tombol Aksi dengan Arrow -->
+                            <a href="#" class="font-semibold text-primary-600 hover:underline flex items-center gap-1">
+                                Konfirmasi sekarang
+                                <i class="fas fa-chevron-right text-2xs"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Kartu 2 -->
+                <div class="bg-primary-50 border border-primary-200 rounded-2xl p-4 flex gap-3.5 relative">
+                    <!-- Icon Kiri -->
+                    <div class="w-10 h-10 rounded-full bg-orange-100 text-orange-700 shrink-0 flex justify-center items-center mt-0.5">
+                        <i class="fas fa-history text-lg"></i>
+                    </div>
+
+                    <!-- Konten Tengah & Kanan -->
+                    <div class="flex-1 flex flex-col">
+                        <!-- Header Card (Judul & Unread Dot) -->
+                        <div class="flex justify-between items-start gap-2">
+                            <h3 class="font-bold text-gray-900 text-[15px] leading-snug">
+                                Konfirmasi kehadiran besok
+                            </h3>
+                            <!-- Indikator Unread (Titik Teal) -->
+                            <span class="w-2.5 h-2.5 bg-primary-600 rounded-full mt-1.5 shrink-0"></span>
+                        </div>
+
+                        <!-- Pesan Notifikasi -->
+                        <p class="text-[13px] text-gray-600 mt-1 leading-relaxed">
+                            pembersihan karang gigi dengan drg. Nadia Putri, Sp.KG, Kam 24 Sep, 14.00. Mohon Konfirmasi kehadiranmu
+                        </p>
+
+                        <!-- Footer Card: mt-auto pt-3 mendorong elemen ini selalu ke dasar card -->
+                        <div class="flex justify-between items-center mt-auto pt-3 text-xs">
+                            <span class="text-gray-500">2 Jam lalu</span>
+
+                            <!-- Tombol Aksi dengan Arrow -->
+                            <a href="#" class="font-semibold text-primary-600 hover:underline flex items-center gap-1">
+                                Konfirmasi sekarang
+                                <i class="fas fa-chevron-right text-2xs"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Kartu 3 -->
+                <div class="bg-primary-50 border border-primary-200 rounded-2xl p-4 flex gap-3.5 relative">
+                    <!-- Icon Kiri -->
+                    <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-700 shrink-0 flex justify-center items-center mt-0.5">
+                        <i class="fas fa-sync-alt text-base"></i>
+                    </div>
+
+                    <!-- Konten Tengah & Kanan -->
+                    <div class="flex-1 flex flex-col">
+                        <!-- Header Card (Judul & Unread Dot) -->
+                        <div class="flex justify-between items-start gap-2">
+                            <h3 class="font-bold text-gray-900 text-[15px] leading-snug">
+                                Jadwal dipindah
+                            </h3>
+                            <!-- Indikator Unread (Titik Teal) -->
+                            <span class="w-2.5 h-2.5 bg-primary-600 rounded-full mt-1.5 shrink-0"></span>
+                        </div>
+
+                        <!-- Pesan Notifikasi -->
+                        <p class="text-[13px] text-gray-600 mt-1 leading-relaxed">
+                            Reservasi Poli Umum dipindah dari Jum, 18 Sep ke Sen, 21 Sep, 13.30
+                        </p>
+
+                        <!-- Footer Card: mt-auto pt-3 mendorong elemen ini selalu ke dasar card -->
+                        <div class="flex justify-between items-center mt-auto pt-3 text-xs">
+                            <span class="text-gray-500">2 Hari lalu</span>
+
+                            <!-- Tombol Aksi dengan Arrow -->
+                            <a href="#" class="font-semibold text-primary-600 hover:underline flex items-center gap-1">
+                                Lihat detail
+                                <i class="fas fa-chevron-right text-2xs"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <?php if (!$notifikasi): ?>
                 <div class="bg-white border border-gray-200 rounded p-6 text-center text-sm text-gray-500">
                     Belum ada notifikasi.
