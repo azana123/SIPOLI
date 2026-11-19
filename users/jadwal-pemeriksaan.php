@@ -11,9 +11,12 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../services/_load.php';
 
 $hariIni = $pdo->query('SELECT fn_today()::text')->fetchColumn() ?: date('Y-m-d');
+// v_jadwal_tersedia hanya memuat H-1 s.d. H-7, jadi default-nya H+1 agar tidak kosong.
+$tanggalPertama = $pdo->query('SELECT (fn_today() + 1)::text')->fetchColumn()
+    ?: date('Y-m-d', strtotime($hariIni . ' +1 day'));
 $tanggalDipilih = isset($_GET['tanggal']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $_GET['tanggal'])
     ? (string) $_GET['tanggal']
-    : $hariIni;
+    : $tanggalPertama;
 $poliId = isset($_GET['poli_id']) && ctype_digit((string) $_GET['poli_id']) ? (int) $_GET['poli_id'] : 0;
 
 $jadwal = QueryPasienJadwal::daftar($tanggalDipilih, $poliId);
