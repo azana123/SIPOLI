@@ -1,5 +1,5 @@
 -- =====================================================================
--- FITUR   : Validasi kuota, publikasi, jendela H-7..H-1, dan transisi status reservasi
+-- FITUR   : Validasi kuota, publikasi, jendela H-7..H-0, dan transisi status reservasi
 -- URUTAN  : features/08
 -- ISI     : fn_cek_kuota_reservasi, trigger trg_cek_kuota_reservasi, fn_validasi_status_reservasi, trigger trg_validasi_status_reservasi
 -- DEPEND  : tables/02_poli, 06_jadwal, 08_reservasi
@@ -34,8 +34,8 @@ BEGIN
     IF v_status = 'tutup' THEN
         RAISE EXCEPTION 'Jadwal sudah ditutup';
     END IF;
-    IF v_tanggal < fn_today() + 1 OR v_tanggal > fn_today() + 7 THEN
-        RAISE EXCEPTION 'Reservasi hanya dapat dibuat untuk H-7 sampai H-1 (jadwal tanggal %)', v_tanggal;
+    IF v_tanggal < fn_today() OR v_tanggal > fn_today() + 7 THEN
+        RAISE EXCEPTION 'Reservasi hanya dapat dibuat untuk H-7 sampai hari ini (jadwal tanggal %)', v_tanggal;
     END IF;
 
     SELECT COUNT(*) INTO v_terpakai
