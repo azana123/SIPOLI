@@ -50,6 +50,13 @@ $riwayat = [
         'badge_color' => 'bg-gray-200 text-gray-700'
     ]
 ];
+
+$page_title       = $page_title ?? 'Halaman';
+$page_description = "Pantau jadwal periksa mendatang dan riwayat reservasi Anda dengan mudah.";
+$back_url         = $back_url ?? './../../index.php';
+$breadcrumbs      = $breadcrumbs ?? [
+    ['label' => $page_title]
+];
 ?>
 
 <!DOCTYPE html>
@@ -64,16 +71,10 @@ $riwayat = [
 </head>
 
 <body class="bg-gray-100 antialiased text-gray-800">
-    <!-- Kontainer Utama Mobile First -->
-    <div class="w-full md:max-w-md mx-auto min-h-screen bg-page flex flex-col shadow-xl">
+    <!-- Kontainer Utama: Diperlebar untuk desktop agar header baru terlihat proporsional -->
+    <div class="w-full mx-auto min-h-screen bg-page flex flex-col shadow-xl">
 
-        <!-- App Bar / Header -->
-        <header class="bg-primary-500 text-white px-5 py-4 flex items-center sticky top-0 z-20 shadow-sm">
-            <a href="./../../index.php" class="mr-4 hover:bg-primary-600 p-1 rounded transition-colors">
-                <i class="fas fa-chevron-left text-lg"></i>
-            </a>
-            <h1 class="text-lg font-semibold tracking-wide"><?= $page_title ?></h1>
-        </header>
+        <?php require_once __DIR__ . "./../components/header.php" ?>
 
         <!-- Main Content -->
         <main class="flex-1 px-5 py-6 overflow-y-auto">
@@ -81,7 +82,7 @@ $riwayat = [
             <!-- Section: Akan Datang -->
             <section class="mb-8">
                 <h2 class="text-lg font-bold text-gray-900 mb-4">Akan Datang</h2>
-                <div class="flex flex-col gap-5">
+                <div class="flex flex-col gap-5 md:grid md:grid-cols-2 lg:grid-cols-2">
                     <?php foreach ($akan_datang as $item): ?>
                         <!-- Card Item -->
                         <a href="./detail-reservasi.php" class="group bg-white rounded p-4 border-primary shadow-md/50 shadow-primary-400 flex gap-4 relative transition-colors duration-300 hover:bg-primary">
@@ -115,7 +116,7 @@ $riwayat = [
             <!-- Section: Riwayat -->
             <section class="mb-4">
                 <h2 class="text-lg font-bold text-gray-900 mb-4">Riwayat</h2>
-                <div class="flex flex-col gap-3">
+                <div class="flex flex-col gap-3 md:grid md:grid-cols-2 lg:grid-cols-2">
                     <?php foreach ($riwayat as $item): ?>
                         <!-- Card Item -->
                         <a href="./detail-reservasi.php" class="group bg-white rounded p-4 border-primary shadow-md/50 shadow-primary-400 flex gap-4 relative transition-colors duration-300 hover:bg-primary">
@@ -149,7 +150,8 @@ $riwayat = [
         </main>
     </div>
 
-    <scripts src="./../node_modules/flowbite/dist/flowbite.min.js"></scripts>
+    <!-- Typo pada tag script bawaan diperbaiki dari <scripts> menjadi <script> -->
+    <script src="./../node_modules/flowbite/dist/flowbite.min.js"></script>
 </body>
 
 </html>
