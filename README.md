@@ -197,7 +197,7 @@ Langkah deploy:
    ```
    `APP_BASE_URL` dikosongkan karena aplikasi berada di root domain `*.containers.snapdeploy.app`.
 3. Deploy, lalu cek build log sampai status `RUNNING`.
-4. Buka `https://<nama>.containers.snapdeploy.app/index.php` dan `.../api/csrf.php`.
+4. Buka `https://<nama>.containers.snapdeploy.app/index.php`, `.../api/csrf.php`, dan `.../health` (health check balas 200).
 
 Dua konsekuensi free tier yang perlu diingat:
 
