@@ -7,7 +7,8 @@ check_role('pasien');
 
 $page_title = "Reservasi Saya";
 
-$dataReservasi = PasienService::daftarReservasi();
+$pasienId = (int) ($_SESSION['profil_id'] ?? 0);
+$dataReservasi = QueryPasienReservasi::daftar($pasienId);
 $akan_datang = $dataReservasi['akan_datang'];
 $riwayat = $dataReservasi['riwayat'];
 

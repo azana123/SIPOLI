@@ -3,8 +3,8 @@ require_once __DIR__ . '/config/bootstrap.php';
 require_once __DIR__ . '/config/database.php';
 require_once __DIR__ . '/services/_load.php';
 
-$jadwalPublik = PasienService::daftarJadwal(null, 0);
-$dokterPublik = PasienService::daftarDokter();
+$jadwalPublik = QueryPasienJadwal::daftar(null, 0);
+$dokterPublik = QueryPasienDokter::daftar();
 
 $apakahLogin = isset($_SESSION['user_id'], $_SESSION['role']);
 $namaPasien  = null;

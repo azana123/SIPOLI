@@ -6,9 +6,10 @@ require_once __DIR__ . '/../../middleware/check-role.php';
 check_role('pasien');
 
 $reservasiId = isset($_GET['id']) && ctype_digit((string) $_GET['id']) ? (int) $_GET['id'] : 0;
+$pasienId    = (int) ($_SESSION['profil_id'] ?? 0);
 $detail = null;
 try {
-    $detail = $reservasiId > 0 ? PasienService::detailReservasi($reservasiId) : null;
+    $detail = $reservasiId > 0 ? QueryPasienReservasi::detail($reservasiId, $pasienId) : null;
 } catch (ApiException $e) {
     $detail = null;
 }
