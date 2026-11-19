@@ -1,3 +1,25 @@
+<?php
+require_once __DIR__ . '/../../config/bootstrap.php';
+require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../services/_load.php';
+require_once __DIR__ . '/../../middleware/check-role.php';
+check_role('pasien');
+
+$reservasiId = isset($_GET['id']) && ctype_digit((string) $_GET['id']) ? (int) $_GET['id'] : 0;
+$pasienId    = (int) ($_SESSION['profil_id'] ?? 0);
+$detail = null;
+try {
+    $detail = $reservasiId > 0 ? QueryPasienReservasi::detail($reservasiId, $pasienId) : null;
+} catch (ApiException $e) {
+    $detail = null;
+}
+
+$poliName     = $detail['poli'] ?? 'Poli Gigi';
+$doctorName   = $detail['dokter'] ?? 'Dokter akan ditentukan';
+$selectedDate = $detail['tanggal_panjang'] ?? '-';
+$selectedTime = $detail['jam'] ?? '-';
+$statusLabel  = $detail['status_label'] ?? 'Menunggu';
+?>
 <!DOCTYPE html>
 <html lang="id">
 
@@ -60,7 +82,7 @@
             <!-- Row: Status -->
             <div class="flex justify-between items-center pt-3.5 pb-1">
                 <span class="text-sm font-semibold text-gray-500">Status</span>
-                <span class="text-xs font-bold text-[#b45309] bg-[#fef3c7] px-3 py-1 rounded">Menunggu</span>
+                <span class="text-xs font-bold text-[#b45309] bg-[#fef3c7] px-3 py-1 rounded"><?= e($statusLabel) ?></span>
             </div>
             
         </div>
@@ -68,7 +90,7 @@
         <!-- Tombol Aksi (Mengisi ruang bawah) -->
         <div class="mt-4 pb-4 flex flex-col gap-3">
             <!-- Primary Button -->
-            <a href="./detail-reservasi.php" class="w-full py-2 bg-primary hover:bg-primary-700 text-white text-center font-semibold rounded-full shadow-sm transition-colors focus:ring-4 focus:ring-primary-300 block">
+            <a href="./detail-reservasi.php?id=<?= $reservasiId ?>" class="w-full py-2 bg-primary hover:bg-primary-700 text-white text-center font-semibold rounded-full shadow-sm transition-colors focus:ring-4 focus:ring-primary-300 block">
                 Lihat reservasi saya
             </a>
             

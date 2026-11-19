@@ -6,53 +6,34 @@ $breadcrumbs      = $breadcrumbs ?? [
     ['label' => $page_title]
 ];
 
-$default_date = $_GET['tanggal'] ?? date('Y-m-d');
-$default_poli = $_GET['poli'] ?? 'semua';
+require_once __DIR__ . '/../config/bootstrap.php';
+require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../services/_load.php';
 
-if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
-    header('Content-Type: application/json; charset=utf-8');
+$hariIni = $pdo->query('SELECT fn_today()::text')->fetchColumn() ?: date('Y-m-d');
+$tanggalDipilih = isset($_GET['tanggal']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $_GET['tanggal'])
+    ? (string) $_GET['tanggal']
+    : $hariIni;
+$poliId = isset($_GET['poli_id']) && ctype_digit((string) $_GET['poli_id']) ? (int) $_GET['poli_id'] : 0;
 
-    $tanggal = $_GET['tanggal'] ?? date('Y-m-d');
-    $poli    = $_GET['poli'] ?? 'semua';
+$jadwal = QueryPasienJadwal::daftar($tanggalDipilih, $poliId);
 
-    // TODO: Ganti dummy array di bawah ini dengan query PostgreSQL (PDO) sesuai tanggal & poli
-    $dummy_schedules = [
-        [
-            'id_jadwal'   => 101,
-            'poli'        => 'konseling',
-            'nama_poli'   => 'Konseling',
-            'nama_dokter' => 'Dr. Sarah Amelia',
-            'tanggal'     => $tanggal,
-            'waktu_label' => '14.00 - 16.00 WIB',
-            'terisi'      => 2,
-            'kuota'       => 5,
-            'url_booking' => './reservasi/jadwal-reservasi.php?id=101'
-        ],
-        [
-            'id_jadwal'   => 102,
-            'poli'        => 'umum',
-            'nama_poli'   => 'Poli Umum',
-            'nama_dokter' => 'Dr. Budi Santoso',
-            'tanggal'     => $tanggal,
-            'waktu_label' => '08.00 - 11.30 WIB',
-            'terisi'      => 10,
-            'kuota'       => 10,
-            'url_booking' => '#'
-        ]
+$hariMap  = [1 => 'Sen', 2 => 'Sel', 3 => 'Rab', 4 => 'Kam', 5 => 'Jum', 6 => 'Sab', 7 => 'Min'];
+$bulanMap = [1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April', 5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus', 9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'];
+
+$labelBulan = $bulanMap[(int) date('n', strtotime($tanggalDipilih))] . ' ' . date('Y', strtotime($tanggalDipilih));
+$labelTanggal = $hariMap[(int) date('N', strtotime($tanggalDipilih))] . ', ' . (int) date('j', strtotime($tanggalDipilih)) . ' ' . $bulanMap[(int) date('n', strtotime($tanggalDipilih))];
+
+$daftarTanggal = [];
+for ($i = 1; $i <= 5; $i++) {
+    $t = date('Y-m-d', strtotime($hariIni . ' +' . $i . ' day'));
+    $daftarTanggal[] = [
+        'tanggal' => $t,
+        'hari'    => $hariMap[(int) date('N', strtotime($t))],
+        'angka'   => (int) date('j', strtotime($t)),
     ];
-
-    $filtered = array_values(array_filter($dummy_schedules, function ($item) use ($poli) {
-        return $poli === 'semua' || strtolower($item['poli']) === strtolower($poli);
-    }));
-
-    echo json_encode([
-        'status' => 'success',
-        'data'   => $filtered
-    ]);
-    exit;
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="id">
 
@@ -76,51 +57,86 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                 data-initial-poli="<?= htmlspecialchars($default_poli) ?>">
 
                 <div class="category">
-                    <ul class="flex items-center justify-between md:justify-start gap-2 md:gap-3 overflow-x-auto pb-1 no-scrollbar">
-                        <?php
-                        $daftar_poli = [
-                            ['id' => 'poli-semua', 'value' => 'semua', 'label' => 'Semua'],
-                            ['id' => 'poli-umum', 'value' => 'umum', 'label' => 'Umum'],
-                            ['id' => 'poli-gigi', 'value' => 'gigi', 'label' => 'Gigi'],
-                            ['id' => 'poli-konseling', 'value' => 'konseling', 'label' => 'Konseling'],
-                        ];
-                        foreach ($daftar_poli as $item):
-                            $checked = ($default_poli === $item['value']) ? 'checked' : '';
-                        ?>
-                            <li class="shrink-0">
-                                <input type="radio" id="<?= $item['id'] ?>" name="poli_filter" value="<?= $item['value'] ?>" class="hidden peer" <?= $checked ?> />
-                                <label for="<?= $item['id'] ?>" class="inline-flex items-center justify-center text-sm py-2 px-4 md:py-2.5 md:px-6 rounded-full text-body bg-neutral-primary-soft border border-default cursor-pointer peer-checked:bg-primary-500 peer-checked:text-white peer-checked:border-primary-500 hover:bg-neutral-secondary-medium transition-colors">
-                                    <span class="font-semibold"><?= $item['label'] ?></span>
-                                </label>
-                            </li>
-                        <?php endforeach; ?>
+                    <ul class="flex justify-between md:justify-start md:gap-3">
+                        <li>
+                            <input type="radio" id="semua" name="hosting" value="" onchange="location.href='?poli_id='" <?= $poliId === 0 ? 'checked' : '' ?> class="hidden peer" required />
+                            <label for="semua" class="inline-flex items-center bg-primary-500 justify-between text-sm py-3 px-4 rounded-full text-white bg-neutral-primary-soft border-default cursor-pointer peer-checked:hover:bg-brand-softer peer-checked:border-brand-subtle peer-checked:bg-brand-softer hover:bg-neutral-secondary-medium peer-checked:text-fg-brand-strong">
+                                <div class="block">
+                                    <div class="w-full font-semibold">Semua</div>
+                                </div>
+                            </label>
+                        </li>
+                        <li>
+                            <input type="radio" id="umum" name="hosting" value="1" onchange="location.href='?poli_id=1'" <?= $poliId === 1 ? 'checked' : '' ?> class="hidden peer" required />
+                            <label for="umum" class="inline-flex items-center justify-between text-sm py-3 px-4 rounded-full text-body bg-neutral-primary-soft border-1 border-default rounded-base cursor-pointer peer-checked:hover:bg-brand-softer peer-checked:border-brand-subtle peer-checked:bg-brand-softer hover:bg-neutral-secondary-medium peer-checked:text-fg-brand-strong">
+                                <div class="block">
+                                    <div class="w-full font-semibold">Umum</div>
+                                </div>
+                            </label>
+                        </li>
+                        <li>
+                            <input type="radio" id="gigi" name="hosting" value="2" onchange="location.href='?poli_id=2'" <?= $poliId === 2 ? 'checked' : '' ?> class="hidden peer" required />
+                            <label for="gigi" class="inline-flex items-center justify-between text-sm py-3 px-4 rounded-full text-body bg-neutral-primary-soft border-1 border-default rounded-base cursor-pointer peer-checked:hover:bg-brand-softer peer-checked:border-brand-subtle peer-checked:bg-brand-softer hover:bg-neutral-secondary-medium peer-checked:text-fg-brand-strong">
+                                <div class="block">
+                                    <div class="w-full font-semibold">Gigi</div>
+                                </div>
+                            </label>
+                        </li>
+                        <li>
+                            <input type="radio" id="konseling" name="hosting" value="3" onchange="location.href='?poli_id=3'" <?= $poliId === 3 ? 'checked' : '' ?> class="hidden peer" required />
+                            <label for="konseling" class="inline-flex items-center justify-between text-sm py-3 px-4 rounded-full text-body bg-neutral-primary-soft border-1 border-default rounded-base cursor-pointer peer-checked:hover:bg-brand-softer peer-checked:border-brand-subtle peer-checked:bg-brand-softer hover:bg-neutral-secondary-medium peer-checked:text-fg-brand-strong">
+                                <div class="block">
+                                    <div class="w-full font-semibold">Konseling</div>
+                                </div>
+                            </label>
+                        </li>
                     </ul>
                 </div>
-
-                <div class="mt-6">
-                    <div class="flex items-center justify-between mb-3">
-                        <h4 id="current-month-label" class="month text-xl font-bold text-gray-900"></h4>
-                        <div class="flex items-center gap-2">
-                            <button type="button" id="prev-month-btn" aria-label="Bulan Sebelumnya" class="w-9 h-9 rounded-full bg-white border border-gray-200 text-gray-600 hover:bg-primary-50 hover:text-primary-600 hover:border-primary-300 flex items-center justify-center transition-colors shadow-2xs cursor-pointer">
-                                <i class="fas fa-chevron-left text-xs"></i>
-                            </button>
-                            <button type="button" id="next-month-btn" aria-label="Bulan Berikutnya" class="w-9 h-9 rounded-full bg-white border border-gray-200 text-gray-600 hover:bg-primary-50 hover:text-primary-600 hover:border-primary-300 flex items-center justify-center transition-colors shadow-2xs cursor-pointer">
-                                <i class="fas fa-chevron-right text-xs"></i>
-                            </button>
+                <h4 class="month my-3 text-xl font-bold"><?= e($labelBulan) ?></h4>
+                <div class="date-filter grid grid-cols-5 gap-3">
+                    <?php foreach ($daftarTanggal as $t): ?>
+                        <a href="?tanggal=<?= e($t['tanggal']) ?><?= $poliId > 0 ? '&poli_id=' . $poliId : '' ?>" class="<?= $t['tanggal'] === $tanggalDipilih ? 'bg-primary-500 text-white' : 'bg-white' ?> rounded flex flex-col items-center justify-center p-1.5 text-sm">
+                            <span class="day"><?= e($t['hari']) ?></span>
+                            <span class="date"><?= (int) $t['angka'] ?></span>
+                        </a>
+                    <?php endforeach; ?>
+                </div>
+                <p class="date text-primary-700 font-medium my-3"><?= e($labelTanggal) ?></p>
+                <div class="schedule md:grid md:grid-cols-3 md:gap-3">
+                    <?php if (!$jadwal): ?>
+                        <div class="bg-neutral-primary-soft w-full p-6 rounded-base text-sm text-gray-500 md:col-span-3">
+                            Belum ada jadwal yang tersedia untuk tanggal ini.
                         </div>
-                    </div>
-
-                    <div class="flex items-center gap-2 md:gap-3">
-                        <button type="button" id="prev-days-btn" aria-label="Geser Tanggal Sebelumnya" class="w-8 h-14 md:w-10 md:h-16 shrink-0 rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-primary-50 hover:text-primary-600 flex items-center justify-center transition-colors cursor-pointer">
-                            <i class="fas fa-chevron-left text-xs"></i>
-                        </button>
-
-                        <div id="date-filter-container" class="date-filter flex-1 grid grid-cols-5 md:grid-cols-7 gap-2 md:gap-3"></div>
-
-                        <button type="button" id="next-days-btn" aria-label="Geser Tanggal Berikutnya" class="w-8 h-14 md:w-10 md:h-16 shrink-0 rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-primary-50 hover:text-primary-600 flex items-center justify-center transition-colors cursor-pointer">
-                            <i class="fas fa-chevron-right text-xs"></i>
-                        </button>
-                    </div>
+                    <?php else: ?>
+                        <?php foreach ($jadwal as $j): ?>
+                            <div class="bg-neutral-primary-soft w-full p-6 rounded-base flex flex-col gap-4 mb-4 md:mb-0">
+                                <div class="flex gap-3">
+                                    <div class="icon w-12 h-12 rounded-full bg-primary-100 flex justify-center items-center">
+                                        <i class="far fa-calendar-alt text-primary text-2xl"></i>
+                                    </div>
+                                    <div class="desc flex-1">
+                                        <h6 class="font-bold"><?= e($j['poli']) ?></h6>
+                                        <p class="doctor-name text-sm"><?= e($j['dokter'] ?? 'Dokter akan ditentukan') ?></p>
+                                        <p class="date text-sm"><?= e($j['tanggal_pendek']) ?>. <?= e($j['jam']) ?></p>
+                                    </div>
+                                    <?php if ($j['penuh']): ?>
+                                        <div class="status-badge">
+                                            <span class="bg-danger-soft text-fg-danger text-xs font-medium px-2 py-1 rounded">Penuh</span>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                                <?php if ($j['penuh']): ?>
+                                    <span class="action-link text-gray-300 bg-neutral-secondary-medium box-border border border-default-medium shadow-xs font-medium text-center rounded-full text-sm px-4 py-2.5">
+                                        Kuota Penuh
+                                    </span>
+                                <?php else: ?>
+                                    <a href="./reservasi/form-reservasi.php?jadwal_id=<?= (int) $j['id'] ?>" class="action-link text-page text-center rounded-full text-sm px-4 py-2.5 bg-primary-500 hover:bg-primary-700">
+                                        <span class="font-medium">Reservasi</span>
+                                    </a>
+                                <?php endif; ?>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
                 </div>
 
                 <p id="selected-date-label" class="date text-primary-700 font-semibold mt-5 mb-3"></p>

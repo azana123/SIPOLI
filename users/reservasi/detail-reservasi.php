@@ -1,11 +1,28 @@
 <?php
 require_once __DIR__ . '/../../config/bootstrap.php';
 require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../services/_load.php';
 require_once __DIR__ . '/../../middleware/check-role.php';
 check_role('pasien');
 
 $page_title   = "Detail Reservasi";
-$reservasiId  = isset($_GET['id']) ? (int) $_GET['id'] : 0;
+$reservasiId  = isset($_GET['id']) && ctype_digit((string) $_GET['id']) ? (int) $_GET['id'] : 0;
+$pasienId     = (int) ($_SESSION['profil_id'] ?? 0);
+
+$detail = null;
+try {
+    $detail = $reservasiId > 0 ? QueryPasienReservasi::detail($reservasiId, $pasienId) : null;
+} catch (ApiException $e) {
+    $detail = null;
+}
+
+$poliName     = $detail['poli'] ?? '-';
+$doctorName   = $detail['dokter'] ?? '-';
+$tanggalText  = $detail['tanggal_panjang'] ?? '-';
+$jamText      = $detail['jam'] ?? '-';
+$keluhanText  = $detail['keluhan'] ?? '-';
+$statusText   = $detail['status_label'] ?? '-';
+$bisaKonfirmasi = $detail !== null && in_array($detail['status'], ['menunggu', 'dikonfirmasi'], true);
 ?>
 
 <!DOCTYPE html>
@@ -36,12 +53,25 @@ $reservasiId  = isset($_GET['id']) ? (int) $_GET['id'] : 0;
         <main class="flex-1 px-5 py-6 overflow-y-auto">
 
             <!-- Card: Status Konfirmasi -->
-            <div class="bg-yellow-100 border border-yellow-300 rounded-base p-4 flex items-center gap-3 mb-4">
-                <i class="fas fa-history text-yellow-800 text-xl shrink-0"></i>
-                <p class="font-semibold text-yellow-900 text-sm leading-tight">
-                    Menunggu konfirmasi dari poliklinik
-                </p>
-            </div>
+            <?php if ($detail === null): ?>
+                <div class="bg-red-100 border border-red-300 rounded-base p-4 text-sm text-red-800 mb-4">
+                    Reservasi tidak ditemukan atau bukan milik akun Anda.
+                </div>
+            <?php elseif ($detail['status'] === 'menunggu'): ?>
+                <div class="bg-yellow-100 border border-yellow-300 rounded-base p-4 flex items-center gap-3 mb-4">
+                    <i class="fas fa-history text-yellow-800 text-xl shrink-0"></i>
+                    <p class="font-semibold text-yellow-900 text-sm leading-tight">
+                        Menunggu konfirmasi dari poliklinik
+                    </p>
+                </div>
+            <?php else: ?>
+                <div class="bg-primary-50 border border-primary-200 rounded-base p-4 flex items-center gap-3 mb-4">
+                    <i class="fas fa-info-circle text-primary text-xl shrink-0"></i>
+                    <p class="font-semibold text-primary-700 text-sm leading-tight">
+                        Status reservasi: <?= e($statusText) ?>
+                    </p>
+                </div>
+            <?php endif; ?>
 
             <!-- Card: Info Poliklinik & Dokter -->
             <div class="bg-white border-2 border-default rounded-base p-4 flex items-center gap-4 mb-4">
@@ -50,8 +80,8 @@ $reservasiId  = isset($_GET['id']) ? (int) $_GET['id'] : 0;
                     <i class="fas fa-stethoscope text-primary-500 text-xl"></i>
                 </div>
                 <div class="flex-1 flex flex-col">
-                    <h3 class="font-bold text-gray-900 ">Poli Gigi</h3>
-                    <p class="text-xs text-gray-500 mt-0.5">drg. Nadia Putri, Sp.KG</p>
+                    <h3 class="font-bold text-gray-900 "><?= e($poliName) ?></h3>
+                    <p class="text-xs text-gray-500 mt-0.5"><?= e($doctorName) ?></p>
                 </div>
             </div>
 
@@ -60,7 +90,7 @@ $reservasiId  = isset($_GET['id']) ? (int) $_GET['id'] : 0;
                 <!-- Row: Tanggal -->
                 <div class="flex justify-between items-center">
                     <span class="text-sm text-gray-500 font-medium">Tanggal</span>
-                    <span class=" font-semibold text-gray-900">Kam, 24 Sep 2026</span>
+                    <span class=" font-semibold text-gray-900"><?= e($tanggalText) ?></span>
                 </div>
 
                 <!-- Divider Dashed -->
@@ -69,7 +99,7 @@ $reservasiId  = isset($_GET['id']) ? (int) $_GET['id'] : 0;
                 <!-- Row: Waktu -->
                 <div class="flex justify-between items-center">
                     <span class="text-sm text-gray-500 font-medium">Waktu</span>
-                    <span class=" font-semibold text-gray-900">14.00</span>
+                    <span class=" font-semibold text-gray-900"><?= e($jamText) ?></span>
                 </div>
 
                 <!-- Divider Dashed -->
@@ -78,7 +108,7 @@ $reservasiId  = isset($_GET['id']) ? (int) $_GET['id'] : 0;
                 <!-- Row: Keluhan -->
                 <div class="flex justify-between items-start gap-4">
                     <span class="text-sm text-gray-500 font-medium shrink-0">Keluhan</span>
-                    <span class=" font-semibold text-gray-900 text-right">Pembersihan Karang Gigi</span>
+                    <span class=" font-semibold text-gray-900 text-right"><?= e($keluhanText) ?></span>
                 </div>
             </div>
 
@@ -91,11 +121,11 @@ $reservasiId  = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 
                 <div class="flex flex-col gap-3">
                     <!-- Button: Hadir -->
-                    <button type="button" data-api-click data-api-endpoint="/api/pasien/reservasi.php" data-api-payload='{"action":"konfirmasi","reservasi_id":<?= $reservasiId ?>, "hadir":true}' class="w-full py-2.5 bg-primary text-white cursor-pointer hover:bg-primary-700 transition-colors duration-300 disabled:bg-gray-200 disabled:text-gray-400 text-sm font-semibold rounded-full disabled:cursor-not-allowed">
+                    <button type="button" <?= $bisaKonfirmasi ? '' : 'disabled' ?> data-api-click data-api-endpoint="/api/pasien/reservasi.php" data-api-payload='{"action":"konfirmasi","reservasi_id":<?= $reservasiId ?>, "hadir":true}' class="w-full py-2.5 bg-primary text-white cursor-pointer hover:bg-primary-700 transition-colors duration-300 disabled:bg-gray-200 disabled:text-gray-400 text-sm font-semibold rounded-full disabled:cursor-not-allowed">
                         Saya hadir
                     </button>
                     <!-- Button: Tidak Hadir (Outline State) -->
-                    <button type="button" data-modal-target="modal-ketidakhadiran" data-modal-toggle="modal-ketidakhadiran" class="w-full py-2.5 bg-white border border-primary text-primary cursor-pointer disabled:border-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed hover:bg-primary disabled:hover:bg-white hover:text-white text-sm font-semibold rounded-full transition-colors duration-300">
+                    <button type="button" <?= $bisaKonfirmasi ? '' : 'disabled' ?> data-modal-target="modal-ketidakhadiran" data-modal-toggle="modal-ketidakhadiran" class="w-full py-2.5 bg-white border border-primary text-primary cursor-pointer disabled:border-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed hover:bg-primary disabled:hover:bg-white hover:text-white text-sm font-semibold rounded-full transition-colors duration-300">
                         Tidak bisa hadir
                     </button>
                 </div>
@@ -103,7 +133,7 @@ $reservasiId  = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 
             <!-- Aksi Pembatalan -->
             <div class="text-center pb-4">
-                <button type="button" data-modal-target="modal-konfirmasi-pembatalan" data-modal-toggle="modal-konfirmasi-pembatalan" class="text-sm font-bold text-red-700 hover:text-red-800 hover:underline transition-colors">
+                <button type="button" <?= $bisaKonfirmasi ? '' : 'disabled' ?> data-modal-target="modal-konfirmasi-pembatalan" data-modal-toggle="modal-konfirmasi-pembatalan" class="text-sm font-bold text-red-700 hover:text-red-800 hover:underline transition-colors disabled:text-gray-400 disabled:no-underline disabled:cursor-not-allowed">
                     Batalkan reservasi
                 </button>
             </div>
