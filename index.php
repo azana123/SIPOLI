@@ -43,6 +43,50 @@ if ($apakahLogin) {
 <body>
     <div class="w-full min-h-screen bg-primary-500 relative">
 
+        <!-- Header / Navbar Overlay -->
+        <header class="flex justify-between items-center w-full py-4 px-6 md:px-20 text-page relative z-50">
+            <a href="./index.php" class="brand text-xl font-bold tracking-wider">
+                SIPOLI
+            </a>
+
+            <div class="flex items-center gap-4">
+                <?php if ($apakahLogin): ?>
+                    <!-- Tombol Notifikasi (hanya muncul jika login) -->
+                    <a href="./users/notifikasi.php" class="notifikasi text-lg w-10 h-10 flex items-center justify-center bg-primary hover:bg-primary-700 rounded-full transition" aria-label="Notifikasi">
+                        <i class="fas fa-bell"></i>
+                    </a>
+
+                    <!-- Dropdown Profil Pasien -->
+                    <div class="profile relative">
+                        <button type="button" data-dropdown-toggle="dropdown-pasien-beranda" class="flex items-center gap-2 bg-primary px-3.5 py-1.5 rounded-base hover:bg-primary-700 transition font-medium text-page cursor-pointer">
+                            <i class="fas fa-user-circle text-lg"></i>
+                            <span>Halo, <?= e($namaPasien) ?></span>
+                            <i class="fas fa-chevron-down text-xs"></i>
+                        </button>
+
+                        <div id="dropdown-pasien-beranda" class="z-50 hidden absolute end-0 top-12 bg-white text-gray-800 border border-default-medium rounded-base shadow-lg w-48" role="none">
+                            <div class="px-4 py-3 border-b border-gray-100" role="none">
+                                <p class="text-sm font-bold text-heading truncate" role="none"><?= e($namaPasien) ?></p>
+                                <p class="text-xs text-body truncate mt-0.5" role="none">Pasien &bull; SIPOLI</p>
+                            </div>
+                            <ul class="p-2 text-sm font-medium" role="none">
+                                <li>
+                                    <a href="./auth/logout.php" class="inline-flex items-center w-full p-2 text-red-600 hover:bg-red-50 rounded" role="menuitem">
+                                        <i class="fas fa-sign-out-alt mr-2"></i> Keluar
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                <?php else: ?>
+                    <a href="./auth/login.php" class="profile flex gap-2 items-center bg-primary px-4 py-1.5 rounded-base hover:bg-primary-700 transition">
+                        <i class="fas fa-user-circle text-lg"></i>
+                        <span class="font-medium">Login</span>
+                    </a>
+                <?php endif; ?>
+            </div>
+        </header>
+
         <!-- Desktop Hero Section (Absolute Background) -->
         <section class="hidden md:block w-full h-[80vh]">
             <div id="controls-carousel-desktop" class="relative w-full h-full" data-carousel="static">
@@ -123,50 +167,6 @@ if ($apakahLogin) {
 
         <!-- Main Wrapper -->
         <main class="relative w-full">
-
-            <!-- Header / Navbar Overlay -->
-            <header class="flex justify-between items-center w-full py-4 px-6 md:px-20 text-page relative z-30">
-                <a href="./index.php" class="brand text-xl font-bold tracking-wider">
-                    SIPOLI
-                </a>
-
-                <div class="flex items-center gap-4">
-                    <?php if ($apakahLogin): ?>
-                        <!-- Tombol Notifikasi (hanya muncul jika login) -->
-                        <a href="./users/notifikasi.php" class="notifikasi text-lg w-10 h-10 flex items-center justify-center bg-primary hover:bg-primary-700 rounded-full transition" aria-label="Notifikasi">
-                            <i class="fas fa-bell"></i>
-                        </a>
-
-                        <!-- Dropdown Profil Pasien -->
-                        <div class="profile relative">
-                            <button type="button" data-dropdown-toggle="dropdown-pasien-beranda" class="flex items-center gap-2 bg-primary px-3.5 py-1.5 rounded-base hover:bg-primary-700 transition font-medium text-page cursor-pointer">
-                                <i class="fas fa-user-circle text-lg"></i>
-                                <span>Halo, <?= e($namaPasien) ?></span>
-                                <i class="fas fa-chevron-down text-xs"></i>
-                            </button>
-
-                            <div id="dropdown-pasien-beranda" class="z-50 hidden absolute end-0 top-12 bg-white text-gray-800 border border-default-medium rounded-base shadow-lg w-48" role="none">
-                                <div class="px-4 py-3 border-b border-gray-100" role="none">
-                                    <p class="text-sm font-bold text-heading truncate" role="none"><?= e($namaPasien) ?></p>
-                                    <p class="text-xs text-body truncate mt-0.5" role="none">Pasien &bull; SIPOLI</p>
-                                </div>
-                                <ul class="p-2 text-sm font-medium" role="none">
-                                    <li>
-                                        <a href="./auth/logout.php" class="inline-flex items-center w-full p-2 text-red-600 hover:bg-red-50 rounded" role="menuitem">
-                                            <i class="fas fa-sign-out-alt mr-2"></i> Keluar
-                                        </a>
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
-                    <?php else: ?>
-                        <a href="./auth/login.php" class="profile flex gap-2 items-center bg-primary px-4 py-1.5 rounded-base hover:bg-primary-700 transition">
-                            <i class="fas fa-user-circle text-lg"></i>
-                            <span class="font-medium">Login</span>
-                        </a>
-                    <?php endif; ?>
-                </div>
-            </header>
 
             <!-- Full-Width Content Sheet -->
             <section class="content w-full bg-page rounded-t-2xl py-6 px-6 md:px-20 min-h-screen relative z-10 shadow-[0_-4px_10px_-2px_rgba(0,0,0,0.1)]">
