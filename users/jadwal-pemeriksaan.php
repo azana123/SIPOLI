@@ -136,7 +136,7 @@ for ($i = 1; $i <= 7; $i++) {
                                             data-api-click
                                             data-api-endpoint="/api/pasien/reservasi.php"
                                             data-api-payload='{"action":"reschedule","reservasi_id":<?= $reservasiId ?>,"jadwal_baru_id":<?= (int) $j['id'] ?>}'
-                                            data-api-redirect="./detail-reservasi.php?id=<?= $reservasiId ?>"
+                                            data-api-redirect="./reservasi/detail-reservasi.php?id=<?= $reservasiId ?>"
                                             class="action-link text-page text-center rounded-full text-sm px-4 py-2.5 bg-primary-500 hover:bg-primary-700">
                                         <span class="font-medium">Ubah Jadwal</span>
                                     </button>
