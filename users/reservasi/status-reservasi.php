@@ -74,19 +74,19 @@ $breadcrumbs      = $breadcrumbs ?? [
             <!-- Row: Dokter -->
             <div class="flex justify-between items-center py-3.5 border-b border-gray-100">
                 <span class="text-sm font-semibold text-gray-500">Dokter</span>
-                <span class="text-sm font-bold text-gray-900"><?= $doctorName ?? 'drg. Nadia Putri, Sp.KG' ?></span>
+                <span class="text-sm font-bold text-gray-900"><?= $doctorName ?? 'Dokter akan ditentukan' ?></span>
             </div>
             
             <!-- Row: Tanggal -->
             <div class="flex justify-between items-center py-3.5 border-b border-gray-100">
                 <span class="text-sm font-semibold text-gray-500">Tanggal</span>
-                <span class="text-sm font-bold text-gray-900"><?= $selectedDate ?? 'Kam, 24 Sep 2026' ?></span>
+                <span class="text-sm font-bold text-gray-900"><?= $selectedDate ?? '-' ?></span>
             </div>
             
             <!-- Row: Waktu -->
             <div class="flex justify-between items-center py-3.5 border-b border-gray-100">
                 <span class="text-sm font-semibold text-gray-500">Waktu</span>
-                <span class="text-sm font-bold text-gray-900"><?= $selectedTime ?? '14.00' ?></span>
+                <span class="text-sm font-bold text-gray-900"><?= $selectedTime ?? '-' ?></span>
             </div>
             
             <!-- Row: Status -->
