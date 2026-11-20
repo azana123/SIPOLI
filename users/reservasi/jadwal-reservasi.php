@@ -2,6 +2,8 @@
 require_once __DIR__ . '/../../config/bootstrap.php';
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../services/_load.php';
+require_once __DIR__ . '/../../middleware/check-role.php';
+check_role('pasien');
 
 $page_title = $page_title ?? 'Jadwal Dokter';
 $page_description = "Cek ketersediaan jadwal praktik dokter dan pilih waktu kunjungan Anda.";
@@ -18,15 +20,11 @@ $maxActiveDate = (clone $today)->modify('+6 days');
 $month = isset($_GET['m']) ? max(1, min(12, (int)$_GET['m'])) : (int)$today->format('n');
 $year  = isset($_GET['y']) ? (int)$_GET['y'] : (int)$today->format('Y');
 
-$doctorId   = $_GET['dokter_id'] ?? '1';
-$scheduleId = $_GET['jadwal_id'] ?? '101';
+$doctorId   = isset($_GET['dokter_id']) && ctype_digit((string) $_GET['dokter_id']) ? (int) $_GET['dokter_id'] : 0;
+$scheduleId = isset($_GET['jadwal_id']) && ctype_digit((string) $_GET['jadwal_id']) ? (int) $_GET['jadwal_id'] : 0;
 
-// Simulasi data kuota penuh dari database (format YYYY-MM-DD)
-// Nantinya diganti dengan query PostgreSQL berdasarkan dokter_id/jadwal_id pada bulan & tahun terpilih
-$fullQuotaDates = [
-    $today->format('Y-m-d'),
-    (clone $today)->modify('+3 days')->format('Y-m-d'),
-];
+// Daftar tanggal penuh dari kalender (sudah dihitung dari $kalender di bawah)
+$fullQuotaDates = [];
 
 $prevMonth = $month === 1 ? 12 : $month - 1;
 $prevYear  = $month === 1 ? $year - 1 : $year;
@@ -40,22 +38,27 @@ $firstDayOfMonth = (int)date('w', strtotime(sprintf('%04d-%02d-01', $year, $mont
 $bulanIndo = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 $monthName = $bulanIndo[$month - 1];
 
-$selectedDate = isset($_GET['tanggal']) ? $_GET['tanggal'] : '';
+$selectedDateStr = isset($_GET['tanggal']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $_GET['tanggal'])
+    ? (string) $_GET['tanggal']
+    : '';
 
 $kalender = QueryPasienJadwal::kalender($month, $year);
 $jadwalBulan = QueryPasienJadwal::daftar(sprintf('%04d-%02d-01', $year, $month));
 
-// Tanggal yang dipilih: dari URL atau tanggal pertama yang tersedia.
-$selectedDate = isset($_GET['tanggal']) && ctype_digit((string) $_GET['tanggal'])
-    ? (int) $_GET['tanggal']
-    : (int) (array_key_first($kalender) ?: 0);
+// Tentukan tanggal yang dipilih: dari URL (format lengkap YYYY-MM-DD) atau tanggal pertama yang tersedia.
+if ($selectedDateStr === '') {
+    $firstKey = array_key_first($kalender);
+    $selectedDateStr = $firstKey ? sprintf('%04d-%02d-%02d', $year, $month, (int) $firstKey) : '';
+}
+$selectedDate = $selectedDateStr ? (int) date('j', strtotime($selectedDateStr)) : 0;
+
 $fullQuotaDate = [];
 foreach ($kalender as $hari => $status) {
-    if ($status === 'penuh') $fullQuotaDate[] = $hari;
+    if ($status === 'penuh') $fullQuotaDate[] = (int) $hari;
 }
 $jadwalTerpilih = null;
 foreach ($jadwalBulan as $j) {
-    if ((int) date('j', strtotime($j['tanggal'])) === $selectedDate) {
+    if ($j['tanggal'] === $selectedDateStr) {
         $jadwalTerpilih = $j;
         break;
     }
@@ -88,12 +91,12 @@ $dokterNama = $jadwalTerpilih && $jadwalTerpilih['dokter']
                     <section class="flex gap-4 justify-between items-start">
                         <div class="flex-1 pt-1">
                             <div class="flex items-center gap-2 text-primary font-medium text-sm mb-2">
-                                <i class="far fa-calendar-alt"></i>
+                                <i class="fas fa-calendar-alt"></i>
                                 <span>Jadwal Pengobatan</span>
                             </div>
-                            <h1 class="text-2xl md:text-3xl font-bold text-gray-900 leading-tight">drg. Nadia<br>Putri, Sp.KG</h1>
+                            <h1 class="text-2xl md:text-3xl font-bold text-gray-900 leading-tight"><?= e($dokterNama) ?></h1>
                             <p class="mt-3 text-sm text-gray-500 leading-relaxed pr-2">
-                                Spesialis Konservasi Gigi yang berfokus pada perawatan saraf, penambalan estetika, dan kesehatan gigi menyeluruh.
+                                Dokter praktik di <?= e($jadwalTerpilih['poli'] ?? 'Poli') ?>. Jadwal praktik lihat kalender di bawah.
                             </p>
                         </div>
 
@@ -105,10 +108,10 @@ $dokterNama = $jadwalTerpilih && $jadwalTerpilih['dokter']
                     <section class="mt-6 bg-primary rounded-xl p-4 grid grid-cols-3 gap-2.5 items-center text-white shadow-md">
                         <div class="flex items-center gap-2.5 border-primary-500">
                             <i class="fas fa-history text-xl"></i>
-                            <span class="text-xs font-medium">3 Kuota</span>
+                            <span class="text-xs font-medium"><?= $kuotaTersedia ?> Kuota</span>
                         </div>
                         <div class="flex items-center gap-2.5 border-primary-500">
-                            <i class="far fa-user-circle text-xl"></i>
+                            <i class="fas fa-user-circle text-xl"></i>
                             <span class="text-xs font-medium leading-tight">200+<br>Total Pasien</span>
                         </div>
                         <div class="flex items-center gap-2.5">
@@ -127,7 +130,8 @@ $dokterNama = $jadwalTerpilih && $jadwalTerpilih['dokter']
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="font-bold text-sm md:text-base text-gray-900">Pilih Tanggal</h2>
                     <div class="flex items-center gap-2">
-                        <a href="?m=<?= $prevMonth ?>&y=<?= $prevYear ?>&dokter_id=<?= urlencode($doctorId) ?>&jadwal_id=<?= urlencode($scheduleId) ?><?= $selectedDate ? '&tanggal=' . urlencode($selectedDate) : '' ?>"
+                        <?php $navDateParam = $selectedDateStr ? '&tanggal=' . urlencode($selectedDateStr) : ''; ?>
+                        <a href="?m=<?= $prevMonth ?>&y=<?= $prevYear ?>&dokter_id=<?= urlencode($doctorId) ?>&jadwal_id=<?= urlencode($scheduleId) ?><?= $navDateParam ?>"
                             aria-label="Bulan Sebelumnya"
                             class="w-8 h-8 rounded-lg bg-gray-50 border border-gray-200 text-gray-600 hover:bg-primary-50 hover:text-primary-600 flex items-center justify-center transition-colors">
                             <i class="fas fa-chevron-left text-xs"></i>
@@ -135,7 +139,7 @@ $dokterNama = $jadwalTerpilih && $jadwalTerpilih['dokter']
                         <span class="bg-primary-50 text-primary-700 px-4 py-1.5 rounded text-xs font-semibold min-w-[115px] text-center">
                             <?= $monthName ?> <?= $year ?>
                         </span>
-                        <a href="?m=<?= $nextMonth ?>&y=<?= $nextYear ?>&dokter_id=<?= urlencode($doctorId) ?>&jadwal_id=<?= urlencode($scheduleId) ?><?= $selectedDate ? '&tanggal=' . urlencode($selectedDate) : '' ?>"
+                        <a href="?m=<?= $nextMonth ?>&y=<?= $nextYear ?>&dokter_id=<?= urlencode($doctorId) ?>&jadwal_id=<?= urlencode($scheduleId) ?><?= $navDateParam ?>"
                             aria-label="Bulan Berikutnya"
                             class="w-8 h-8 rounded-lg bg-gray-50 border border-gray-200 text-gray-600 hover:bg-primary-50 hover:text-primary-600 flex items-center justify-center transition-colors">
                             <i class="fas fa-chevron-right text-xs"></i>
@@ -151,7 +155,7 @@ $dokterNama = $jadwalTerpilih && $jadwalTerpilih['dokter']
                         <span class="text-xs font-medium"><?= $kuotaTersedia ?> Kuota</span>
                     </div>
                     <div class="flex items-center gap-2.5 border-primary-500">
-                        <i class="far fa-user-circle text-xl"></i>
+                        <i class="fas fa-user-circle text-xl"></i>
                         <span class="text-xs font-medium leading-tight">200+<br>Total Pasien</span>
                     </div>
                     <div class="flex items-center gap-2.5">
@@ -190,63 +194,40 @@ $dokterNama = $jadwalTerpilih && $jadwalTerpilih['dokter']
 
                         for ($day = 1; $day <= $daysInMonth; $day++) {
                             $dayFormatted = sprintf("%02d", $day);
+                            $dateStr = sprintf('%04d-%02d-%02d', $year, $month, $day);
                             $status = $kalender[$day] ?? null;
+                            $isSelected = ($dateStr === $selectedDateStr);
+                            $isFullQuota = in_array($day, $fullQuotaDate, true);
 
                             $wrapperClass = "flex flex-col items-center justify-center";
-                            $textClass = "text-sm font-medium py-1.5 px-2 w-8 h-8 flex items-center justify-center";
+                            $textClass = "text-sm font-medium py-1.5 px-2 w-8 h-8 flex items-center justify-center transition-colors";
                             $dotIndicator = "";
 
-                            if ($day == $selectedDate) {
-                                $wrapperClass .= " cursor-pointer";
-                                $textClass .= " bg-primary-600 text-white rounded shadow-md";
-                            } elseif ($status === null) {
+                            if ($status === null) {
                                 $wrapperClass .= " cursor-not-allowed";
                                 $textClass .= " text-gray-300";
                             } else {
-                                $wrapperClass .= " cursor-pointer";
-                                $textClass .= " text-gray-900 hover:bg-gray-100 rounded";
+                                if ($isSelected) {
+                                    $textClass .= " bg-primary-600 text-white rounded shadow-md";
+                                } elseif ($isFullQuota) {
+                                    $textClass .= " text-gray-400 bg-gray-100 rounded line-through";
+                                } else {
+                                    $textClass .= " text-gray-900 hover:bg-gray-100 rounded cursor-pointer";
+                                }
                             }
 
-                            if (in_array($day, $fullQuotaDate, true)) {
+                            if ($isFullQuota) {
                                 $dotIndicator = "<div class='w-1.5 h-1.5 bg-red-600 rounded-full mt-1'></div>";
                             }
 
                             echo "<div class='$wrapperClass'>";
-                            if ($status !== null) {
-                                echo "<a href='?m=$month&y=$year&tanggal=$day' class='no-underline'>";
+                            if ($status !== null && !$isFullQuota) {
+                                echo "<button type='button' class='date-btn $textClass' data-date='$dateStr'>$dayFormatted</button>";
+                            } else {
+                                echo "<span class='$textClass'>$dayFormatted</span>";
                             }
-                            echo "<span class='$textClass'>$dayFormatted</span>";
-                            if ($status !== null) echo "</a>";
                             echo $dotIndicator;
                             echo "</div>";
-                        }
-
-                        $isWithin7Days = ($currentDateObj >= $today && $currentDateObj <= $maxActiveDate);
-                        $isFullQuota   = in_array($currentDateStr, $fullQuotaDates, true);
-                        $isSelectable  = $isWithin7Days && !$isFullQuota;
-                        $isSelected    = ($currentDateStr === $selectedDate && $isSelectable);
-
-                        $dotIndicator = $isFullQuota ? "<div class='w-1.5 h-1.5 bg-red-600 rounded-full mt-1'></div>" : "";
-
-                        if ($isSelectable) {
-                            $btnStateClass = $isSelected
-                                ? "bg-primary text-white shadow-md"
-                                : "text-gray-900 hover:bg-gray-100";
-
-                            echo "
-                                <div class='flex flex-col items-center justify-center'>
-                                    <button type='button'
-                                        data-date='$currentDateStr'
-                                        class='date-btn text-sm font-medium w-8 h-8 rounded flex items-center justify-center cursor-pointer transition-colors $btnStateClass'>
-                                        $dayFormatted
-                                    </button>
-                                </div>";
-                        } else {
-                            echo "
-                                <div class='flex flex-col items-center justify-center cursor-not-allowed'>
-                                    <span class='text-sm font-medium w-8 h-8 flex items-center justify-center text-gray-300'>$dayFormatted</span>
-                                    $dotIndicator
-                                </div>";
                         }
 
                         $totalCells = $firstDayOfMonth + $daysInMonth;
@@ -278,10 +259,10 @@ $dokterNama = $jadwalTerpilih && $jadwalTerpilih['dokter']
                     <form id="reservation-form" action="./form-reservasi.php" method="GET">
                         <input type="hidden" name="dokter_id" value="<?= htmlspecialchars($doctorId) ?>">
                         <input type="hidden" name="jadwal_id" value="<?= htmlspecialchars($scheduleId) ?>">
-                        <input type="hidden" name="tanggal" id="input-tanggal" value="<?= htmlspecialchars($selectedDate) ?>" required>
+                        <input type="hidden" name="tanggal" id="input-tanggal" value="<?= htmlspecialchars($selectedDateStr) ?>" required>
 
                         <button type="submit" id="submit-reservasi-btn"
-                            <?= $selectedDate ? '' : 'disabled' ?>
+                            <?= $selectedDateStr ? '' : 'disabled' ?>
                             class="w-full py-2.5 block bg-primary hover:bg-primary-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-center font-semibold rounded-full shadow-lg transition-colors cursor-pointer">
                             Reservasi
                         </button>
@@ -319,8 +300,15 @@ $dokterNama = $jadwalTerpilih && $jadwalTerpilih['dokter']
             const dateButtons = document.querySelectorAll('.date-btn');
             const inputTanggal = document.getElementById('input-tanggal');
             const submitBtn = document.getElementById('submit-reservasi-btn');
-            const selectedDateInfo = document.getElementById('selected-date-info');
             const reservationForm = document.getElementById('reservation-form');
+
+            // Set tombol aktif jika sudah ada tanggal terpilih dari URL
+            dateButtons.forEach(btn => {
+                if (btn.dataset.date === inputTanggal.value) {
+                    btn.classList.add('bg-primary', 'text-white', 'shadow-md');
+                    btn.classList.remove('text-gray-900', 'hover:bg-gray-100');
+                }
+            });
 
             dateButtons.forEach(btn => {
                 btn.addEventListener('click', () => {
@@ -332,18 +320,8 @@ $dokterNama = $jadwalTerpilih && $jadwalTerpilih['dokter']
                     btn.classList.remove('text-gray-900', 'hover:bg-gray-100');
                     btn.classList.add('bg-primary', 'text-white', 'shadow-md');
 
-                    const ObjchosenDate = btn.dataset.date;
-                    inputTanggal.value = ObjchosenDate;
-                    // const dateObj = new Date(ObjchosenDate.split('-'));
-
-                    // Format it to "12 November 2026"
-                    // 'en-GB' ensures the day comes before the month
-                    // const chosenDate = dateObj.toLocaleDateString('en-GB', {
-                    //     day: 'numeric',
-                    //     month: 'long',
-                    //     year: 'numeric'
-                    // });
-                    // selectedDateInfo.textContent = `Tanggal: ${chosenDate}`;
+                    const chosenDate = btn.dataset.date;
+                    inputTanggal.value = chosenDate;
                     submitBtn.disabled = false;
 
                     const currentUrl = new URL(window.location.href);
@@ -360,7 +338,8 @@ $dokterNama = $jadwalTerpilih && $jadwalTerpilih['dokter']
             });
         });
     </script>
-    <script src="./../node_modules/flowbite/dist/flowbite.min.js"></script>
+    <script src="./../../node_modules/flowbite/dist/flowbite.min.js"></script>
+    <script src="./../../assets/js/flowbite-init.js"></script>
 </body>
 
 </html>

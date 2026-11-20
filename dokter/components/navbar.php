@@ -54,7 +54,7 @@ $formattedDate = $hariIndoNav[(int) date('N', $tsNav)] . ', ' . (int) date('j', 
 
         <div class="right-nav flex items-center gap-4">
             <div class="hidden sm:flex items-center gap-2 text-xs text-gray-600 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-base">
-                <i class="far fa-clock text-primary"></i>
+                <i class="fas fa-clock text-primary"></i>
                 <span class="font-medium"><?= htmlspecialchars($jamWibNav, ENT_QUOTES, 'UTF-8') ?> WIB</span>
             </div>
 

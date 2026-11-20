@@ -35,7 +35,7 @@ if ($apakahLogin) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SIPOLI</title>
     <!-- style.css -->
-    <link rel="stylesheet" href="./../assets/css/style.css">
+    <link rel="stylesheet" href="./assets/css/style.css">
     <!-- Font Awesome CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.1.0/css/all.css" integrity="sha512-ajhUYg8JAATDFejqbeN7KbF2zyPbbqz04dgOLyGcYEk/MJD3V+HJhJLKvJ2VVlqrr4PwHeGTTWxbI+8teA7snw==" crossorigin="anonymous" referrerpolicy="no-referrer">
 </head>
@@ -44,15 +44,15 @@ if ($apakahLogin) {
     <div class="w-full min-h-screen bg-primary-500 relative">
 
         <!-- Desktop Hero Section (Absolute Background) -->
-        <section class="hidden md:block absolute top-0 left-0 w-full h-screen z-0">
+        <section class="hidden md:block w-full h-[80vh]">
             <div id="controls-carousel-desktop" class="relative w-full h-full" data-carousel="static">
                 <div class="relative w-full h-full overflow-hidden">
-                    <div class="hidden duration-700 ease-in-out transition-transform h-full" data-carousel-item="active">
+                    <div class="duration-700 ease-in-out transition-transform h-full" data-carousel-item="active">
                         <img src="./assets/img/modal-img.png" class="block w-full h-full object-cover object-center" alt="Konsultasi Mental Health">
                         <div class="absolute inset-0 flex flex-col justify-center items-start pl-16 pr-24 z-10 bg-linear-to-r from-teal-900/60 via-teal-900/20 to-transparent">
                             <div class="inline-flex items-center gap-1.5 bg-[#0e5c68]/90 text-white rounded-full pr-3 pl-1 py-1 text-xs font-semibold mb-3">
                                 <span class="w-5 h-5 rounded-full bg-[#1e8e9e] flex items-center justify-center">
-                                    <i class="far fa-calendar-alt text-[11px] text-white"></i>
+                                    <i class="fas fa-calendar-alt text-[11px] text-white"></i>
                                 </span>
                                 <span class="tracking-wide">Konsultasi Online</span>
                             </div>
@@ -62,7 +62,7 @@ if ($apakahLogin) {
                             <p class="text-white/90 text-sm md:text-base max-w-[50%] leading-snug mb-4">
                                 Konsultasi dengan dokter dengan mudah dan cepat.
                             </p>
-                            <a href="./users/jadwal-pemeriksaan.php?poli=konseling" class="bg-white text-[#0e5c68] hover:bg-neutral-100 transition font-bold text-xs md:text-sm px-5 py-2.5 rounded-full shadow-md">
+                            <a href="./users/jadwal-pemeriksaan.php?poli_id=3" class="bg-white text-[#0e5c68] hover:bg-neutral-100 transition font-bold text-xs md:text-sm px-5 py-2.5 rounded-full shadow-md">
                                 Konsultasi Sekarang
                             </a>
                         </div>
@@ -121,11 +121,11 @@ if ($apakahLogin) {
             </div>
         </section>
 
-        <!-- Main Wrapper (pointer-events-none agar klik tembus ke carousel desktop di belakangnya) -->
-        <main class="relative z-10 w-full pointer-events-none">
+        <!-- Main Wrapper -->
+        <main class="relative w-full">
 
             <!-- Header / Navbar Overlay -->
-            <header class="flex justify-between items-center w-full py-4 px-6 md:px-20 text-page relative z-30 pointer-events-auto">
+            <header class="flex justify-between items-center w-full py-4 px-6 md:px-20 text-page relative z-30">
                 <a href="./index.php" class="brand text-xl font-bold tracking-wider">
                     SIPOLI
                 </a>
@@ -169,7 +169,7 @@ if ($apakahLogin) {
             </header>
 
             <!-- Full-Width Content Sheet -->
-            <section class="content w-full bg-page rounded-t-2xl py-6 px-6 md:px-20 min-h-screen relative z-10 md:mt-[80vh] shadow-[0_-4px_10px_-2px_rgba(0,0,0,0.1)] pointer-events-auto">
+            <section class="content w-full bg-page rounded-t-2xl py-6 px-6 md:px-20 min-h-screen relative z-10 shadow-[0_-4px_10px_-2px_rgba(0,0,0,0.1)]">
 
                 <!-- Section Mobile Only -->
                 <div class="md:hidden top-content flex justify-between items-center mt-2">
@@ -184,12 +184,12 @@ if ($apakahLogin) {
                 <section class="hero rounded-2xl my-3 overflow-hidden md:hidden">
                     <div id="controls-carousel" class="relative w-full" data-carousel="static">
                         <div class="relative w-full aspect-[2.1/1] overflow-hidden rounded-2xl">
-                            <div class="hidden duration-700 ease-in-out transition-transform" data-carousel-item="active">
+                            <div class="duration-700 ease-in-out transition-transform" data-carousel-item="active">
                                 <img src="./assets/img/modal-img.png" class="block w-full h-full object-cover object-center" alt="Konsultasi Mental Health">
                                 <div class="absolute inset-0 flex flex-col justify-center items-start pl-10 pr-16 z-10 bg-linear-to-r from-teal-900/40 via-transparent to-transparent">
                                     <div class="inline-flex items-center gap-1.5 bg-[#0e5c68]/90 text-white rounded-full pr-3 pl-1 py-1 text-[9px] font-semibold mb-1.5">
                                         <span class="w-4 h-4 rounded-full bg-[#1e8e9e] flex items-center justify-center">
-                                            <i class="far fa-calendar-alt text-[8px] text-white"></i>
+                                            <i class="fas fa-calendar-alt text-[8px] text-white"></i>
                                         </span>
                                         <span class="tracking-wide">Konsultasi Online</span>
                                     </div>
@@ -264,7 +264,7 @@ if ($apakahLogin) {
                     <h4 class="title font-bold text-2xl text-center hidden md:block">Layanan Poliklinik</h4>
                     <div class="grid grid-cols-3 gap-3 md:gap-6 mt-3 md:mt-5">
                         <!-- Card Gigi -->
-                        <a href="./users/jadwal-pemeriksaan.php?poli=gigi" class="group flex flex-col items-center justify-center bg-neutral-primary-soft p-4 md:py-6 border border-primary rounded-base shadow-md/50 shadow-primary-400 hover:bg-primary transition-all duration-300 ease-in-out">
+                        <a href="./users/jadwal-pemeriksaan.php?poli_id=2" class="group flex flex-col items-center justify-center bg-neutral-primary-soft p-4 md:py-6 border border-primary rounded-base shadow-md/50 shadow-primary-400 hover:bg-primary transition-all duration-300 ease-in-out">
                             <div class="icon mb-2 md:mb-3">
                                 <i class="fas fa-tooth text-3xl md:text-4xl text-primary group-hover:text-white transition-colors duration-300"></i>
                             </div>
@@ -272,7 +272,7 @@ if ($apakahLogin) {
                         </a>
 
                         <!-- Card Umum -->
-                        <a href="./users/jadwal-pemeriksaan.php?poli=umum" class="group flex flex-col items-center justify-center bg-neutral-primary-soft p-4 md:py-6 border border-primary rounded-base shadow-md/50 shadow-primary-400 hover:bg-primary transition-all duration-300 ease-in-out">
+                        <a href="./users/jadwal-pemeriksaan.php?poli_id=1" class="group flex flex-col items-center justify-center bg-neutral-primary-soft p-4 md:py-6 border border-primary rounded-base shadow-md/50 shadow-primary-400 hover:bg-primary transition-all duration-300 ease-in-out">
                             <div class="icon mb-2 md:mb-3">
                                 <i class="fas fa-stethoscope text-3xl md:text-4xl text-primary group-hover:text-white transition-colors duration-300"></i>
                             </div>
@@ -280,7 +280,7 @@ if ($apakahLogin) {
                         </a>
 
                         <!-- Card Konseling -->
-                        <a href="./users/jadwal-pemeriksaan.php?poli=konseling" class="group flex flex-col items-center justify-center bg-neutral-primary-soft p-4 md:py-6 border border-primary rounded-base shadow-md/50 shadow-primary-400 hover:bg-primary transition-all duration-300 ease-in-out">
+                        <a href="./users/jadwal-pemeriksaan.php?poli_id=3" class="group flex flex-col items-center justify-center bg-neutral-primary-soft p-4 md:py-6 border border-primary rounded-base shadow-md/50 shadow-primary-400 hover:bg-primary transition-all duration-300 ease-in-out">
                             <div class="icon mb-2 md:mb-3">
                                 <i class="fas fa-brain text-3xl md:text-4xl text-primary group-hover:text-white transition-colors duration-300"></i>
                             </div>
@@ -297,7 +297,7 @@ if ($apakahLogin) {
 
                     <div class="w-3/5 pr-8 relative z-10 flex flex-col items-start">
                         <div class="inline-flex items-center gap-2 bg-primary/10 text-primary px-3 py-1.5 rounded-full text-xs font-bold mb-4">
-                            <i class="far fa-calendar-check"></i>
+                            <i class="fas fa-calendar-check"></i>
                             Reservasi Cepat & Mudah
                         </div>
                         <h3 class="text-3xl lg:text-4xl font-extrabold text-gray-900 mb-3 leading-snug">
@@ -338,7 +338,7 @@ if ($apakahLogin) {
                                 <div class="bg-neutral-primary-soft p-4 md:p-5 border rounded-base border-primary shadow-md/50 shadow-primary-400 flex items-center justify-between gap-3">
                                     <div class="flex items-center gap-4 min-w-0">
                                         <div class="icon w-12 h-12 shrink-0 rounded-full bg-primary-100 flex justify-center items-center">
-                                            <i class="far fa-calendar-alt text-primary text-xl md:text-2xl"></i>
+                                            <i class="fas fa-calendar-alt text-primary text-xl md:text-2xl"></i>
                                         </div>
                                         <div class="desc min-w-0">
                                             <h6 class="font-bold text-lg md:text-xl truncate"><?= e($j['poli']) ?></h6>
@@ -402,8 +402,9 @@ if ($apakahLogin) {
         </main>
     </div>
 
-    <script src="./../assets/js/app.js"></script>
+    <script src="./assets/js/app.js"></script>
     <script src="./node_modules/flowbite/dist/flowbite.min.js"></script>
+    <script src="./assets/js/flowbite-init.js"></script>
 </body>
 
 </html>

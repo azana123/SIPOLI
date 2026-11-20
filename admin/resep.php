@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . "/../config/config.php";
+require_once __DIR__ . '/../config/bootstrap.php';
 require_once __DIR__ . '/../middleware/check-role.php';
 check_role('admin');
 require_once __DIR__ . '/../config/database.php';
@@ -148,7 +148,7 @@ $hasDetail = !empty($detailResep);
                     <div class="bg-yellow-50/80 border border-yellow-300 rounded-base p-5 shadow-sm">
                         <div class="flex justify-between items-start mb-1">
                             <p class="text-sm font-semibold text-yellow-900">Menunggu</p>
-                            <i class="far fa-clock text-yellow-700"></i>
+                            <i class="fas fa-clock text-yellow-700"></i>
                         </div>
                         <h3 class="text-3xl font-bold text-yellow-800 mb-1"><?= e($statMenunggu) ?></h3>
                         <p class="text-xs text-yellow-800">Perlu penyiapan obat</p>
@@ -164,7 +164,7 @@ $hasDetail = !empty($detailResep);
                     <div class="bg-emerald-50/70 border border-emerald-200 rounded-base p-5 shadow-sm">
                         <div class="flex justify-between items-start mb-1">
                             <p class="text-sm font-semibold text-emerald-900">Selesai diserahkan</p>
-                            <i class="far fa-check-circle text-emerald-700"></i>
+                            <i class="fas fa-check-circle text-emerald-700"></i>
                         </div>
                         <h3 class="text-3xl font-bold text-emerald-800 mb-1"><?= e($statSelesai) ?></h3>
                         <p class="text-xs text-emerald-800">Obat telah diterima pasien</p>
@@ -334,7 +334,7 @@ $hasDetail = !empty($detailResep);
                             <!-- Action Area -->
                             <div class="border-t border-gray-100 pt-4">
                                 <div class="bg-emerald-50 border border-emerald-100 p-3 rounded-base mb-4 flex items-center">
-                                    <i class="far fa-check-circle text-emerald-600 mr-2"></i>
+                                    <i class="fas fa-check-circle text-emerald-600 mr-2"></i>
                                     <span class="text-xs font-semibold text-emerald-800">Stok obat telah dikurangi secara otomatis saat resep diterbitkan</span>
                                 </div>
 
@@ -393,6 +393,7 @@ $hasDetail = !empty($detailResep);
     </div>
 
     <script src="./../node_modules/flowbite/dist/flowbite.min.js"></script>
+    <script src="./../assets/js/flowbite-init.js"></script>
     <script src="./../assets/js/app.js"></script>
 </body>
 

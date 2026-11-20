@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . "/../config/config.php";
+require_once __DIR__ . '/../config/bootstrap.php';
 require_once __DIR__ . '/../middleware/check-role.php';
 check_role('dokter');
 require_once __DIR__ . '/../config/database.php';
@@ -184,7 +184,7 @@ $kuotaLabel = ($jadwalSesi && $jadwalSesi['kuota'] !== null)
                     <div class="bg-yellow-50/70 border border-yellow-200 rounded-base p-5 shadow-sm">
                         <div class="flex justify-between items-start mb-2">
                             <p class="text-sm font-semibold text-gray-700">Menunggu pemeriksaan</p>
-                            <i class="far fa-clock text-yellow-600 text-base"></i>
+                            <i class="fas fa-clock text-yellow-600 text-base"></i>
                         </div>
                         <h3 class="text-3xl font-extrabold text-yellow-700 mb-2"><?= e($cntMenunggu) ?></h3>
                         <p class="text-xs text-yellow-800">Pasien dalam antrean saya</p>
@@ -392,6 +392,7 @@ $kuotaLabel = ($jadwalSesi && $jadwalSesi['kuota'] !== null)
 
     <!-- Script Flowbite -->
     <script src="./../node_modules/flowbite/dist/flowbite.min.js"></script>
+    <script src="./../assets/js/flowbite-init.js"></script>
 </body>
 
 </html>

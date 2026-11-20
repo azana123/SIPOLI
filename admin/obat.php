@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . "/../config/config.php";
+require_once __DIR__ . '/../config/bootstrap.php';
 require_once __DIR__ . '/../middleware/check-role.php';
 check_role('admin');
 require_once __DIR__ . '/../config/database.php';
@@ -150,7 +150,7 @@ try {
                     <div class="bg-emerald-50/70 border border-emerald-200 rounded-base p-5 shadow-sm">
                         <div class="flex justify-between items-start mb-1">
                             <p class="text-sm font-semibold text-emerald-900">Obat aktif</p>
-                            <i class="far fa-check-circle text-emerald-700"></i>
+                            <i class="fas fa-check-circle text-emerald-700"></i>
                         </div>
                         <h3 class="text-3xl font-bold text-emerald-800 mb-1"><?= e($statAktif) ?></h3>
                         <p class="text-xs text-emerald-800">Dapat digunakan pada resep</p>
@@ -329,6 +329,7 @@ try {
     <?php require_once __DIR__ . '/components/obat/atur-stok.php'; ?>
 
     <script src="./../node_modules/flowbite/dist/flowbite.min.js"></script>
+    <script src="./../assets/js/flowbite-init.js"></script>
 </body>
 
 </html>

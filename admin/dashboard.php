@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . "/../config/config.php";
+require_once __DIR__ . '/../config/bootstrap.php';
 require_once __DIR__ . '/../middleware/check-role.php';
 check_role('admin');
 require_once __DIR__ . '/../config/database.php';
@@ -104,7 +104,7 @@ $statusBadge = [
                     <div class="bg-white border border-gray-200 rounded-base p-5 shadow-sm">
                         <div class="flex justify-between items-start mb-1">
                             <p class="text-sm font-semibold text-gray-600">Reservasi hari ini</p>
-                            <i class="far fa-calendar-check text-gray-400"></i>
+                            <i class="fas fa-calendar-check text-gray-400"></i>
                         </div>
                         <h3 class="text-3xl font-bold text-gray-900 mb-1"><?= e($totalReservasiHariIni) ?></h3>
                         <p class="text-xs text-gray-500">Pasien terjadwal hari ini</p>
@@ -126,7 +126,7 @@ $statusBadge = [
                     <div class="bg-yellow-50/80 border border-yellow-300 rounded-base p-5 shadow-sm">
                         <div class="flex justify-between items-start mb-1">
                             <p class="text-sm font-semibold text-yellow-900">Konfirmasi H-1 menunggu</p>
-                            <i class="far fa-clock text-yellow-700"></i>
+                            <i class="fas fa-clock text-yellow-700"></i>
                         </div>
                         <h3 class="text-3xl font-bold text-yellow-800 mb-1"><?= e($totalKonfirmasiH1) ?></h3>
                         <p class="text-xs text-yellow-800">Perlu dihubungi untuk esok hari</p>
@@ -150,7 +150,7 @@ $statusBadge = [
                         <a href="./konfirmasi.php" class="py-3.5 flex items-center justify-between hover:bg-gray-50 px-2 rounded transition-colors">
                             <div class="flex items-center gap-3">
                                 <span class="w-8 h-8 rounded-base bg-yellow-100 text-yellow-800 flex items-center justify-center shrink-0">
-                                    <i class="far fa-bell text-xs"></i>
+                                    <i class="fas fa-bell text-xs"></i>
                                 </span>
                                 <span class="font-medium text-gray-800">
                                     <?= e($totalKonfirmasiH1) ?> pasien reservasi esok hari belum dikonfirmasi kehadirannya
@@ -265,6 +265,7 @@ $statusBadge = [
 
     <script src="./../assets/js/app.js"></script>
     <script src="./../node_modules/flowbite/dist/flowbite.min.js"></script>
+    <script src="./../assets/js/flowbite-init.js"></script>
 </body>
 
 </html>

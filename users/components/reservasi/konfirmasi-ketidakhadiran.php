@@ -22,7 +22,7 @@
                     <button type="button" data-modal-hide="modal-ketidakhadiran" class="w-full px-4 py-2.5 font-bold text-primary-700 bg-white border border-primary-600 rounded hover:bg-primary-50 focus:ring-4 focus:outline-none focus:ring-primary-100 transition-colors">
                         Kembali
                     </button>
-                    <button type="submit" data-api-click data-api-endpoint="/api/pasien/reservasi.php" data-api-payload='{"action":"konfirmasi","reservasi_id":<?= (int)($reservasiId ?? 0) ?>,"hadir":false}' class="w-full px-4 py-2.5 font-bold text-white bg-primary-500 border border-primary-500 rounded hover:bg-primary-600 focus:ring-4 focus:outline-none focus:ring-primary-300 transition-colors">
+                    <button type="button" id="btn-kirim-ketidakhadiran" class="w-full px-4 py-2.5 font-bold text-white bg-primary-500 border border-primary-500 rounded hover:bg-primary-600 focus:ring-4 focus:outline-none focus:ring-primary-300 transition-colors">
                         Kirim
                     </button>
                 </div>

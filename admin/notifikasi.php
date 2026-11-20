@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . "/../config/config.php";
+require_once __DIR__ . '/../config/bootstrap.php';
 require_once __DIR__ . '/../middleware/check-role.php';
 check_role('admin');
 require_once __DIR__ . '/../config/database.php';
@@ -111,6 +111,7 @@ try {
     </div>
     <script src="./../assets/js/app.js"></script>
     <script src="./../node_modules/flowbite/dist/flowbite.min.js"></script>
+    <script src="./../assets/js/flowbite-init.js"></script>
 </body>
 
 </html>

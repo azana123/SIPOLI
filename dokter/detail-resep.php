@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . "/../config/config.php";
+require_once __DIR__ . '/../config/bootstrap.php';
 require_once __DIR__ . '/../middleware/check-role.php';
 check_role('dokter');
 require_once __DIR__ . '/../config/database.php';
@@ -311,7 +311,7 @@ try {
                     <div class="bg-white border border-gray-200 rounded-base p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
                         <div class="flex items-center gap-3">
                             <div class="w-10 h-10 bg-green-50 border border-green-200 text-green-700 rounded-base flex items-center justify-center shrink-0">
-                                <i class="far fa-clipboard text-lg"></i>
+                                <i class="fas fa-clipboard text-lg"></i>
                             </div>
                             <div>
                                 <h4 class="text-xs font-bold text-gray-900">
@@ -333,6 +333,7 @@ try {
 
     <!-- Script Flowbite -->
     <script src="./../node_modules/flowbite/dist/flowbite.min.js"></script>
+    <script src="./../assets/js/flowbite-init.js"></script>
 </body>
 
 </html>

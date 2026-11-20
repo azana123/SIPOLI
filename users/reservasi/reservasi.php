@@ -91,7 +91,7 @@ $breadcrumbs      = $breadcrumbs ?? [
     <!-- Kontainer Utama: Diperlebar untuk desktop agar header baru terlihat proporsional -->
     <div class="w-full mx-auto min-h-screen bg-page flex flex-col shadow-xl">
 
-        <?php require_once __DIR__ . "./../components/header.php" ?>
+        <?php require_once __DIR__ . "/../components/header.php" ?>
 
         <!-- Main Content -->
         <main class="flex-1 px-5 md:px-20 py-6 overflow-y-auto">
@@ -110,7 +110,7 @@ $breadcrumbs      = $breadcrumbs ?? [
                             <a href="./detail-reservasi.php?id=<?= (int) $item['id'] ?>" class="group bg-white rounded p-4 border-primary shadow-md/50 shadow-primary-400 flex gap-4 relative transition-colors duration-300 hover:bg-primary">
                                 <!-- Icon Kiri -->
                                 <div class="w-14 h-14 rounded-full bg-primary-50 shrink-0 flex justify-center items-center self-start mt-1 transition-colors duration-300 group-hover:bg-white/20">
-                                    <i class="far fa-calendar-alt text-primary-500 text-2xl transition-colors duration-300 group-hover:text-white"></i>
+                                    <i class="fas fa-calendar-alt text-primary-500 text-2xl transition-colors duration-300 group-hover:text-white"></i>
                                 </div>
 
                                 <!-- Konten Tengah & Kanan -->
@@ -150,7 +150,7 @@ $breadcrumbs      = $breadcrumbs ?? [
                             <a href="./detail-reservasi.php?id=<?= (int) $item['id'] ?>" class="group bg-white rounded p-4 border-primary shadow-md/50 shadow-primary-400 flex gap-4 relative transition-colors duration-300 hover:bg-primary">
                                 <!-- Icon Kiri -->
                                 <div class="w-14 h-14 rounded-full bg-primary-50 shrink-0 flex justify-center items-center self-start mt-1 transition-colors duration-300 group-hover:bg-white/20">
-                                    <i class="far fa-calendar-alt text-primary-500 text-2xl transition-colors duration-300 group-hover:text-white"></i>
+                                    <i class="fas fa-calendar-alt text-primary-500 text-2xl transition-colors duration-300 group-hover:text-white"></i>
                                 </div>
 
                                 <!-- Konten Tengah & Kanan -->
@@ -180,7 +180,8 @@ $breadcrumbs      = $breadcrumbs ?? [
     </div>
 
     <!-- Typo pada tag script bawaan diperbaiki dari <scripts> menjadi <script> -->
-    <script src="./../node_modules/flowbite/dist/flowbite.min.js"></script>
+    <script src="./../../node_modules/flowbite/dist/flowbite.min.js"></script>
+    <script src="./../../assets/js/flowbite-init.js"></script>
 </body>
 
 </html>
