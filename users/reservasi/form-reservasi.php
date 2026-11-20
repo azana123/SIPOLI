@@ -3,6 +3,7 @@ require_once __DIR__ . '/../../config/bootstrap.php';
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../middleware/check-role.php';
 check_role('pasien');
+require_once __DIR__ . '/../../services/_load.php';
 
 $page_title       = $page_title ?? "Form Reservasi";
 $page_description = "Lengkapi data diri dan keluhan Anda untuk menyelesaikan proses reservasi pemeriksaan.";
