@@ -3,7 +3,7 @@
     <div class="relative w-full max-w-sm max-h-full flex items-end md:items-center min-h-full md:min-h-0 p-0 md:p-4 pb-0 md:pb-4">
         <div class="relative rounded w-full p-5 animate-fade-up md:animate-none">
             <div class="mx-auto flex items-center justify-center h-12 w-12 rounded bg-red-50 mb-4">
-                <i class="far fa-trash-alt text-red-700 text-xl"></i>
+                <i class="fas fa-trash-alt text-red-700 text-xl"></i>
             </div>
 
             <div class="text-center mb-5">
@@ -28,7 +28,7 @@
                     <button type="button" data-modal-hide="modal-konfirmasi-pembatalan" class="w-full px-4 py-2.5 text-sm font-bold text-primary-700 bg-white border border-primary-600 rounded hover:bg-primary-50 focus:ring-4 focus:outline-none focus:ring-primary-100 transition-colors">
                         Kembali
                     </button>
-                    <button type="submit" data-api-click data-api-endpoint="/api/pasien/reservasi.php" data-api-payload='{"action":"batal","reservasi_id":<?= (int)($reservasiId ?? 0) ?>}' class="w-full px-4 py-2.5 text-sm font-bold text-white bg-red-700 border border-red-700 rounded hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-200 transition-colors">
+                    <button type="button" id="btn-ya-batalkan" class="w-full px-4 py-2.5 text-sm font-bold text-white bg-red-700 border border-red-700 rounded hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-200 transition-colors">
                         Ya, batalkan
                     </button>
                 </div>

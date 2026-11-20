@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . "/../config/config.php";
+require_once __DIR__ . '/../config/bootstrap.php';
 require_once __DIR__ . '/../middleware/check-role.php';
 check_role('admin');
 require_once __DIR__ . '/../config/database.php';
@@ -255,7 +255,7 @@ try {
                         <label for="poli" class="flex flex-col justify-between w-full p-5 bg-white border border-gray-200 rounded-base shadow-sm cursor-pointer hover:bg-primary-50/40 peer-checked:bg-primary-50/70 peer-checked:border-primary transition-all">
                             <div class="flex justify-between items-start mb-2">
                                 <span class="text-sm font-semibold text-gray-700">Poli Layanan</span>
-                                <i class="far fa-hospital text-primary-500"></i>
+                                <i class="fas fa-hospital text-primary-500"></i>
                             </div>
                             <h3 class="text-3xl font-bold text-gray-900 mb-1"><?= e($totalPoli) ?></h3>
                             <span class="text-xs text-gray-500">Unit Layanan Medis</span>
@@ -307,6 +307,7 @@ try {
 
     <script src="./../assets/js/app.js"></script>
     <script src="./../node_modules/flowbite/dist/flowbite.min.js"></script>
+    <script src="./../assets/js/flowbite-init.js"></script>
 </body>
 
 </html>

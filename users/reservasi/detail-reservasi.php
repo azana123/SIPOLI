@@ -128,6 +128,10 @@ $bisaKonfirmasi = $detail !== null && in_array($detail['status'], ['menunggu', '
                     <button type="button" <?= $bisaKonfirmasi ? '' : 'disabled' ?> data-modal-target="modal-ketidakhadiran" data-modal-toggle="modal-ketidakhadiran" class="w-full py-2.5 bg-white border border-primary text-primary cursor-pointer disabled:border-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed hover:bg-primary disabled:hover:bg-white hover:text-white text-sm font-semibold rounded-full transition-colors duration-300">
                         Tidak bisa hadir
                     </button>
+                    <!-- Button: Ubah Jadwal -->
+                    <button type="button" <?= $bisaKonfirmasi ? '' : 'disabled' ?> onclick="window.location.href='./jadwal-pemeriksaan.php?reservasi_id=<?= $reservasiId ?>'" class="w-full py-2.5 bg-white border border-primary text-primary cursor-pointer disabled:border-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed hover:bg-primary disabled:hover:bg-white hover:text-white text-sm font-semibold rounded-full transition-colors duration-300">
+                        Ubah Jadwal
+                    </button>
                 </div>
             </div>
 
@@ -144,7 +148,95 @@ $bisaKonfirmasi = $detail !== null && in_array($detail['status'], ['menunggu', '
     <?php require_once __DIR__ . "/../components/api-script.php" ?>
     <?php require_once __DIR__ . "/../components/reservasi/konfirmasi-ketidakhadiran.php" ?>
     <?php require_once __DIR__ . "/../components/reservasi/pembatalan-reservasi.php" ?>
+
+    <script>
+        // Handle "Tidak bisa hadir" -> kirim konfirmasi hadir=false dengan alasan
+        const btnKirimTidakHadir = document.getElementById('btn-kirim-ketidakhadiran');
+        if (btnKirimTidakHadir) {
+            btnKirimTidakHadir.addEventListener('click', async function () {
+                const textarea = document.getElementById('alasan_reschedule');
+                const alasan = textarea ? textarea.value.trim() : '';
+                const payload = {
+                    action: 'konfirmasi',
+                    reservasi_id: <?= $reservasiId ?>,
+                    hadir: false,
+                    alasan: alasan
+                };
+
+                try {
+                    const tokenRes = await fetch('./../../api/csrf.php', { credentials: 'same-origin' });
+                    const tokenJson = await tokenRes.json();
+                    const token = tokenJson.data.csrf_token;
+
+                    const res = await fetch('./../../api/pasien/reservasi.php', {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-Token': token
+                        },
+                        body: JSON.stringify(payload)
+                    });
+                    const json = await res.json();
+
+                    if (json.success) {
+                        // Tutup modal dan reload halaman
+                        const modal = document.getElementById('modal-ketidakhadiran');
+                        if (modal) modal.classList.add('hidden');
+                        window.location.reload();
+                    } else {
+                        alert(json.message || 'Gagal mengirim konfirmasi.');
+                    }
+                } catch (err) {
+                    alert('Terjadi kesalahan: ' + err.message);
+                }
+            });
+        }
+
+        // Handle "Ya, batalkan" -> kirim pembatalan dengan alasan
+        const btnYaBatalkan = document.getElementById('btn-ya-batalkan');
+        if (btnYaBatalkan) {
+            btnYaBatalkan.addEventListener('click', async function () {
+                const textarea = document.getElementById('alasan_batal');
+                const alasan = textarea ? textarea.value.trim() : '';
+                const payload = {
+                    action: 'batal',
+                    reservasi_id: <?= $reservasiId ?>,
+                    alasan: alasan
+                };
+
+                try {
+                    const tokenRes = await fetch('./../../api/csrf.php', { credentials: 'same-origin' });
+                    const tokenJson = await tokenRes.json();
+                    const token = tokenJson.data.csrf_token;
+
+                    const res = await fetch('./../../api/pasien/reservasi.php', {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-Token': token
+                        },
+                        body: JSON.stringify(payload)
+                    });
+                    const json = await res.json();
+
+                    if (json.success) {
+                        const modal = document.getElementById('modal-konfirmasi-pembatalan');
+                        if (modal) modal.classList.add('hidden');
+                        window.location.reload();
+                    } else {
+                        alert(json.message || 'Gagal membatalkan reservasi.');
+                    }
+                } catch (err) {
+                    alert('Terjadi kesalahan: ' + err.message);
+                }
+            });
+        }
+    </script>
+
     <script src="./../../node_modules/flowbite/dist/flowbite.min.js"></script>
+    <script src="./../../assets/js/flowbite-init.js"></script>
 </body>
 
 </html>

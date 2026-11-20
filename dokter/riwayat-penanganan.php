@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . "/../config/config.php";
+require_once __DIR__ . '/../config/bootstrap.php';
 require_once __DIR__ . '/../middleware/check-role.php';
 check_role('dokter');
 require_once __DIR__ . '/../config/database.php';
@@ -245,7 +245,7 @@ $hasDetail = !empty($detailPenanganan);
                                                 <?php if ($isSelected): ?>
                                                     <i class="fas fa-chevron-right text-sm text-primary-600"></i>
                                                 <?php else: ?>
-                                                    <i class="far fa-check-circle text-base text-emerald-600"></i>
+                                                    <i class="fas fa-check-circle text-base text-emerald-600"></i>
                                                 <?php endif; ?>
                                             </div>
                                             <p class="text-xs text-gray-400 mb-1"><?= $lblId ?> <?= e($rw['nim_nip']) ?></p>
@@ -403,6 +403,7 @@ $hasDetail = !empty($detailPenanganan);
 
     <script src="./../assets/js/app.js"></script>
     <script src="./../node_modules/flowbite/dist/flowbite.min.js"></script>
+    <script src="./../assets/js/flowbite-init.js"></script>
 </body>
 
 </html>

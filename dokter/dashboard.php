@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . "/../config/config.php";
+require_once __DIR__ . '/../config/bootstrap.php';
 require_once __DIR__ . '/../middleware/check-role.php';
 check_role('dokter');
 require_once __DIR__ . '/../config/database.php';
@@ -149,7 +149,7 @@ $jamPraktikBanner =$jadwalHariIni
                 <div class="bg-white border border-gray-200 rounded-base p-6 mb-6 flex flex-col md:flex-row md:items-center justify-between shadow-sm">
                     <div class="flex items-start gap-4">
                         <div class="w-8 h-8 md:w-12 md:h-12 bg-primary-50 border border-primary-100 text-primary rounded-base flex items-center justify-center shrink-0">
-                            <i class="far fa-calendar-check text-base md:text-xl"></i>
+                            <i class="fas fa-calendar-check text-base md:text-xl"></i>
                         </div>
                         <div>
                             <div class="flex flex-col-reverse md:flex-row md:items-center md:gap-3 mb-1">
@@ -165,7 +165,7 @@ $jamPraktikBanner =$jadwalHariIni
                     </div>
                     <div class="mt-4 md:mt-0 flex flex-col md:items-end">
                         <button type="button" data-modal-target="modal-informasi-perubahan" data-modal-toggle="modal-informasi-perubahan" class="border border-gray-300 text-primary bg-white hover:bg-gray-50 rounded-base px-4 py-2.5 text-sm font-medium flex items-center gap-2 mb-2 transition-colors cursor-pointer">
-                            <i class="far fa-comment-alt"></i> Informasikan perubahan jadwal
+                            <i class="fas fa-comment-alt"></i> Informasikan perubahan jadwal
                         </button>
                         <p class="text-xs text-gray-500 text-center md:text-left">Perubahan jadwal dikonfirmasi oleh admin</p>
                     </div>
@@ -186,7 +186,7 @@ $jamPraktikBanner =$jadwalHariIni
                     <div class="bg-yellow-100 border border-yellow-300 rounded-base p-5 shadow-sm">
                         <div class="flex justify-between items-start mb-1">
                             <p class="text-sm font-semibold text-gray-600">Menunggu pemeriksaan</p>
-                            <i class="far fa-clock text-yellow-700"></i>
+                            <i class="fas fa-clock text-yellow-700"></i>
                         </div>
                         <h3 class="text-3xl font-bold text-yellow-700 mb-1"><?= e($cntMenunggu) ?></h3>
                         <p class="text-xs text-gray-500">Pasien dalam antrean saya</p>
@@ -204,7 +204,7 @@ $jamPraktikBanner =$jadwalHariIni
                     <div class="bg-green-50/50 border border-green-200 rounded-base p-5 shadow-sm">
                         <div class="flex justify-between items-start mb-1">
                             <p class="text-sm font-semibold text-gray-700">Pemeriksaan selesai</p>
-                            <i class="far fa-check-circle text-green-700"></i>
+                            <i class="fas fa-check-circle text-green-700"></i>
                         </div>
                         <h3 class="text-3xl font-bold text-green-700 mb-1"><?= e($cntSelesai) ?></h3>
                         <p class="text-xs text-gray-500">Penanganan telah dicatat</p>
@@ -334,11 +334,11 @@ $jamPraktikBanner =$jadwalHariIni
                         </div>
                         <ul class="space-y-4 mb-6">
                             <li class="flex items-center gap-3 text-sm text-gray-600">
-                                <i class="far fa-paper-plane text-primary-500"></i>
+                                <i class="fas fa-paper-plane text-primary-500"></i>
                                 <span><?= e($resepMenunggu) ?> resep menunggu diproses admin</span>
                             </li>
                             <li class="flex items-center gap-3 text-sm text-gray-600">
-                                <i class="far fa-check-circle text-green-700"></i>
+                                <i class="fas fa-check-circle text-green-700"></i>
                                 <span><?= e($resepDiproses) ?> resep telah diproses admin</span>
                             </li>
                         </ul>
@@ -358,6 +358,7 @@ $jamPraktikBanner =$jadwalHariIni
 
     <!-- Script Flowbite -->
     <script src="./../node_modules/flowbite/dist/flowbite.min.js"></script>
+    <script src="./../assets/js/flowbite-init.js"></script>
 </body>
 
 </html>

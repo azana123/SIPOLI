@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . "/../config/config.php";
+require_once __DIR__ . '/../config/bootstrap.php';
 require_once __DIR__ . '/../middleware/check-role.php';
 check_role('admin');
 require_once __DIR__ . '/../config/database.php';
@@ -99,7 +99,7 @@ try {
                 <div class="bg-white border border-gray-200 rounded-base p-5 flex flex-col md:flex-row items-center md:justify-between shadow-sm mb-6 gap-4">
                     <div class="flex items-center gap-4 w-full md:w-auto">
                         <div class="w-10 h-10 bg-primary-50 border border-primary-100 text-primary-600 rounded-base flex items-center justify-center shrink-0">
-                            <i class="far fa-calendar-check text-lg"></i>
+                            <i class="fas fa-calendar-check text-lg"></i>
                         </div>
                         <div>
                             <p class="text-xs text-gray-500 mb-0.5">Hari konfirmasi</p>
@@ -131,7 +131,7 @@ try {
                     <div class="bg-yellow-50/80 p-5 border border-yellow-300 rounded-base shadow-sm">
                         <div class="flex justify-between items-start mb-1">
                             <p class="text-sm font-semibold text-yellow-900">Menunggu respons</p>
-                            <i class="far fa-clock text-yellow-700"></i>
+                            <i class="fas fa-clock text-yellow-700"></i>
                         </div>
                         <h3 class="text-3xl font-bold text-yellow-800 mb-1"><?= e($statMenunggu) ?></h3>
                         <p class="text-xs text-yellow-800">Belum mengonfirmasi kehadiran</p>
@@ -139,7 +139,7 @@ try {
                     <div class="bg-emerald-50/70 p-5 border border-emerald-200 rounded-base shadow-sm">
                         <div class="flex justify-between items-start mb-1">
                             <p class="text-sm font-semibold text-emerald-900">Konfirmasi hadir</p>
-                            <i class="far fa-check-circle text-emerald-700"></i>
+                            <i class="fas fa-check-circle text-emerald-700"></i>
                         </div>
                         <h3 class="text-3xl font-bold text-emerald-800 mb-1"><?= e($statHadir) ?></h3>
                         <p class="text-xs text-emerald-800">Siap hadir sesuai jadwal</p>
@@ -147,7 +147,7 @@ try {
                     <div class="bg-white p-5 border border-gray-200 rounded-base shadow-sm">
                         <div class="flex justify-between items-start mb-1">
                             <p class="text-sm font-semibold text-gray-600">Batal / Tidak hadir</p>
-                            <i class="far fa-times-circle text-gray-400"></i>
+                            <i class="fas fa-times-circle text-gray-400"></i>
                         </div>
                         <h3 class="text-3xl font-bold text-gray-900 mb-1"><?= e($statBatal) ?></h3>
                         <p class="text-xs text-gray-500">Berhalangan hadir</p>
@@ -251,6 +251,7 @@ try {
 
     <script src="./../assets/js/app.js"></script>
     <script src="./../node_modules/flowbite/dist/flowbite.min.js"></script>
+    <script src="./../assets/js/flowbite-init.js"></script>
 </body>
 
 </html>

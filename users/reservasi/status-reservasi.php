@@ -19,6 +19,13 @@ $doctorName   = $detail['dokter'] ?? 'Dokter akan ditentukan';
 $selectedDate = $detail['tanggal_panjang'] ?? '-';
 $selectedTime = $detail['jam'] ?? '-';
 $statusLabel  = $detail['status_label'] ?? 'Menunggu';
+
+$page_title       = $page_title ?? "Status Reservasi";
+$back_url         = $back_url ?? './detail-reservasi.php?id=' . $reservasiId;
+$breadcrumbs      = $breadcrumbs ?? [
+    ['label' => 'Reservasi Saya', 'url' => './reservasi.php'],
+    ['label' => $page_title]
+];
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -33,6 +40,9 @@ $statusLabel  = $detail['status_label'] ?? 'Menunggu';
 </head>
 
 <body class="bg-gray-100 antialiased text-gray-800">
+    <!-- Komponen Header -->
+    <?php require_once __DIR__ . "/../components/header.php" ?>
+
     <!-- Kontainer Utama Mobile First -->
     <div class="w-full md:max-w-md mx-auto min-h-screen px-6 py-8 bg-page relative flex flex-col justify-center shadow-xl">
 
@@ -103,6 +113,7 @@ $statusLabel  = $detail['status_label'] ?? 'Menunggu';
     </div>
 
     <script src="./../../node_modules/flowbite/dist/flowbite.min.js"></script>
+    <script src="./../../assets/js/flowbite-init.js"></script>
 </body>
 
 </html>

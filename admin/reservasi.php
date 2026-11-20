@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . "/../config/config.php";
+require_once __DIR__ . '/../config/bootstrap.php';
 require_once __DIR__ . '/../middleware/check-role.php';
 check_role('admin');
 require_once __DIR__ . '/../config/database.php';
@@ -169,7 +169,7 @@ try {
                     <div class="bg-emerald-50/70 border border-emerald-200 rounded-base p-5 shadow-sm">
                         <div class="flex justify-between items-start mb-1">
                             <p class="text-sm font-semibold text-emerald-900">Kunjungan selesai</p>
-                            <i class="far fa-check-circle text-emerald-700"></i>
+                            <i class="fas fa-check-circle text-emerald-700"></i>
                         </div>
                         <h3 class="text-3xl font-bold text-emerald-800 mb-1"><?= e($cntOnlineSelesai + $cntOfflineSelesai) ?></h3>
                         <p class="text-xs text-emerald-800"><?= e($cntOnlineSelesai) ?> reservasi &bull; <?= e($cntOfflineSelesai) ?> kunjungan langsung</p>
@@ -178,7 +178,7 @@ try {
                     <div class="bg-primary-50/60 border border-primary-200 rounded-base p-5 shadow-sm">
                         <div class="flex justify-between items-start mb-1">
                             <p class="text-sm font-semibold text-primary-900">Menunggu layanan</p>
-                            <i class="far fa-clock text-primary-600"></i>
+                            <i class="fas fa-clock text-primary-600"></i>
                         </div>
                         <h3 class="text-3xl font-bold text-primary-700 mb-1"><?= e($cntMenunggu) ?></h3>
                         <p class="text-xs text-primary-800"><?= e($cntBelumCheckin) ?> terkonfirmasi belum hadir</p>
@@ -401,6 +401,7 @@ try {
 
     <script src="./../assets/js/app.js"></script>
     <script src="./../node_modules/flowbite/dist/flowbite.min.js"></script>
+    <script src="./../assets/js/flowbite-init.js"></script>
 </body>
 
 </html>

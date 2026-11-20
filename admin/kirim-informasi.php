@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . "/../config/config.php";
+require_once __DIR__ . '/../config/bootstrap.php';
 require_once __DIR__ . '/../middleware/check-role.php';
 check_role('admin');
 require_once __DIR__ . '/../config/database.php';
@@ -88,7 +88,7 @@ try {
 
                             <div class="flex justify-end pt-4 border-t border-gray-100">
                                 <button type="submit" class="inline-flex items-center text-white bg-primary hover:bg-primary-700 font-medium rounded-base text-sm px-5 py-2.5 cursor-pointer transition-colors">
-                                    <i class="far fa-paper-plane mr-2"></i> Kirim Pengumuman
+                                    <i class="fas fa-paper-plane mr-2"></i> Kirim Pengumuman
                                 </button>
                             </div>
                         </form>
@@ -155,6 +155,7 @@ try {
     </div>
     <script src="./../assets/js/app.js"></script>
     <script src="./../node_modules/flowbite/dist/flowbite.min.js"></script>
+    <script src="./../assets/js/flowbite-init.js"></script>
 </body>
 
 </html>

@@ -12,16 +12,42 @@ $breadcrumbs      = $breadcrumbs ?? [
     ['label' => $page_title]
 ];
 
-$doctorName = "drg. Nadia Putri, Sp.KG";
-$doctorSpecialist = "Spesialis Konservasi Gigi";
-$selectedDate = "24, Sep, 2026";
+$jadwalId = isset($_GET['jadwal_id']) && ctype_digit((string) $_GET['jadwal_id']) ? (int) $_GET['jadwal_id'] : 0;
 
-$jadwalId = isset($_GET['jadwal_id']) ? (int) $_GET['jadwal_id'] : 0;
 if ($jadwalId <= 0) {
     try {
         $jadwalId = (int) ($pdo->query('SELECT id FROM v_jadwal_tersedia ORDER BY tanggal, jam_mulai LIMIT 1')->fetchColumn() ?: 0);
     } catch (PDOException $e) {
         $jadwalId = 0;
+    }
+}
+
+// Ambil detail jadwal untuk ditampilkan di halaman form
+$doctorName = 'Dokter akan ditentukan';
+$doctorSpecialist = '-';
+$selectedDate = '-';
+$jadwalJam = '-';
+if ($jadwalId > 0) {
+    try {
+        $stmtJadwal = $pdo->prepare("
+            SELECT j.tanggal::text AS tanggal, j.jam_mulai::text AS jam_mulai, j.jam_selesai::text AS jam_selesai,
+                   po.nama AS poli, COALESCE(d.nama, 'Dokter akan ditentukan') AS dokter
+            FROM jadwal j
+            JOIN poli po ON po.id = j.poli_id
+            LEFT JOIN dokter d ON d.id = j.dokter_id
+            WHERE j.id = :id
+            LIMIT 1
+        ");
+        $stmtJadwal->execute([':id' => $jadwalId]);
+        $j = $stmtJadwal->fetch();
+        if ($j) {
+            $doctorName = $j['dokter'];
+            $doctorSpecialist = $j['poli'];
+            $selectedDate = FormatPasien::tanggalPanjang($j['tanggal']);
+            $jadwalJam = FormatPasien::jam($j['jam_mulai']) . ' – ' . FormatPasien::jam($j['jam_selesai']);
+        }
+    } catch (PDOException $e) {
+        // Biarkan nilai default
     }
 }
 ?>
@@ -42,7 +68,7 @@ if ($jadwalId <= 0) {
     <div class="w-full mx-auto min-h-screen bg-page flex flex-col shadow-xl">
 
         <!-- Komponen Header Desktop & Mobile -->
-        <?php require_once __DIR__ . "./../components/header.php" ?>
+        <?php require_once __DIR__ . "/../components/header.php" ?>
 
         <!-- Main Content -->
         <main class="flex-1 px-5 md:px-20 py-6 overflow-y-auto">
@@ -53,121 +79,70 @@ if ($jadwalId <= 0) {
                 <div class="md:col-span-4 flex flex-col gap-4">
                     <!-- Card 1: Profil Dokter -->
                     <section class="bg-primary-100 rounded-xl p-4 flex items-center gap-4 shadow-sm border border-primary-50">
-                        <!-- Skeleton Placeholder Gambar Profil -->
-                        <div class="w-14 h-14 rounded-full bg-white shrink-0 overflow-hidden relative border border-white shadow-sm">
-                            <!-- Tambahkan path gambar asli di atribut src di bawah -->
-                            <img src="" alt="<?= $doctorName ?>" class="absolute inset-0 w-full h-full object-cover">
-                            <div class="absolute inset-0 flex items-center justify-center text-primary-300 text-2xs text-center p-1 font-mono leading-tight">
-                                [Img]
-                            </div>
+                        <div class="w-14 h-14 rounded-full bg-primary-100 shrink-0 flex justify-center items-center">
+                            <i class="fas fa-user-md text-primary text-2xl"></i>
                         </div>
                         <div>
-                            <h2 class="text-sm font-bold text-gray-900"><?= $doctorName ?></h2>
-                            <p class="text-xs text-gray-500 mt-0.5"><?= $doctorSpecialist ?></p>
+                            <h2 class="text-sm font-bold text-gray-900"><?= e($doctorName) ?></h2>
+                            <p class="text-xs text-gray-500 mt-0.5"><?= e($doctorSpecialist) ?></p>
                         </div>
                     </section>
 
-                    <!-- Card 2: Tanggal Dipilih -->
+                    <!-- Card 2: Tanggal & Jam Dipilih -->
                     <section class="bg-primary-100 rounded-xl p-4 flex items-center gap-4 shadow-sm border border-primary-50">
                         <div class="w-10 h-10 rounded text-primary text-xl flex items-center justify-center shrink-0">
-                            <i class="far fa-calendar-alt"></i>
+                            <i class="fas fa-calendar-alt"></i>
                         </div>
                         <div>
                             <p class="text-xs text-gray-500 mb-0.5">Tanggal</p>
-                            <p class="text-sm font-bold text-gray-900"><?= $selectedDate ?></p>
+                            <p class="text-sm font-bold text-gray-900"><?= e($selectedDate) ?></p>
+                            <p class="text-xs text-gray-500 mt-0.5"><?= e($jadwalJam) ?></p>
                         </div>
                     </section>
-                    <!-- Card 3: Form Data Pasien -->
+
+                    <!-- Card 3: Form Keluhan -->
                     <section class="bg-primary-100 rounded-xl p-5 flex-1 shadow-sm mb-6 border border-primary-50">
-                        <!-- Header Form -->
                         <div class="flex items-center gap-3 mb-6 text-primary">
                             <i class="fas fa-user text-lg"></i>
                             <h3 class="font-bold text-base">Data Pasien</h3>
                         </div>
 
-                        <!-- Form Reservasi -->
-                        <form id="formReservasi" action="status-reservasi.php" method="GET" data-api-endpoint="/api/pasien/reservasi.php" data-api-action="create" data-api-redirect="/users/reservasi/status-reservasi.php?id={id}" class="space-y-5">
+                        <p class="text-sm text-gray-500 mb-4">
+                            Data akan dikirim menggunakan akun yang sedang login. Isi hanya keluhan Anda di bawah ini.
+                        </p>
+
+                        <!-- Form Reservasi via API -->
+                        <form data-api-endpoint="/api/pasien/reservasi.php"
+                              data-api-redirect="/users/reservasi/status-reservasi.php?id={id}"
+                              class="space-y-5">
                             <input type="hidden" name="jadwal_id" value="<?= $jadwalId ?>">
+                            <input type="hidden" name="action" value="create">
 
-                            <!-- Input Nama -->
+                            <!-- Input Keluhan -->
                             <div>
-                                <label for="nama" class="flex items-center gap-2 mb-2 text-sm font-medium text-gray-500">
-                                    <i class="far fa-user text-primary w-4 text-center"></i> Nama
+                                <label for="keluhan" class="flex items-center gap-2 mb-2 text-sm font-medium text-gray-500">
+                                    <i class="fas fa-comment-medical text-primary w-4 text-center"></i> Keluhan
                                 </label>
-                                <input type="text" id="nama" name="nama" class="bg-page border-0 text-gray-900 text-sm rounded focus:ring-primary-500 focus:border-primary-500 block w-full p-3 shadow-inner" placeholder="Nama Lengkap" required>
+                                <textarea id="keluhan" name="keluhan" rows="3"
+                                          class="bg-page border-0 text-gray-900 text-sm rounded focus:ring-primary-500 focus:border-primary-500 block w-full p-3 shadow-inner resize-none"
+                                          placeholder="Deskripsikan keluhan Anda" required></textarea>
                             </div>
 
-                            <!-- Kolom Kanan (Desktop): Form Data Pasien & Tombol Submit -->
-                            <div class="md:col-span-8 flex flex-col">
-                                <!-- Card 3: Form Data Pasien -->
-                                <section class="bg-primary-100 rounded-xl p-5 md:p-6 shadow-sm mb-6 border border-primary-50">
-                                    <!-- Header Form -->
-                                    <div class="flex items-center gap-3 mb-6 text-primary">
-                                        <i class="fas fa-user text-lg"></i>
-                                        <h3 class="font-bold text-base">Data Pasien</h3>
-                                    </div>
-
-                                    <!-- Form Reservasi -->
-                                    <form id="formReservasi" action="status-reservasi.php" method="GET" data-api-endpoint="/api/pasien/reservasi.php" data-api-action="create" data-api-redirect="/users/reservasi/status-reservasi.php" class="space-y-5">
-                                        <input type="hidden" name="jadwal_id" value="<?= $jadwalId ?>">
-
-                                        <!-- Input Nama -->
-                                        <div>
-                                            <label for="nama" class="flex items-center gap-2 mb-2 text-sm font-medium text-gray-500">
-                                                <i class="far fa-user text-primary w-4 text-center"></i> Nama
-                                            </label>
-                                            <input type="text" id="nama" name="nama" class="bg-page border-0 text-gray-900 text-sm rounded focus:ring-primary-500 focus:border-primary-500 block w-full p-3 shadow-inner" placeholder="Nama Lengkap" required>
-                                        </div>
-
-                                        <!-- Input NIM (Spesifik Konteks Kampus) -->
-                                        <div>
-                                            <label for="nim" class="flex items-center gap-2 mb-2 text-sm font-medium text-gray-500">
-                                                <i class="far fa-id-badge text-primary w-4 text-center"></i> NIM
-                                            </label>
-                                            <input type="number" id="nim" name="nim" class="bg-page border-0 text-gray-900 text-sm rounded focus:ring-primary-500 focus:border-primary-500 block w-full p-3 shadow-inner" placeholder="Nomor Induk Mahasiswa" required>
-                                        </div>
-
-                                        <!-- Input Jurusan -->
-                                        <div>
-                                            <label for="jurusan" class="flex items-center gap-2 mb-2 text-sm font-medium text-gray-500">
-                                                <i class="fas fa-users text-primary w-4 text-center"></i> Jurusan
-                                            </label>
-                                            <input type="text" id="jurusan" name="jurusan" class="bg-page border-0 text-gray-900 text-sm rounded focus:ring-primary-500 focus:border-primary-500 block w-full p-3 shadow-inner" placeholder="Contoh: Teknik Informatika" required>
-                                        </div>
-
-                                        <!-- Input Keluhan -->
-                                        <div>
-                                            <label for="keluhan" class="flex items-center gap-2 mb-2 text-sm font-medium text-gray-500">
-                                                <i class="fas fa-comment-medical text-primary w-4 text-center"></i> Keluhan
-                                            </label>
-                                            <textarea id="keluhan" name="keluhan" rows="3" class="bg-page border-0 text-gray-900 text-sm rounded focus:ring-primary-500 focus:border-primary-500 block w-full p-3 shadow-inner resize-none" placeholder="Deskripsikan keluhan Anda" required></textarea>
-                                        </div>
-                                    </form>
-                                </section>
-
-                                <div class="pb-6">
-                                    <button type="button" onclick="submitForm()" class="w-full py-2.5 bg-primary hover:bg-primary-700 text-white text-center font-semibold rounded-full shadow-lg transition-colors focus:ring-4 focus:ring-primary-300 cursor-pointer">
-                                        Reservasi
-                                    </button>
-                                </div>
+                            <div class="pt-2">
+                                <button type="submit"
+                                        class="w-full py-2.5 bg-primary hover:bg-primary-700 text-white text-center font-semibold rounded-full shadow-lg transition-colors focus:ring-4 focus:ring-primary-300 cursor-pointer">
+                                    Kirim Reservasi
+                                </button>
                             </div>
-
+                        </form>
+                    </section>
                 </div>
         </main>
     </div>
 
-    <script>
-        function submitForm() {
-            const form = document.getElementById('formReservasi');
-            if (form.checkValidity()) {
-                form.requestSubmit();
-            } else {
-                form.reportValidity();
-            }
-        }
-    </script>
     <?php require __DIR__ . '/../components/api-script.php'; ?>
     <script src="./../../node_modules/flowbite/dist/flowbite.min.js"></script>
+    <script src="./../../assets/js/flowbite-init.js"></script>
 </body>
 
 </html>

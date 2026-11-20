@@ -34,7 +34,7 @@ unset($_SESSION['old']);
             <div class="flex flex-col flex-1 items-center justify-center">
                 <div class="content">
                     <div class="icon-login w-20 h-20 rounded-full bg-primary-400 mx-auto flex justify-center items-center mb-3">
-                        <i class="far fa-calendar-alt text-white text-3xl"></i>
+                        <i class="fas fa-calendar-alt text-white text-3xl"></i>
                     </div>
                     <div class="desc">
                         <p class="text-white w-2/3 text-center mx-auto text-lg">Kelola jadwal, reservasi, dan layanan poliklinik</p>
