@@ -70,11 +70,10 @@ if ($jadwalId > 0) {
 
         <!-- Komponen Header Desktop & Mobile -->
         <?php require_once __DIR__ . "/../components/header.php" ?>
-
         <!-- Main Content -->
         <main class="flex-1 px-5 md:px-20 py-6 overflow-y-auto">
             <!-- Layout 1 kolom di mobile, 2 kolom proporsional di desktop -->
-            <div class="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6 items-start">
+            <div class="grid gap-4 md:gap-6 items-start">
 
                 <!-- Kolom Kiri (Desktop): Info Dokter & Tanggal -->
                 <div class="md:col-span-4 flex flex-col gap-4">
