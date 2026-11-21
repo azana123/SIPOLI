@@ -91,7 +91,7 @@ $breadcrumbs      = $breadcrumbs ?? [
     <!-- Kontainer Utama: Diperlebar untuk desktop agar header baru terlihat proporsional -->
     <div class="w-full mx-auto min-h-screen bg-page flex flex-col shadow-xl">
 
-        <?php require_once __DIR__ . "./../components/header.php" ?>
+        <?php require_once __DIR__ . "/../components/header.php" ?>
 
         <!-- Main Content -->
         <main class="flex-1 px-5 md:px-20 py-6 overflow-y-auto">
