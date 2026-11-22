@@ -155,13 +155,13 @@ $jamBannerHariIni = $jadwalHariIni
                 <?php endif; ?>
 
                 <!-- Banner Praktik Saya Hari Ini -->
-                <div class="bg-white border border-gray-200 rounded-base p-6 mb-6 flex flex-col md:flex-row md:items-center justify-between shadow-sm">
+                <div class="bg-white border border-gray-200 rounded-base p-6 mb-6 flex flex-col lg:flex-row lg:items-center justify-between shadow-sm">
                     <div class="flex items-start gap-4">
-                        <div class="w-8 h-8 md:w-12 md:h-12 bg-primary-50 border border-primary-100 text-primary rounded-base flex items-center justify-center shrink-0">
+                        <div class="w-8 h-8 lg:w-12 lg:h-12 bg-primary-50 border border-primary-100 text-primary rounded-base flex items-center justify-center shrink-0">
                             <i class="fas fa-calendar-check text-base md:text-xl"></i>
                         </div>
                         <div>
-                            <div class="flex flex-col-reverse md:flex-row md:items-center md:gap-3 mb-1">
+                            <div class="flex flex-col-reverse lg:flex-row lg:items-center lg:gap-3 mb-1">
                                 <h2 class="text-lg font-bold text-gray-900">Praktik saya hari ini</h2>
                                 <?php if ($jadwalHariIni): ?>
                                     <span class="inline-flex items-center px-2 py-1 text-fg-success-strong text-xs font-medium rounded bg-success-soft">Sedang berlangsung</span>
@@ -172,16 +172,16 @@ $jamBannerHariIni = $jadwalHariIni
                             <p class="text-sm text-gray-500"><?= e($namaPoliDokter) ?> &bull; <?= e($jamBannerHariIni) ?></p>
                         </div>
                     </div>
-                    <div class="mt-4 md:mt-0 flex flex-col md:items-end">
+                    <div class="mt-4 lg:mt-0 flex flex-col lg:items-end">
                         <button type="button" data-modal-target="modal-informasi-perubahan" data-modal-toggle="modal-informasi-perubahan" class="border border-gray-300 text-primary bg-white hover:bg-gray-50 rounded-base px-4 py-2.5 text-sm font-medium flex items-center gap-2 mb-2 transition-colors cursor-pointer">
                             <i class="fas fa-comment-alt"></i> Informasikan perubahan jadwal
                         </button>
-                        <p class="text-xs text-gray-500 text-center md:text-left">Perubahan jadwal dikonfirmasi oleh admin</p>
+                        <p class="text-xs text-gray-500 text-center lg:text-left">Perubahan jadwal dikonfirmasi oleh admin</p>
                     </div>
                 </div>
 
                 <!-- Metrics Summary (3 Columns) -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
                     <!-- Sesi Praktik -->
                     <div class="bg-white border border-gray-200 rounded-base p-5 shadow-sm">
                         <div class="flex justify-between items-start mb-1">
