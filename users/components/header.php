@@ -14,15 +14,38 @@
             SIPOLI
         </div>
         <div class="flex items-center gap-5">
-            <a href="./../../auth/login.php" class="profile flex gap-2 items-center bg-primary px-3 py-1.5 rounded-base hover:bg-primary-700 transition">
-                <div class="icon-profile text-lg">
-                    <i class="fas fa-user-circle"></i>
-                </div>
-                <span class="font-medium">login</span>
-            </a>
-            <a href="./../notifikasi.php" class="notifikasi text-lg px-3 py-1.5 bg-primary hover:bg-primary-700 rounded-full">
-                <i class="fas fa-bell"></i>
-            </a>
+            <?php if($apakahLogin) : ?>
+                <a href="./../notifikasi.php" class="notifikasi text-lg px-3 py-1.5 bg-primary hover:bg-primary-700 rounded-full">
+                    <i class="fas fa-bell"></i>
+                </a>
+
+                <div class="profile relative">
+                        <button type="button" data-dropdown-toggle="dropdown-pasien-beranda" class="flex items-center gap-2 bg-primary px-3.5 py-1.5 rounded-base hover:bg-primary-700 transition font-medium text-page cursor-pointer">
+                            <i class="fas fa-user-circle text-lg"></i>
+                            <span>Halo, <?= e($namaPasien) ?></span>
+                            <i class="fas fa-chevron-down text-xs"></i>
+                        </button>
+
+                        <div id="dropdown-pasien-beranda" class="z-50 hidden absolute end-0 top-12 bg-white text-gray-800 border border-default-medium rounded-base shadow-lg w-48" role="none">
+                            <div class="px-4 py-3 border-b border-gray-100" role="none">
+                                <p class="text-sm font-bold text-heading truncate" role="none"><?= e($namaPasien) ?></p>
+                                <p class="text-xs text-body truncate mt-0.5" role="none">Pasien &bull; SIPOLI</p>
+                            </div>
+                            <ul class="p-2 text-sm font-medium" role="none">
+                                <li>
+                                    <a href="./auth/logout.php" class="inline-flex items-center w-full p-2 text-red-600 hover:bg-red-50 rounded" role="menuitem">
+                                        <i class="fas fa-sign-out-alt mr-2"></i> Keluar
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+            <?php else: ?>
+                <a href="./auth/login.php" class="profile flex gap-2 items-center bg-primary px-4 py-1.5 rounded-base hover:bg-primary-700 transition">
+                    <i class="fas fa-user-circle text-lg"></i>
+                    <span class="font-medium">Login</span>
+                </a>
+            <?php endif; ?>
         </div>
     </section>
 
