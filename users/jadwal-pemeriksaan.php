@@ -20,6 +20,19 @@ $tanggalDipilih = isset($_GET['tanggal']) && preg_match('/^\d{4}-\d{2}-\d{2}$/',
     : $hariIni;
 $poliId = isset($_GET['poli_id']) && ctype_digit((string) $_GET['poli_id']) ? (int) $_GET['poli_id'] : 0;
 
+// Tentukan tanggal mulai untuk jendela 7 hari (default: H+1)
+$defaultStart = date('Y-m-d', strtotime($hariIni . ' +1 day'));
+$startDate = isset($_GET['start']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $_GET['start'])
+    ? (string) $_GET['start']
+    : $defaultStart;
+
+// Hitung rentang prev & next (masing-masing geser 7 hari)
+$prevStart = date('Y-m-d', strtotime($startDate . ' -7 days'));
+$nextStart = date('Y-m-d', strtotime($startDate . ' +7 days'));
+
+// Cek apakah tombol prev boleh diklik (cegah mundur melebihi H+1)
+$isPrevDisabled = $startDate <= $defaultStart;
+
 $jadwal = QueryPasienJadwal::daftar($tanggalDipilih, $poliId);
 
 $hariMap  = [1 => 'Sen', 2 => 'Sel', 3 => 'Rab', 4 => 'Kam', 5 => 'Jum', 6 => 'Sab', 7 => 'Min'];
@@ -28,15 +41,36 @@ $bulanMap = [1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April', 5 => '
 $labelBulan = $bulanMap[(int) date('n', strtotime($tanggalDipilih))] . ' ' . date('Y', strtotime($tanggalDipilih));
 $labelTanggal = $hariMap[(int) date('N', strtotime($tanggalDipilih))] . ', ' . (int) date('j', strtotime($tanggalDipilih)) . ' ' . $bulanMap[(int) date('n', strtotime($tanggalDipilih))];
 
-// Tampilkan 7 hari ke depan (jendela reservasi H-7 s.d. H-1)
+// Tampilkan 7 hari ke depan dari $startDate
 $daftarTanggal = [];
-for ($i = 1; $i <= 7; $i++) {
-    $t = date('Y-m-d', strtotime($hariIni . ' +' . $i . ' day'));
+for ($i = 0; $i < 7; $i++) {
+    $t = date('Y-m-d', strtotime($startDate . ' +' . $i . ' day'));
     $daftarTanggal[] = [
         'tanggal' => $t,
         'hari'    => $hariMap[(int) date('N', strtotime($t))],
         'angka'   => (int) date('j', strtotime($t)),
     ];
+}
+
+$apakahLogin = isset($_SESSION['user_id'], $_SESSION['role']);
+$namaPasien  = null;
+
+if ($apakahLogin) {
+    require_once __DIR__ . '/../middleware/check-role.php';
+    check_role(['admin', 'dokter', 'pasien']);
+
+    $peran = (string) ($_SESSION['role'] ?? '');
+    if ($peran !== 'pasien') {
+        redirect_by_role($peran);
+    }
+
+    try {
+        $stmtNama = $pdo->prepare('SELECT nama FROM pasien WHERE user_id = :uid AND is_active = TRUE LIMIT 1');
+        $stmtNama->execute([':uid' => (int) $_SESSION['user_id']]);
+        $namaPasien = (string) ($stmtNama->fetchColumn() ?: ($_SESSION['username'] ?? 'Pasien'));
+    } catch (PDOException $e) {
+        $namaPasien = (string) ($_SESSION['username'] ?? 'Pasien');
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -61,7 +95,7 @@ for ($i = 1; $i <= 7; $i++) {
                 <div class="category">
                     <ul class="flex justify-between md:justify-start md:gap-3">
                         <li>
-                            <input type="radio" id="semua" name="hosting" value="" onchange="location.href='?'" <?= $poliId === 0 ? 'checked' : '' ?> class="hidden peer" required />
+                            <input type="radio" id="semua" name="hosting" value="" onchange="location.href='?tanggal=<?= $tanggalDipilih ?>&start=<?= $startDate ?>'" <?= $poliId === 0 ? 'checked' : '' ?> class="hidden peer" required />
                             <label for="semua" class="inline-flex items-center bg-primary-500 justify-between text-sm py-3 px-4 rounded-full text-white bg-neutral-primary-soft border-default cursor-pointer peer-checked:hover:bg-brand-softer peer-checked:border-brand-subtle peer-checked:bg-brand-softer hover:bg-neutral-secondary-medium peer-checked:text-fg-brand-strong">
                                 <div class="block">
                                     <div class="w-full font-semibold">Semua</div>
@@ -69,7 +103,7 @@ for ($i = 1; $i <= 7; $i++) {
                             </label>
                         </li>
                         <li>
-                            <input type="radio" id="umum" name="hosting" value="1" onchange="location.href='?poli_id=1'" <?= $poliId === 1 ? 'checked' : '' ?> class="hidden peer" required />
+                            <input type="radio" id="umum" name="hosting" value="1" onchange="location.href='?poli_id=1&tanggal=<?= $tanggalDipilih ?>&start=<?= $startDate ?>'" <?= $poliId === 1 ? 'checked' : '' ?> class="hidden peer" required />
                             <label for="umum" class="inline-flex items-center justify-between text-sm py-3 px-4 rounded-full text-body bg-neutral-primary-soft border-1 border-default rounded-base cursor-pointer peer-checked:hover:bg-brand-softer peer-checked:border-brand-subtle peer-checked:bg-brand-softer hover:bg-neutral-secondary-medium peer-checked:text-fg-brand-strong">
                                 <div class="block">
                                     <div class="w-full font-semibold">Umum</div>
@@ -77,7 +111,7 @@ for ($i = 1; $i <= 7; $i++) {
                             </label>
                         </li>
                         <li>
-                            <input type="radio" id="gigi" name="hosting" value="2" onchange="location.href='?poli_id=2'" <?= $poliId === 2 ? 'checked' : '' ?> class="hidden peer" required />
+                            <input type="radio" id="gigi" name="hosting" value="2" onchange="location.href='?poli_id=2&tanggal=<?= $tanggalDipilih ?>&start=<?= $startDate ?>'" <?= $poliId === 2 ? 'checked' : '' ?> class="hidden peer" required />
                             <label for="gigi" class="inline-flex items-center justify-between text-sm py-3 px-4 rounded-full text-body bg-neutral-primary-soft border-1 border-default rounded-base cursor-pointer peer-checked:hover:bg-brand-softer peer-checked:border-brand-subtle peer-checked:bg-brand-softer hover:bg-neutral-secondary-medium peer-checked:text-fg-brand-strong">
                                 <div class="block">
                                     <div class="w-full font-semibold">Gigi</div>
@@ -85,7 +119,7 @@ for ($i = 1; $i <= 7; $i++) {
                             </label>
                         </li>
                         <li>
-                            <input type="radio" id="konseling" name="hosting" value="3" onchange="location.href='?poli_id=3'" <?= $poliId === 3 ? 'checked' : '' ?> class="hidden peer" required />
+                            <input type="radio" id="konseling" name="hosting" value="3" onchange="location.href='?poli_id=3&tanggal=<?= $tanggalDipilih ?>&start=<?= $startDate ?>'" <?= $poliId === 3 ? 'checked' : '' ?> class="hidden peer" required />
                             <label for="konseling" class="inline-flex items-center justify-between text-sm py-3 px-4 rounded-full text-body bg-neutral-primary-soft border-1 border-default rounded-base cursor-pointer peer-checked:hover:bg-brand-softer peer-checked:border-brand-subtle peer-checked:bg-brand-softer hover:bg-neutral-secondary-medium peer-checked:text-fg-brand-strong">
                                 <div class="block">
                                     <div class="w-full font-semibold">Konseling</div>
@@ -94,16 +128,40 @@ for ($i = 1; $i <= 7; $i++) {
                         </li>
                     </ul>
                 </div>
+
                 <h4 class="month my-3 text-xl font-bold"><?= e($labelBulan) ?></h4>
-                <div class="date-filter grid grid-cols-5 gap-3">
-                    <?php foreach ($daftarTanggal as $t): ?>
-                        <a href="?tanggal=<?= e($t['tanggal']) ?><?= $poliId > 0 ? '&poli_id=' . $poliId : '' ?>" class="<?= $t['tanggal'] === $tanggalDipilih ? 'bg-primary-500 text-white' : 'bg-white' ?> rounded flex flex-col items-center justify-center p-1.5 text-sm">
-                            <span class="day"><?= e($t['hari']) ?></span>
-                            <span class="date"><?= (int) $t['angka'] ?></span>
+
+                <!-- UI Slider Tanggal dengan Prev/Next -->
+                <div class="flex items-center justify-between gap-2">
+                    <!-- Tombol Prev (otomatis pilih tanggal di $prevStart) -->
+                    <?php if ($isPrevDisabled): ?>
+                        <div class="p-2 text-gray-300 bg-gray-50 rounded shadow-sm cursor-not-allowed flex-shrink-0 flex items-center justify-center">
+                            <i class="fas fa-chevron-left"></i>
+                        </div>
+                    <?php else: ?>
+                        <a href="?tanggal=<?= $prevStart ?><?= $poliId > 0 ? '&poli_id=' . $poliId : '' ?>&start=<?= $prevStart ?>" class="p-2 bg-white text-gray-600 rounded shadow-sm hover:bg-primary-100 hover:text-primary-700 transition flex-shrink-0 flex items-center justify-center">
+                            <i class="fas fa-chevron-left"></i>
                         </a>
-                    <?php endforeach; ?>
+                    <?php endif; ?>
+
+                    <!-- Grid Tanggal -->
+                    <div class="date-filter grid grid-cols-7 gap-2 flex-1">
+                        <?php foreach ($daftarTanggal as $t): ?>
+                            <a href="?tanggal=<?= e($t['tanggal']) ?><?= $poliId > 0 ? '&poli_id=' . $poliId : '' ?>&start=<?= $startDate ?>" class="<?= $t['tanggal'] === $tanggalDipilih ? 'bg-primary-500 text-white shadow-md' : 'bg-white text-gray-700 hover:bg-gray-50' ?> rounded flex flex-col items-center justify-center py-2 text-sm transition-colors border border-gray-100">
+                                <span class="day text-xs font-medium"><?= e($t['hari']) ?></span>
+                                <span class="date font-bold text-lg leading-none mt-1"><?= (int) $t['angka'] ?></span>
+                            </a>
+                        <?php endforeach; ?>
+                    </div>
+
+                    <!-- Tombol Next (otomatis pilih tanggal di $nextStart) -->
+                    <a href="?tanggal=<?= $nextStart ?><?= $poliId > 0 ? '&poli_id=' . $poliId : '' ?>&start=<?= $nextStart ?>" class="p-2 bg-white text-gray-600 rounded shadow-sm hover:bg-primary-100 hover:text-primary-700 transition flex-shrink-0 flex items-center justify-center">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
                 </div>
+
                 <p class="date text-primary-700 font-medium my-3"><?= e($labelTanggal) ?></p>
+
                 <div class="schedule md:grid md:grid-cols-3 md:gap-3">
                     <?php if (!$jadwal): ?>
                         <div class="bg-neutral-primary-soft w-full p-6 rounded-base text-sm text-gray-500 md:col-span-3">
@@ -133,11 +191,11 @@ for ($i = 1; $i <= 7; $i++) {
                                     </span>
                                 <?php elseif ($reservasiId > 0): ?>
                                     <button type="button"
-                                            data-api-click
-                                            data-api-endpoint="/api/pasien/reservasi.php"
-                                            data-api-payload='{"action":"reschedule","reservasi_id":<?= $reservasiId ?>,"jadwal_baru_id":<?= (int) $j['id'] ?>}'
-                                            data-api-redirect="./reservasi/detail-reservasi.php?id=<?= $reservasiId ?>"
-                                            class="action-link text-page text-center rounded-full text-sm px-4 py-2.5 bg-primary-500 hover:bg-primary-700">
+                                        data-api-click
+                                        data-api-endpoint="/api/pasien/reservasi.php"
+                                        data-api-payload='{"action":"reschedule","reservasi_id":<?= $reservasiId ?>,"jadwal_baru_id":<?= (int) $j['id'] ?>}'
+                                        data-api-redirect="./reservasi/detail-reservasi.php?id=<?= $reservasiId ?>"
+                                        class="action-link text-page text-center rounded-full text-sm px-4 py-2.5 bg-primary-500 hover:bg-primary-700">
                                         <span class="font-medium">Ubah Jadwal</span>
                                     </button>
                                 <?php else: ?>
