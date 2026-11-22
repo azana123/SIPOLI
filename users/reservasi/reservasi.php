@@ -17,63 +17,26 @@ $dataReservasi = QueryPasienReservasi::daftar($pasienId);
 $akan_datang = $dataReservasi['akan_datang'];
 $riwayat = $dataReservasi['riwayat'];
 
-/*
-$akan_datang = [
-    [
-        'poli' => 'Poli Gigi',
-        'dokter' => 'drg. Nadia Putri, Sp.KG',
-        'jadwal' => 'Kam, 24 Sep',
-        'status' => 'Menunggu',
-        'badge_color' => 'bg-orange-100 text-orange-700'
-    ],
-    [
-        'poli' => 'Psikolog',
-        'dokter' => 'dr. Sarah Amelia, Sp.KJ',
-        'jadwal' => 'Jum, 18 Sep',
-        'status' => 'Menunggu',
-        'badge_color' => 'bg-orange-100 text-orange-700'
-    ],
-    [
-        'poli' => 'Psikolog',
-        'dokter' => 'dr. Sarah Amelia, Sp.KJ',
-        'jadwal' => 'Rab, 09 Sep. 14.30',
-        'status' => 'Terkonfirmasi',
-        'badge_color' => 'bg-green-100 text-green-700'
-    ],
-    [
-        'poli' => 'Poli Umum',
-        'dokter' => 'dr. Aditya Perkasa',
-        'jadwal' => 'Sen, 21 Sep. 13.30',
-        'status' => 'Reschedule',
-        'badge_color' => 'bg-blue-100 text-blue-700',
-        'note' => 'Dipindah dari Sen, 14 Sep'
-    ]
-];
+$apakahLogin = isset($_SESSION['user_id'], $_SESSION['role']);
+$namaPasien  = null;
 
-$riwayat = [
-    [
-        'poli' => 'Psikolog',
-        'dokter' => 'dr. Sarah Amelia, Sp.KJ',
-        'jadwal' => 'Sen, 07 Sep. 09.00',
-        'status' => 'Selesai',
-        'badge_color' => 'bg-gray-200 text-gray-700'
-    ],
-    [
-        'poli' => 'Poli Umum',
-        'dokter' => 'dr. Aditya Perkasa',
-        'jadwal' => 'Sen, 31 Agu. 09.00',
-        'status' => 'Selesai',
-        'badge_color' => 'bg-gray-200 text-gray-700'
-    ]
-];
+if ($apakahLogin) {
+    require_once __DIR__ . '/../../middleware/check-role.php';
+    check_role(['admin', 'dokter', 'pasien']);
 
-$page_title       = $page_title ?? 'Halaman';
-$page_description = "Pantau jadwal periksa mendatang dan riwayat reservasi Anda dengan mudah.";
-$back_url         = $back_url ?? './../../index.php';
-$breadcrumbs      = $breadcrumbs ?? [
-    ['label' => $page_title]
-];
-*/
+    $peran = (string) ($_SESSION['role'] ?? '');
+    if ($peran !== 'pasien') {
+        redirect_by_role($peran);
+    }
+
+    try {
+        $stmtNama = $pdo->prepare('SELECT nama FROM pasien WHERE user_id = :uid AND is_active = TRUE LIMIT 1');
+        $stmtNama->execute([':uid' => (int) $_SESSION['user_id']]);
+        $namaPasien = (string) ($stmtNama->fetchColumn() ?: ($_SESSION['username'] ?? 'Pasien'));
+    } catch (PDOException $e) {
+        $namaPasien = (string) ($_SESSION['username'] ?? 'Pasien');
+    }
+}
 ?>
 
 <!DOCTYPE html>

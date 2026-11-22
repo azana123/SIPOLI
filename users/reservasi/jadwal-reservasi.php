@@ -67,6 +67,27 @@ $kuotaTersedia = $jadwalTerpilih ? (int) $jadwalTerpilih['sisa_kuota'] : 0;
 $dokterNama = $jadwalTerpilih && $jadwalTerpilih['dokter']
     ? $jadwalTerpilih['dokter']
     : 'Dokter akan ditentukan';
+
+$apakahLogin = isset($_SESSION['user_id'], $_SESSION['role']);
+$namaPasien  = null;
+
+if ($apakahLogin) {
+    require_once __DIR__ . '/../../middleware/check-role.php';
+    check_role(['admin', 'dokter', 'pasien']);
+
+    $peran = (string) ($_SESSION['role'] ?? '');
+    if ($peran !== 'pasien') {
+        redirect_by_role($peran);
+    }
+
+    try {
+        $stmtNama = $pdo->prepare('SELECT nama FROM pasien WHERE user_id = :uid AND is_active = TRUE LIMIT 1');
+        $stmtNama->execute([':uid' => (int) $_SESSION['user_id']]);
+        $namaPasien = (string) ($stmtNama->fetchColumn() ?: ($_SESSION['username'] ?? 'Pasien'));
+    } catch (PDOException $e) {
+        $namaPasien = (string) ($_SESSION['username'] ?? 'Pasien');
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="id">
