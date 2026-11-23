@@ -70,7 +70,7 @@ if ($apakahLogin) {
     <div class="w-full mx-auto min-h-screen bg-page flex flex-col shadow-xl">
 
         <!-- Komponen Header Desktop & Mobile -->
-        <?php require_once __DIR__ . "./../components/header.php" ?>
+        <?php require_once __DIR__ . "/../components/header.php" ?>
 
         <!-- Main Content -->
         <main class="flex-1 px-5 py-6 overflow-y-auto">
