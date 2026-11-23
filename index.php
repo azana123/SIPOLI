@@ -8,6 +8,7 @@ $dokterPublik = QueryPasienDokter::daftar();
 
 $apakahLogin = isset($_SESSION['user_id'], $_SESSION['role']);
 $namaPasien  = null;
+$notifBelum  = 0;
 
 if ($apakahLogin) {
     require_once __DIR__ . '/middleware/check-role.php';
@@ -24,6 +25,12 @@ if ($apakahLogin) {
         $namaPasien = (string) ($stmtNama->fetchColumn() ?: ($_SESSION['username'] ?? 'Pasien'));
     } catch (PDOException $e) {
         $namaPasien = (string) ($_SESSION['username'] ?? 'Pasien');
+    }
+
+    try {
+        $notifBelum = QueryPasienNotifikasi::belumDibaca((int) $_SESSION['user_id']);
+    } catch (PDOException $e) {
+        $notifBelum = 0;
     }
 }
 ?>
@@ -52,8 +59,13 @@ if ($apakahLogin) {
             <div class="flex items-center gap-4">
                 <?php if ($apakahLogin): ?>
                     <!-- Tombol Notifikasi (hanya muncul jika login) -->
-                    <a href="./users/notifikasi.php" class="notifikasi text-lg w-10 h-10 flex items-center justify-center bg-primary hover:bg-primary-700 rounded-full transition" aria-label="Notifikasi">
+                    <a href="./users/notifikasi.php" class="notifikasi relative text-lg w-10 h-10 flex items-center justify-center bg-primary hover:bg-primary-700 rounded-full transition" aria-label="Notifikasi">
                         <i class="fas fa-bell"></i>
+                        <?php if ($notifBelum > 0): ?>
+                            <span class="absolute -top-1 -end-1 inline-flex items-center justify-center min-w-5 h-5 px-1 text-xs font-bold text-primary bg-white rounded-full">
+                                <?= (int) $notifBelum ?>
+                            </span>
+                        <?php endif; ?>
                     </a>
 
                     <!-- Dropdown Profil Pasien -->

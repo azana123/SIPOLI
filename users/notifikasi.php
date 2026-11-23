@@ -89,16 +89,19 @@ if ($apakahLogin) {
                             <div class="flex justify-between items-center mt-3 text-xs">
                                 <span class="text-gray-500"><?= e($n['waktu']) ?></span>
 
-                                <?php if ($n['butuh_aksi'] && $n['aksi_selesai_at'] === null): ?>
-                                    <a href="<?= $n['ref_tipe'] === 'reservasi' ? e('./reservasi/detail-reservasi.php?id=' . (int) $n['ref_id']) : '#' ?>" class="font-semibold text-primary-600 hover:underline flex items-center gap-1">
-                                        Lihat detail
-                                        <i class="fas fa-chevron-right text-2xs"></i>
-                                    </a>
-                                <?php elseif ($n['belum_dibaca']): ?>
-                                    <button type="button" data-api-click data-api-endpoint="/api/pasien/notifikasi.php" data-api-payload='{"notifikasi_id":<?= (int) $n['id'] ?>}' class="font-semibold text-primary-600 hover:underline">
-                                        Tandai dibaca
-                                    </button>
-                                <?php endif; ?>
+                                <div class="flex items-center gap-3">
+                                    <?php if ($n['belum_dibaca']): ?>
+                                        <button type="button" data-api-click data-api-endpoint="/api/pasien/notifikasi.php" data-api-payload='{"notifikasi_id":<?= (int) $n['id'] ?>}' class="font-semibold text-primary-600 hover:underline">
+                                            Tandai dibaca
+                                        </button>
+                                    <?php endif; ?>
+                                    <?php if ($n['ref_tipe'] === 'reservasi'): ?>
+                                        <a href="<?= e('./reservasi/detail-reservasi.php?id=' . (int) $n['ref_id']) ?>" class="font-semibold text-primary-600 hover:underline flex items-center gap-1">
+                                            Lihat detail
+                                            <i class="fas fa-chevron-right text-2xs"></i>
+                                        </a>
+                                    <?php endif; ?>
+                                </div>
                             </div>
                         </div>
                     </div>

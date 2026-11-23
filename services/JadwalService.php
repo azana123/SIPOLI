@@ -61,6 +61,18 @@ final class JadwalService {
         api_transaction(static function (PDO $pdo) use (
             $id, $poliId, $dokterId, $tanggal, $jamMulai, $jamSelesai, $kuota, $status, $publikasi
         ): void {
+            // Jadwal lama untuk mendeteksi perubahan tanggal/jam
+            $stmtLama = $pdo->prepare("
+                SELECT tanggal::text AS tanggal,
+                       jam_mulai::text AS jam_mulai, jam_selesai::text AS jam_selesai
+                FROM jadwal WHERE id = :id FOR UPDATE
+            ");
+            $stmtLama->execute([':id' => $id]);
+            $lama = $stmtLama->fetch();
+            if (!$lama) {
+                throw new ApiException('Jadwal tidak ditemukan.', 404);
+            }
+
             $stmt = $pdo->prepare("
                 UPDATE jadwal
                    SET poli_id = :poli, dokter_id = :dokter, tanggal = :tanggal,
@@ -81,6 +93,25 @@ final class JadwalService {
 
             if ($status !== 'tutup') {
                 $pdo->prepare('SELECT fn_hitung_status_jadwal(:id)')->execute([':id' => $id]);
+            }
+
+            // Notifikasi ke pasien yang sudah reservasi bila tanggal/jam berubah
+            $berubah = $lama['tanggal'] !== $tanggal
+                || substr($lama['jam_mulai'], 0, 5) !== substr($jamMulai, 0, 5)
+                || substr($lama['jam_selesai'], 0, 5) !== substr($jamSelesai, 0, 5);
+            if ($berubah) {
+                $pesan = 'Jadwal pemeriksaan Anda diubah menjadi '
+                    . FormatPasien::tanggalPanjang($tanggal) . ', '
+                    . FormatPasien::jam($jamMulai) . ' – ' . FormatPasien::jam($jamSelesai)
+                    . ' WIB. Silakan cek detail reservasi Anda.';
+                $pdo->prepare("
+                    INSERT INTO inbox (user_id, tipe, judul, pesan, butuh_aksi, ref_tipe, ref_id)
+                    SELECT p.user_id, 'info', 'Jadwal pemeriksaan diubah', :pesan, FALSE, 'reservasi', r.id
+                    FROM reservasi r
+                    JOIN pasien p ON p.id = r.pasien_id
+                    WHERE r.jadwal_id = :id
+                      AND r.status NOT IN ('dibatalkan', 'selesai', 'tidak_hadir')
+                ")->execute([':pesan' => $pesan, ':id' => $id]);
             }
         });
 
