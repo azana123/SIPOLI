@@ -191,7 +191,7 @@ final class QueryDaftar {
                         ELSE a.status
                     END AS status,
                     0 AS reschedule_count,
-                    pm.keluhan,
+                    pm.data_pemeriksaan->>'keluhan',
                     a.waktu_daftar AS created_at,
                     a.id AS antrean_id,
                     a.no_antrean
@@ -388,7 +388,7 @@ final class QueryDaftar {
                 ps.nim_nip,
                 ps.status_civitas,
                 COALESCE(j.jam_mulai, (a.waktu_daftar AT TIME ZONE 'Asia/Jakarta')::time) AS jam_kunjungan,
-                COALESCE(pm.keluhan, r.keluhan, 'Pemeriksaan langsung') AS keluhan_awal,
+                COALESCE(pm.data_pemeriksaan->>'keluhan', r.keluhan, 'Pemeriksaan langsung') AS keluhan_awal,
                 pm.id AS pemeriksaan_id
             FROM antrean a
             JOIN pasien ps ON ps.id = a.pasien_id
@@ -418,7 +418,7 @@ final class QueryDaftar {
         ];
 
         if (($f['q'] ?? '') !== '') {
-            $where[] = "(ps.nama ILIKE :q OR ps.nim_nip ILIKE :q OR COALESCE(pm.diagnosa, '') ILIKE :q)";
+            $where[] = "(ps.nama ILIKE :q OR ps.nim_nip ILIKE :q OR COALESCE(pm.data_pemeriksaan->>'diagnosa', '') ILIKE :q)";
             $params[':q'] = '%' . $f['q'] . '%';
         }
         if (ctype_digit((string) ($f['poli_id'] ?? ''))) {
@@ -436,8 +436,8 @@ final class QueryDaftar {
                 pm.antrean_id,
                 pm.pasien_id,
                 pm.tanggal,
-                pm.keluhan,
-                pm.diagnosa,
+                pm.data_pemeriksaan->>'keluhan',
+                pm.data_pemeriksaan->>'diagnosa',
                 pm.created_at,
                 ps.nama AS nama_pasien,
                 ps.nim_nip,

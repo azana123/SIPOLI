@@ -26,6 +26,7 @@ final class PemeriksaanService {
         $tensi     = api_str($in, 'tensi') ?: null;
         $suhu      = api_float($in, 'suhu') ?: null;
         $bb        = api_float($in, 'bb') ?: null;
+        $tb        = api_float($in, 'tb') ?: null;
         $anamnesis = api_str($in, 'hasil_pemeriksaan');
         $diagnosa  = api_str($in, 'diagnosis');
         $tindak    = api_str($in, 'saran_medis') ?: null;
@@ -43,7 +44,7 @@ final class PemeriksaanService {
         $resep = self::resepValid($in);
 
         $pemeriksaanId = api_transaction(static function (PDO $pdo) use (
-            $dokterId, $antreanId, $tensi, $suhu, $bb, $anamnesis, $diagnosa, $tindak, $resep
+            $dokterId, $antreanId, $tensi, $suhu, $bb, $tb, $anamnesis, $diagnosa, $tindak, $resep
         ): int {
             $stmt = $pdo->prepare("
                 SELECT a.id, a.pasien_id, a.poli_id, a.tanggal, r.keluhan AS keluhan_rsv
@@ -66,21 +67,32 @@ final class PemeriksaanService {
             ")->execute([':dokter' => $dokterId, ':id' => $antreanId]);
 
             $keluhan = $antrean['keluhan_rsv'] ?: $anamnesis;
+
+            // Bangun data klinis dalam JSONB sesuai poli
+            $dataPemeriksaan = [
+                'keluhan'         => $keluhan !== '' ? $keluhan : null,
+                'diagnosa'        => $diagnosa !== '' ? $diagnosa : null,
+                'catatan'         => $anamnesis !== '' ? $anamnesis : null,
+                'tindak_lanjut'   => $tindak !== '' ? $tindak : null,
+            ];
+            // Vital signs hanya untuk poli umum (poli_id = 1)
+            if ((int) $antrean['poli_id'] === 1) {
+                if ($tensi !== null)    $dataPemeriksaan['tekanan_darah'] = $tensi;
+                if ($suhu !== null)     $dataPemeriksaan['suhu'] = $suhu;
+                if ($bb !== null)       $dataPemeriksaan['berat_badan'] = $bb;
+                if ($tb !== null)       $dataPemeriksaan['tinggi_badan'] = $tb;
+            }
+
             $stmtPem = $pdo->prepare("
                 INSERT INTO pemeriksaan (
                     antrean_id, pasien_id, dokter_id, poli_id, tanggal,
-                    keluhan, tekanan_darah, suhu, berat_badan, diagnosa, catatan, tindak_lanjut
+                    data_pemeriksaan
                 ) VALUES (
                     :antrean, :pasien, :dokter, :poli, :tanggal,
-                    :keluhan, :tensi, :suhu, :bb, :diagnosa, :catatan, :tindak
+                    :data
                 )
                 ON CONFLICT (antrean_id) DO UPDATE
-                   SET tekanan_darah = EXCLUDED.tekanan_darah,
-                       suhu = EXCLUDED.suhu,
-                       berat_badan = EXCLUDED.berat_badan,
-                       diagnosa = EXCLUDED.diagnosa,
-                       catatan = EXCLUDED.catatan,
-                       tindak_lanjut = EXCLUDED.tindak_lanjut
+                   SET data_pemeriksaan = EXCLUDED.data_pemeriksaan
                 RETURNING id
             ");
             $stmtPem->bindValue(':antrean', $antreanId, PDO::PARAM_INT);
@@ -88,13 +100,7 @@ final class PemeriksaanService {
             $stmtPem->bindValue(':dokter', $dokterId, PDO::PARAM_INT);
             $stmtPem->bindValue(':poli', (int) $antrean['poli_id'], PDO::PARAM_INT);
             $stmtPem->bindValue(':tanggal', $antrean['tanggal']);
-            $stmtPem->bindValue(':keluhan', $keluhan !== '' ? $keluhan : null, $keluhan !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
-            $stmtPem->bindValue(':tensi', $tensi, $tensi === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
-            $stmtPem->bindValue(':suhu', $suhu, $suhu === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
-            $stmtPem->bindValue(':bb', $bb, $bb === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
-            $stmtPem->bindValue(':diagnosa', $diagnosa);
-            $stmtPem->bindValue(':catatan', $anamnesis);
-            $stmtPem->bindValue(':tindak', $tindak, $tindak === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
+            $stmtPem->bindValue(':data', json_encode($dataPemeriksaan, JSON_UNESCAPED_UNICODE));
             $stmtPem->execute();
             $id = (int) $stmtPem->fetchColumn();
             if ($id <= 0) {

@@ -33,8 +33,18 @@ ob_start();
 require_once __DIR__ . "/components/dashboard/ringkasan-pemeriksaan.php";
 $htmlModalRingkasan = ob_get_clean();
 
+// Pilih form pemeriksaan berdasarkan poli dokter
+$poliIdForm = (int) ($dokterProfil['poli_id'] ?? 0);
+if ($poliIdForm === 2) {
+    $formPath = __DIR__ . "/components/form/form-pemeriksaan-gigi.php";
+} elseif ($poliIdForm === 3) {
+    $formPath = __DIR__ . "/components/form/form-pemeriksaan-konseling.php";
+} else {
+    $formPath = __DIR__ . "/components/form/form-pemeriksaan-umum.php";
+}
+
 ob_start();
-require_once __DIR__ . "/components/dashboard/form-pemeriksaan.php";
+require_once $formPath;
 $htmlModalFormPeriksa = ob_get_clean();
 
 ob_start();

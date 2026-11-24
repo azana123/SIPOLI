@@ -17,10 +17,10 @@ SELECT j.id, j.poli_id, p.nama AS poli, j.dokter_id, d.nama AS dokter,
  WHERE p.butuh_reservasi AND j.dipublikasi AND j.status = 'buka'
    AND j.tanggal BETWEEN fn_today() AND fn_today() + 7
    AND (
-         j.tanggal > fn_today()
-         OR (j.tanggal = fn_today()
-             AND j.jam_mulai > (NOW() AT TIME ZONE 'Asia/Jakarta')::time)
-       )
+          j.tanggal > fn_today()
+          OR (j.tanggal = fn_today()
+              AND j.jam_mulai > (NOW() AT TIME ZONE 'Asia/Jakarta')::time)
+        )
  GROUP BY j.id, p.nama, d.nama;
 
 -- Layar antrean & dashboard admin/dokter
@@ -40,11 +40,14 @@ SELECT a.id, a.poli_id, po.nama AS poli, a.no_antrean, a.status,
 CREATE OR REPLACE VIEW v_riwayat_pemeriksaan AS
 SELECT pm.id, pm.tanggal, ps.id AS pasien_id, ps.nim_nip, ps.nama AS pasien,
        po.nama AS poli, d.nama AS dokter,
-       pm.keluhan, pm.diagnosa, pm.tindakan, pm.tindak_lanjut,
+       pm.data_pemeriksaan->>'keluhan'      AS keluhan,
+       pm.data_pemeriksaan->>'diagnosa'     AS diagnosa,
+       pm.data_pemeriksaan->>'tindakan'     AS tindakan,
+       pm.data_pemeriksaan->>'tindak_lanjut' AS tindak_lanjut,
        (SELECT string_agg(o.nama_obat || ' x' || ro.jumlah
                           || COALESCE(' (' || ro.aturan_pakai || ')', ''), '; ')
-          FROM resep_obat ro JOIN obat o ON o.id = ro.obat_id
-         WHERE ro.pemeriksaan_id = pm.id) AS resep
+           FROM resep_obat ro JOIN obat o ON o.id = ro.obat_id
+          WHERE ro.pemeriksaan_id = pm.id) AS resep
   FROM pemeriksaan pm
   JOIN pasien ps ON ps.id = pm.pasien_id
   JOIN poli   po ON po.id = pm.poli_id

@@ -56,7 +56,7 @@ final class QueryAdminReservasi {
                 SELECT 
                     'offline' AS asal,
                     a.id, concat('ANT-', lpad(a.no_antrean::text, 3, '0')) AS kode_tiket,
-                    a.status, pm.keluhan, 0 AS reschedule_count,
+                    a.status, pm.data_pemeriksaan->>'keluhan', 0 AS reschedule_count,
                     NULL AS konfirmasi_diminta_at, NULL AS dikonfirmasi_at, NULL AS dibatalkan_at, NULL AS alasan_batal,
                     a.waktu_daftar AS created_at,
                     p.nama AS nama_pasien, p.nim_nip, p.status_civitas, p.no_hp,

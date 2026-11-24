@@ -40,7 +40,7 @@ final class QueryDokterDashboard {
             ps.nim_nip,
             ps.status_civitas,
             COALESCE(j.jam_mulai, (a.waktu_daftar AT TIME ZONE 'Asia/Jakarta')::time) AS jam_kunjungan,
-            COALESCE(pm.keluhan, r.keluhan, 'Pemeriksaan langsung') AS keluhan_awal,
+            COALESCE(pm.data_pemeriksaan->>'keluhan', r.keluhan, 'Pemeriksaan langsung') AS keluhan_awal,
             pm.id AS pemeriksaan_id
         FROM antrean a
         JOIN pasien ps ON ps.id = a.pasien_id
