@@ -271,6 +271,53 @@ Job pagi, secara berurutan:
 Job malam: `fn_tutup_hari()` — antrean yang belum selesai dibatalkan dan reservasinya menjadi `tidak_hadir`.
 
 ## Deploy dengan Docker
+Contoh ENVIRONMENT VARIABLE
+```
+# ======================================================================
+# SIPOLI — contoh konfigurasi environment
+# ======================================================================
+# Salin file ini menjadi .env, lalu isi nilai sesuai environment kamu:
+#   cp .env.example .env
+#
+# Di hosting (mis. SnapDeploy) dan GitHub Actions, isi nilai ini lewat
+# dashboard Environment / Repository Secrets, bukan lewat file .env.
+
+# ----------------------------------------------------------------------
+# Aplikasi
+# ----------------------------------------------------------------------
+# development | production
+APP_ENV=development
+
+# Kosongkan jika aplikasi berada di root domain.
+# Jika diakses lewat subfolder, misalnya http://localhost/SIPOLI, isi /SIPOLI.
+APP_BASE_URL=
+
+# ----------------------------------------------------------------------
+# Database PostgreSQL
+# ----------------------------------------------------------------------
+# Untuk server PostgreSQL lokal, gunakan host biasa seperti localhost.
+# Untuk Neon, gunakan alamat pooler, misalnya:
+# ep-xxxx-pooler.c-4.ap-southeast-1.aws.neon.tech
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=db_sipoli
+DB_USER=postgres
+DB_PASSWORD=ganti_password_db_kamu
+
+# prefer untuk lokal, require untuk Neon / server dengan SSL wajib.
+DB_SSLMODE=prefer
+
+# Opsional. Hanya dipakai untuk Neon. Jika dikosongkan, nilai diambil
+# dari bagian sebelum titik pertama pada DB_HOST.
+DB_ENDPOINT=
+
+# ----------------------------------------------------------------------
+# Penjadwal (cron)
+# ----------------------------------------------------------------------
+# Token untuk menjalankan cron/pagi.php dan cron/malam.php dari CLI.
+# Gunakan string acak yang panjang, misalnya: openssl rand -hex 32
+CRON_TOKEN=ganti_dengan_token_acak_panjang
+```
 
 `Dockerfile` memakai build dua tahap. Tahap Node memasang dependensi dan membangun `assets/css/style.css` dari `assets/css/input.css`. Tahap runtime memakai `php:8.3-apache`, memasang ekstensi `pdo_pgsql`, `mbstring`, dan `calendar`, lalu menyalin kode aplikasi beserta CSS hasil build dan `flowbite.min.js` yang dibutuhkan halaman.
 
