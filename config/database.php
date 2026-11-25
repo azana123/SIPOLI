@@ -22,15 +22,19 @@ $options = [
     PDO::ATTR_EMULATE_PREPARES   => false,
 ];
 
-$endpointId = explode('.', $host)[0];
+// "options=endpoint=..." adalah mekanisme routing Neon dan hanya dikenal
+// oleh proxy Neon. Server PostgreSQL biasa menolak opsi ini, jadi hanya
+// ditambahkan ketika host memang mengarah ke Neon.
+$dsn = "pgsql:host=$host;port=$port;dbname=$db;sslmode=$sslmode;connect_timeout=10";
+if (str_contains($host, 'neon.tech')) {
+    $endpoint = (string) (getenv('DB_ENDPOINT') ?: explode('.', $host)[0]);
+    if ($endpoint !== '' && preg_match('/^[A-Za-z0-9_-]+$/', $endpoint)) {
+        $dsn .= ';options=endpoint=' . $endpoint;
+    }
+}
 
 try {
-    $pdo = new PDO(
-        "pgsql:host=$host;port=$port;dbname=$db;sslmode=$sslmode;options=endpoint=$endpointId;connect_timeout=10",
-        $user,
-        $pass,
-        $options
-    );
+    $pdo = new PDO($dsn, $user, $pass, $options);
 } catch (PDOException $e) {
     error_log('Database connection failed: ' . $e->getMessage());
     http_response_code(500);
