@@ -467,6 +467,7 @@ final class QueryDaftar {
                 pm.dokter_id,
                 pm.poli_id,
                 pm.tanggal,
+                pm.created_at,
                 pm.data_pemeriksaan->>'keluhan'      AS keluhan,
                 pm.data_pemeriksaan->>'diagnosa'     AS diagnosa,
                 pm.data_pemeriksaan->>'catatan'      AS catatan,
