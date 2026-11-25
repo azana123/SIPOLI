@@ -9,9 +9,6 @@ npm-debug.log
 yarn-error.log
 yarn-debug.log
 
-(Opsional) Jika Anda build CSS di server, Anda bisa meng-ignore file hasil build.
-
-Jika Anda build di lokal dan butuh file CSS-nya di repo, biarkan baris ini di-comment.
 
 public/css/tailwind.css
 
