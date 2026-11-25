@@ -20,7 +20,14 @@ if (isset($pdo) && $paramId !== null) {
 }
 
 $isRingkasanOpen = !empty($dataRingkasan);
-$hariRgkMap  = [1 => 'Senin', 2 => 'Selasa', 3 => 'Rabu', 4 => 'Kamis', 5 => 'Jumat', 6 => 'Sabtu', 7 => 'Minggu'];$bulanRgkMap = [1 => 'Jan', 2 => 'Feb', 3 => 'Mar', 4 => 'Apr', 5 => 'Mei', 6 => 'Jun', 7 => 'Jul', 8 => 'Agu', 9 => 'Sep', 10 => 'Okt', 11 => 'Nov', 12 => 'Des'];
+$hariRgkMap  = [1 => 'Senin', 2 => 'Selasa', 3 => 'Rabu', 4 => 'Kamis', 5 => 'Jumat', 6 => 'Sabtu', 7 => 'Minggu'];
+$bulanRgkMap = [1 => 'Jan', 2 => 'Feb', 3 => 'Mar', 4 => 'Apr', 5 => 'Mei', 6 => 'Jun', 7 => 'Jul', 8 => 'Agu', 9 => 'Sep', 10 => 'Okt', 11 => 'Nov', 12 => 'Des'];
+
+// Tentukan pola pasien untuk menyesuaikan tampilan data klinis
+$poliIdForm = (int) ($dataRingkasan['poli_id'] ?? 0);
+$isPoliUmum   = $poliIdForm === 1;
+$isPoliGigi   = $poliIdForm === 2;
+$isPoliKonsel = $poliIdForm === 3;
 ?>
 <!-- Modal Ringkasan Pemeriksaan Pasien -->
 <div id="modal-ringkasan-pemeriksaan" data-modal-backdrop="static" tabindex="-1" aria-hidden="<?= $isRingkasanOpen ? 'false' : 'true' ?>" class="<?= $isRingkasanOpen ? 'flex bg-gray-900/50' : 'hidden' ?> overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
@@ -81,9 +88,10 @@ $hariRgkMap  = [1 => 'Senin', 2 => 'Selasa', 3 => 'Rabu', 4 => 'Kamis', 5 => 'Ju
                         </div>
                     </div>
 
-                    <!-- Section: Catatan Tanda Vital -->
+                    <!-- Section: Tanda Vital (hanya untuk poli umum) -->
+                    <?php if ($isPoliUmum): ?>
                     <div>
-                        <h5 class="text-sm font-bold text-gray-900 mb-3">Catatan tanda vital</h5>
+                        <h5 class="text-sm font-bold text-gray-900 mb-3">Tanda vital</h5>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div class="p-3 bg-gray-50 border border-gray-200 rounded">
                                 <span class="block text-xs text-gray-500 mb-1">Tekanan darah</span>
@@ -99,26 +107,39 @@ $hariRgkMap  = [1 => 'Senin', 2 => 'Selasa', 3 => 'Rabu', 4 => 'Kamis', 5 => 'Ju
                             </div>
                         </div>
                     </div>
+                    <?php endif; ?>
 
                     <!-- Section: Hasil Pemeriksaan & Diagnosis -->
                     <div>
-                        <h5 class="text-sm font-bold text-gray-900 mb-3">Hasil pemeriksaan &amp; diagnosis</h5>
+                        <h5 class="text-sm font-bold text-gray-900 mb-3">
+                            <?= $isPoliGigi ? 'Detail pemeriksaan gigi' : ($isPoliKonsel ? 'Detail pemeriksaan konseling' : 'Hasil pemeriksaan &amp; diagnosis') ?>
+                        </h5>
                         <div class="border border-gray-200 rounded overflow-hidden">
                             <div class="flex flex-col text-sm">
+                                <!-- Keluhan -->
                                 <div class="flex flex-col md:flex-row p-4 border-b border-gray-100">
-                                    <div class="md:w-1/3 text-gray-500 mb-1 md:mb-0">Keluhan awal</div>
+                                    <div class="md:w-1/3 text-gray-500 mb-1 md:mb-0">
+                                        <?= $isPoliGigi ? 'Keluhan gigi' : 'Keluhan utama' ?>
+                                    </div>
                                     <div class="md:w-2/3 font-bold text-gray-900"><?= e($dataRingkasan['keluhan'] ?: '-') ?></div>
                                 </div>
+                                <!-- Anamnesis / Catatan -->
                                 <div class="flex flex-col md:flex-row p-4 border-b border-gray-100">
-                                    <div class="md:w-1/3 text-gray-500 mb-1 md:mb-0">Anamnesis &amp; pemeriksaan fisik</div>
+                                    <div class="md:w-1/3 text-gray-500 mb-1 md:mb-0">
+                                        <?= $isPoliKonsel ? 'Anamnesis' : 'Catatan hasil pemeriksaan' ?>
+                                    </div>
                                     <div class="md:w-2/3 text-gray-700"><?= e($dataRingkasan['catatan'] ?: '-') ?></div>
                                 </div>
+                                <!-- Diagnosis -->
                                 <div class="flex flex-col md:flex-row p-4 border-b border-gray-100">
-                                    <div class="md:w-1/3 text-gray-500 mb-1 md:mb-0">Diagnosis medis</div>
+                                    <div class="md:w-1/3 text-gray-500 mb-1 md:mb-0">
+                                        <?= $isPoliGigi ? 'Diagnosis gigi' : 'Diagnosis medis' ?>
+                                    </div>
                                     <div class="md:w-2/3 font-bold text-primary-600"><?= e($dataRingkasan['diagnosa'] ?: '-') ?></div>
                                 </div>
+                                <!-- Tindak lanjut -->
                                 <div class="flex flex-col md:flex-row p-4">
-                                    <div class="md:w-1/3 text-gray-500 mb-1 md:mb-0">Tindakan / saran medis</div>
+                                    <div class="md:w-1/3 text-gray-500 mb-1 md:mb-0">Tindak lanjut</div>
                                     <div class="md:w-2/3 text-gray-700 leading-relaxed"><?= e($dataRingkasan['tindak_lanjut'] ?: ($dataRingkasan['tindakan'] ?: 'Istirahat cukup dan konsumsi obat sesuai anjuran.')) ?></div>
                                 </div>
                             </div>

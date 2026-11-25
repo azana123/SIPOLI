@@ -57,7 +57,20 @@ final class QueryDokterRiwayat {
     public static function det(array $params) {
         $stmt = db()->prepare("
             SELECT 
-                pm.*,
+                pm.id,
+                pm.antrean_id,
+                pm.pasien_id,
+                pm.dokter_id,
+                pm.poli_id,
+                pm.tanggal,
+                pm.data_pemeriksaan->>'keluhan'      AS keluhan,
+                pm.data_pemeriksaan->>'diagnosa'     AS diagnosa,
+                pm.data_pemeriksaan->>'catatan'      AS catatan,
+                pm.data_pemeriksaan->>'tindak_lanjut' AS tindak_lanjut,
+                pm.data_pemeriksaan->>'tekanan_darah' AS tekanan_darah,
+                pm.data_pemeriksaan->>'suhu'          AS suhu,
+                pm.data_pemeriksaan->>'berat_badan'   AS berat_badan,
+                pm.data_pemeriksaan->>'tinggi_badan'  AS tinggi_badan,
                 ps.nama AS nama_pasien,
                 ps.nim_nip,
                 ps.status_civitas,
